@@ -5,7 +5,7 @@ Created on Apr 21, 2014
 '''
 
 import ue_solver as ue
-import graph as g
+import Graph as g
 import test_graph as testg
 
 def main():
@@ -14,8 +14,8 @@ def main():
     print 'links\' indices: ', indlinks
     print 'UE flow: '
     print linkflows
-    
-    g.visualize(grid, paths=True)
+    #g.visualize(grid, links=True, paths=True)
+    return grid, indlinks, linkflows
 
 if __name__ == '__main__':
     main()

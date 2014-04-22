@@ -6,7 +6,6 @@ Created on Apr 20, 2014
 
 from cvxopt import matrix, spmatrix
 import scipy.linalg as sla
-import numpy as ny
 from rank_nullspace import rank
 
 
@@ -16,14 +15,21 @@ def index_links(graph):
 
 
 def constraints(graph):
-    """Construct constraints for the UE link flow"""
+    """Construct constraints for the UE link flow
+    
+     Return value
+    ------------
+    indlinks: dict of link id to index
+    A: matrix -eye(numlinks)
+    b: matrix ones(numlinks,1)
+    Aeq: matrix of incidence nodes-links
+    beq: matrix of incidence nodes-ODs
+    """
     indlinks = index_links(graph)
-    entries = []; I = []; J = []; beq=[]
+    entries, I, J, beq = [], [], [], []
     for id1,node in graph.nodes.items():
-        for id2,link in node.inlinks.items():
-            entries.append(1); I.append(id1-1); J.append(indlinks[id2])
-        for id2,link in node.outlinks.items():
-            entries.append(-1); I.append(id1-1); J.append(indlinks[id2])
+        for id2,link in node.inlinks.items(): entries.append(1.0); I.append(id1-1); J.append(indlinks[id2])
+        for id2,link in node.outlinks.items(): entries.append(-1.0); I.append(id1-1); J.append(indlinks[id2])
         beq.append( sum([od.flow for od in node.endODs.values()]) - sum([od.flow for od in node.startODs.values()]) )
     Aeq = spmatrix(entries,I,J)
     M = matrix(Aeq); m = graph.numnodes; ind = range(m); r = rank(M)
@@ -44,7 +50,8 @@ def find_basis(M):
 
 
 def solver(graph, update=False):
-    """Find the UE link flow and update link path flows in graph if update==True"""
+    """Find the UE link flow
+    if update==True: update link flows and link,path delays in graph"""
     
     indlinks, A, b, Aeq, beq = constraints(graph)
     
@@ -57,6 +64,9 @@ def solver(graph, update=False):
             entries.append(link.delayfunc.slope); I.append(indlinks[id]); q.append(link.delayfunc.ffdelay)
         P = spmatrix(entries,I,I)
         linkflows = qp(P, matrix(q), A, b, Aeq, beq)['x']
+        
+    if type == 'Other':
+        pass
     
     if update == True:
         for id,link in graph.links.items(): flow = linkflows[indlinks[id]]; link.flow, link.delay = flow, link.delayfunc.compute_delay(flow)
