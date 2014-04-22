@@ -11,7 +11,8 @@ import test_graph as testg
 if __name__ == '__main__':
     grid = testg.smallGrid()
     keys, sol = ue.solver(grid, update=True)
-    print keys
+    print 'links\' keys: ', keys
+    print 'UE flow: '
     print sol
     
-    #g.visualize(grid, paths=True)
+    g.visualize(grid, paths=True)
