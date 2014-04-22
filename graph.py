@@ -20,12 +20,12 @@ class Graph:
         self.numpaths = numpaths
         
         
-    def addNode(self):
+    def add_node(self):
         self.numnodes += 1
         self.nodes[self.numnodes] = Node({}, {}, {}, {})
         
           
-    def addLink(self, startnode, endnode, route=1, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None):
+    def add_link(self, startnode, endnode, route=1, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None):
         formatStr = 'ERROR: node {} doesn\'t exist, graph countains {} nodes'
         if startnode == endnode: print 'ERROR: self-loop not allowed'; return
         if startnode < 1 or startnode > self.numnodes: print formatStr.format(startnode, self.numnodes); return
@@ -41,10 +41,10 @@ class Graph:
             self.nodes[endnode].inlinks[(startnode, endnode, route)] = link
             if not delayfunc is None:
                 link.ffdelay = delayfunc.ffdelay
-                link.delay = delayfunc.computeDelay(link.flow)
+                link.delay = delayfunc.compute_delay(link.flow)
                     
    
-    def addOD(self, origin, destination, flow=0.0):
+    def add_od(self, origin, destination, flow=0.0):
         formatStr = 'ERROR: node {} doesn\'t exist, graph countains {} nodes'
         if origin == destination: print 'ERROR: self-loop not allowed'; return
         if origin < 1 or origin > self.numnodes: print formatStr.format(origin, self.numnodes); return
@@ -60,20 +60,20 @@ class Graph:
             self.nodes[destination].endODs[(origin, destination)] = od
    
    
-    def addPath(self, linkIds):
+    def add_path(self, link_ids):
         
-        origin = linkIds[0][0]
-        destination = linkIds[len(linkIds)-1][1]
+        origin = link_ids[0][0]
+        destination = link_ids[len(link_ids)-1][1]
         if not (origin, destination) in self.ODs: print 'ERROR: OD ({},{}) doesn\'t exist'.format(origin, destination); return
         
-        for i in range(len(linkIds)-1):
-            if linkIds[i][1] != linkIds[i+1][0]: print 'ERROR: path not valid'; return
+        for i in range(len(link_ids)-1):
+            if link_ids[i][1] != link_ids[i+1][0]: print 'ERROR: path not valid'; return
         
         for path in self.ODs[(origin, destination)].paths.values():
-            if [(link.startnode,link.endnode,link.route) for link in path.links] == linkIds: print 'ERROR: path already exists'; return
+            if [(link.startnode,link.endnode,link.route) for link in path.links] == link_ids: print 'ERROR: path already exists'; return
         
         links = []; delay = 0.0; ffdelay = 0.0
-        for id in linkIds:
+        for id in link_ids:
             link = self.links[(id[0], id[1], id[2])]; links.append(link); delay += link.delay; ffdelay += link.ffdelay
             
         path = Path(origin, destination, links, 0.0, delay, ffdelay)
@@ -137,43 +137,54 @@ class AffineDelay:
         self.slope = slope
         self.type = type
         
-    def computeDelay(self, flow):
+    def compute_delay(self, flow):
         return self.ffdelay + self.slope*flow
         
         
-def grid(n, m, inRight=None, inDown=None, outRight=None, outDown=None, 
-         inRdelay=None, inDdelay=None, outRdelay=None, outDdelay=None):
-    """construct a grid with n rows and m columns"""
-    grid = Graph({},{},{},{})
-    [grid.addNode() for i in range(n) for j in range(m)]
+def create_grid(n, m, inright=None, indown=None, outright=None, outdown=None, 
+         inrdelay=None, inddelay=None, outrdelay=None, outddelay=None):
+    """construct a grid with n rows and m columns
+                                        1 - 2 - 3 - 4
+       for a n=2 X m=4 grid, nodes are: |   |   |   |
+                                        5 - 6 - 7 - 8
+       inright = [k1, k2, k3, k4, k5, ...]: creates ki in-links of node i connected to the right neighbor of i
+       indown = [k1, k2, k3, k4, k5, ...]: creates ki in-links of node i connected to the down neighbor of i
+       outright = [k1, k2, k3, k4, k5, ...]: creates ki out-links of node i connected to the right neighbor of i
+       outdown = [k1, k2, k3, k4, k5, ...]: creates ki out-links of node i connected to the down neighbor of i
+       inrdelay = [[(f11,a11), (f12,a12), ...], [(f21,a21), (f22,a22), ...], ...]: 
+           add AffineDelay(fij, aij) to j-th in-link connected to the right neighbor if i 
     
-    if not inRight is None:
-        if inRdelay is None:
-            [grid.addLink(i*m+j+2, i*m+j+1, k+1) for i in range(n) for j in range(m-1) for k in range(inRight[i*m+j])]
+    """
+    grid = Graph({},{},{},{})
+    [grid.add_node() for i in range(n) for j in range(m)]
+    
+    if not inright is None:
+        if inrdelay is None:
+            [grid.add_link(i*m+j+2, i*m+j+1, k+1) for i in range(n) for j in range(m-1) for k in range(inright[i*m+j])]
         else:                
-            [grid.addLink(i*m+j+2, i*m+j+1, k+1, delayfunc=AffineDelay(inRdelay[i*m+j][k][0], inRdelay[i*m+j][k][1])) 
-             for i in range(n) for j in range(m-1) for k in range(inRight[i*m+j])]
+            [grid.add_link(i*m+j+2, i*m+j+1, k+1, delayfunc=AffineDelay(inrdelay[i*m+j][k][0], inrdelay[i*m+j][k][1])) 
+             for i in range(n) for j in range(m-1) for k in range(inright[i*m+j])]
             
-    if not inDown is None:
-        if inDdelay is None:
-            [grid.addLink((i+1)*m+j+1, i*m+j+1, k+1) for i in range(n-1) for j in range(m) for k in range(inDown[i*m+j])]
+    if not indown is None:
+        if inddelay is None:
+            [grid.add_link((i+1)*m+j+1, i*m+j+1, k+1) for i in range(n-1) for j in range(m) for k in range(indown[i*m+j])]
         else:
-            [grid.addLink((i+1)*m+j+1, i*m+j+1, k+1, delayfunc=AffineDelay(inDdelay[i*m+j][k][0], inDdelay[i*m+j][k][1])) 
-             for i in range(n-1) for j in range(m) for k in range(inDown[i*m+j])]
+            [grid.add_link((i+1)*m+j+1, i*m+j+1, k+1, delayfunc=AffineDelay(inddelay[i*m+j][k][0], inddelay[i*m+j][k][1])) 
+             for i in range(n-1) for j in range(m) for k in range(indown[i*m+j])]
         
-    if not outRight is None:
-        if outRdelay is None:
-            [grid.addLink(i*m+j+1, i*m+j+2, k+1) for i in range(n) for j in range(m-1) for k in range(outRight[i*m+j])]
+    if not outright is None:
+        if outrdelay is None:
+            [grid.add_link(i*m+j+1, i*m+j+2, k+1) for i in range(n) for j in range(m-1) for k in range(outright[i*m+j])]
         else:
-            [grid.addLink(i*m+j+1, i*m+j+2, k+1, delayfunc=AffineDelay(outRdelay[i*m+j][k][0], outRdelay[i*m+j][k][1]))
-             for i in range(n) for j in range(m-1) for k in range(outRight[i*m+j])]
+            [grid.add_link(i*m+j+1, i*m+j+2, k+1, delayfunc=AffineDelay(outrdelay[i*m+j][k][0], outrdelay[i*m+j][k][1]))
+             for i in range(n) for j in range(m-1) for k in range(outright[i*m+j])]
         
-    if not outDown is None:
-        if outDdelay is None:
-            [grid.addLink(i*m+j+1, (i+1)*m+j+1, k+1) for i in range(n-1) for j in range(m) for k in range(outDown[i*m+j])]
+    if not outdown is None:
+        if outddelay is None:
+            [grid.add_link(i*m+j+1, (i+1)*m+j+1, k+1) for i in range(n-1) for j in range(m) for k in range(outdown[i*m+j])]
         else:
-            [grid.addLink(i*m+j+1, (i+1)*m+j+1, k+1, delayfunc=AffineDelay(outDdelay[i*m+j][k][0], outDdelay[i*m+j][k][1])) 
-             for i in range(n-1) for j in range(m) for k in range(outDown[i*m+j])]
+            [grid.add_link(i*m+j+1, (i+1)*m+j+1, k+1, delayfunc=AffineDelay(outddelay[i*m+j][k][0], outddelay[i*m+j][k][1])) 
+             for i in range(n-1) for j in range(m) for k in range(outdown[i*m+j])]
         
     return grid
 

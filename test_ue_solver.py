@@ -8,11 +8,14 @@ import ue_solver as ue
 import graph as g
 import test_graph as testg
 
-if __name__ == '__main__':
-    grid = testg.smallGrid()
-    keys, sol = ue.solver(grid, update=True)
-    print 'links\' keys: ', keys
+def main():
+    grid = testg.small_grid()
+    indlinks, linkflows = ue.solver(grid, update=True)
+    print 'links\' indices: ', indlinks
     print 'UE flow: '
-    print sol
+    print linkflows
     
     g.visualize(grid, paths=True)
+
+if __name__ == '__main__':
+    main()
