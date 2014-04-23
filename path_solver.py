@@ -7,7 +7,7 @@ Created on Apr 22, 2014
 from cvxopt import matrix, spmatrix
 
 
-def constraints(graph, indlinks):
+def constraints(graph):
     """Construct constraints for feasible path flows
     
     Return value
@@ -21,7 +21,7 @@ def constraints(graph, indlinks):
     
     I, J = [], []
     for id,path in graph.paths.items():
-        for link in path.links: I.append(indlinks[(link.startnode, link.endnode, link.route)]); J.append(graph.indpaths[id])
+        for link in path.links: I.append(graph.indlinks[(link.startnode, link.endnode, link.route)]); J.append(graph.indpaths[id])
     A = spmatrix(1.0, I, J)
     
     I, J, r = [], [], matrix(0.0, (graph.numODs,1))
@@ -36,7 +36,7 @@ def constraints(graph, indlinks):
     return A, U, r, C, d
 
 
-def solver(graph, linkflows, indlinks, update=False, model='lls'):
+def solver(graph, linkflows, update=False, model='lls'):
     """Find a feasible path flow
     
     Parameters
@@ -46,7 +46,7 @@ def solver(graph, linkflows, indlinks, update=False, model='lls'):
     update: if update==True, update path flows in graph
     model: if model=='lls', solve with linear-least-squares """
     
-    A, U, r, C, d = constraints(graph, indlinks)
+    A, U, r, C, d = constraints(graph)
 
     
     if model == 'lls':
