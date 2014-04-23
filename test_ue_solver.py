@@ -9,11 +9,13 @@ import test_graph as testg
 
 def main():
     grid = testg.small_grid()
-    linkflows = ue.solver(grid, update=True)
+    linkflows = ue.solver(grid)
     print 'links\' indices: ', grid.indlinks
     print 'UE flow: '
     print linkflows
-    return grid, linkflows
+    unusedpaths = ue.unused_paths(grid)
+    print 'Unused paths: ', unusedpaths
+    return grid, linkflows, unusedpaths
 
 if __name__ == '__main__':
     main()

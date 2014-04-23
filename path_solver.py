@@ -4,8 +4,9 @@ Created on Apr 22, 2014
 @author: jeromethai
 '''
 
-from cvxopt import matrix, spmatrix, sparse
+from cvxopt import matrix, spmatrix, sparse, solvers
 from rank_nullspace import nullspace
+from util import place_zeros
 
 
 def constraints(graph):
@@ -37,7 +38,7 @@ def constraints(graph):
     return A, U, r, C, d
 
 
-def solver(graph, linkflows, update=False, model='lls'):
+def solver(graph, linkflows, update=True, model='lls', unusedpaths=None, tol=1e-2):
     """Find a feasible path flow
     
     Parameters
@@ -45,26 +46,43 @@ def solver(graph, linkflows, update=False, model='lls'):
     graph: graph object
     linkflows: matrix of link flows
     update: if update==True, update path flows in graph
-    model: if model=='lls', solve with linear-least-squares """
+    model: if model=='lls', solve with linear-least-squares
+    unusedpaths: ids of unused paths if graph is in UE link flow"""
     
     A, U, r, C, d = constraints(graph)
     
-    if model == 'lls':
-        from cvxopt.solvers import qp
-        pathflows = qp(A.trans()*A, -A.trans()*linkflows, C, d, U, r)['x']
+    if model == 'lls': pathflows = solvers.qp(A.trans()*A, -A.trans()*linkflows, C, d, U, r)['x']
         
-    if model == 'other':
-        pass
+    if model == 'other': pass
     
     if update == True:
-        for id,path in graph.paths.items():
-            path.flow = pathflows[graph.indpaths[id]]
+        for id,path in graph.paths.items(): path.flow = pathflows[graph.indpaths[id]]
     
+    if unusedpaths is not None:
+        valid = True
+        for id in unusedpaths:
+            if pathflows[graph.indpaths[id]] > tol * graph.ODs[(id[0],id[1])].flow:
+                print 'WARNING: path flow ({},{},{}) doesn\'t satisfy UE!'.format(id[0],id[1],id[2]); valid = False; break
+            else:
+                pathflows[graph.indpaths[id]] = 0.0
+        if valid == True: print 'Path flow satisfies UE'
+        
     return pathflows
 
 
-def vec_feas_paths(graph):
+def vec_feas_paths(graph, unusedpaths=None, tol=1e-2):
     """Find a basis of the space of feasible paths"""
     A, U, r, C, d = constraints(graph)
-    return nullspace(matrix(sparse([A, U])))
+    null = nullspace(matrix(sparse([A, U])))
+    ind = range(null.shape[1])
     
+    if unusedpaths is not None:
+        print 'Trimming unfeasible directions'
+        for j in range(null.shape[1]):
+            for id in unusedpaths:
+                i = graph.indpaths[id]
+                if abs(null[i][j]) > tol: ind.remove(j); break
+                null[i][j] = 0.0
+    
+    return place_zeros(null[:,ind])
+ 

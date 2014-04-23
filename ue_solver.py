@@ -4,10 +4,9 @@ Created on Apr 20, 2014
 @author: jeromethai
 '''
 
-from cvxopt import matrix, spmatrix
-import scipy.linalg as sla
+from cvxopt import matrix, spmatrix, solvers
 from rank_nullspace import rank
-
+from util import find_basis
 
 def constraints(graph):
     """Construct constraints for the UE link flow
@@ -34,17 +33,7 @@ def constraints(graph):
     return A, b, Aeq, beq
 
 
-def find_basis(M):
-    """Find the indices of the columns of M that form a basis or range(M)"""
-    p,l,u = sla.lu(M)
-    ind = [i for i in range(u.shape[0]) if u[i,i] != 0.0]
-    if u[i,i] == 0:
-        for j in range(i+1,u.shape[1]):
-            if u[i,j] != 0.0: ind.append(j); break
-    return ind
-
-
-def solver(graph, update=False):
+def solver(graph, update=True):
     """Find the UE link flow
     if update==True: update link flows and link,path delays in graph"""
     
@@ -53,12 +42,11 @@ def solver(graph, update=False):
     type = graph.links.values()[0].delayfunc.type    
     
     if type == 'Affine':
-        from cvxopt.solvers import qp
         entries = []; I=[]; q = matrix(0.0, (graph.numlinks,1))
         for id,link in graph.links.items():
             entries.append(link.delayfunc.slope); I.append(graph.indlinks[id]); q[graph.indlinks[id]] = link.delayfunc.ffdelay
         P = spmatrix(entries,I,I)
-        linkflows = qp(P, matrix(q), A, b, Aeq, beq)['x']
+        linkflows = solvers.qp(P, matrix(q), A, b, Aeq, beq)['x']
         
     if type == 'Other':
         pass
@@ -71,3 +59,12 @@ def solver(graph, update=False):
             path.delay = delay
         
     return linkflows
+
+
+def unused_paths(graph, tol=1e-3):
+    """Find unused paths given UE link delays in graph"""
+    pathids = []
+    for od in graph.ODs.values():
+        mindelay = min([path.delay for path in od.paths.values()])
+        [pathids.append((path.o, path.d, path.route)) for path in od.paths.values() if path.delay > mindelay + tol]
+    return pathids

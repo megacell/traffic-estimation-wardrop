@@ -42,7 +42,7 @@ class Graph:
             self.links[(startnode, endnode, route)] = link
             self.nodes[startnode].outlinks[(startnode, endnode, route)] = link
             self.nodes[endnode].inlinks[(startnode, endnode, route)] = link
-            if not delayfunc is None:
+            if delayfunc is not None:
                 link.ffdelay = delayfunc.ffdelay
                 link.delay = delayfunc.compute_delay(link.flow)
                     
@@ -80,9 +80,9 @@ class Graph:
         for id in link_ids:
             link = self.links[(id[0], id[1], id[2])]; links.append(link); delay += link.delay; ffdelay += link.ffdelay
             
-        path = Path(origin, destination, links, 0.0, delay, ffdelay)
         self.ODs[(origin, destination)].numpaths += 1
         route = self.ODs[(origin, destination)].numpaths
+        path = Path(origin, destination, route, links, 0.0, delay, ffdelay)
         self.indpaths[(origin, destination, route)] = self.numpaths
         self.numpaths += 1
         self.paths[(origin, destination, route)] = path
@@ -117,9 +117,10 @@ class Node:
         
 class Path:
     """A path in the graph"""
-    def __init__(self, origin, destination, links, flow=0.0, delay=0.0, ffdelay=0.0):
+    def __init__(self, origin, destination, route, links, flow=0.0, delay=0.0, ffdelay=0.0):
         self.o = origin #origin node
         self.d = destination #destination node
+        self.route = route #index of path associated to this od pair
         self.links = links #set of all links on the path
         self.flow = flow
         self.delay = delay

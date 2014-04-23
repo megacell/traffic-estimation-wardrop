@@ -9,12 +9,12 @@ import path_solver as path
 from cvxopt import matrix
 
 def main():
-    grid, linkflows = testue.main()
-    pathflows = path.solver(grid, linkflows, update=True)
+    grid, linkflows, unusedpaths = testue.main()
+    pathflows = path.solver(grid, linkflows, unusedpaths=unusedpaths)
     print 'links\' indices: ', grid.indlinks
     print 'paths\' indices: ', grid.indpaths
     print pathflows
-    print path.vec_feas_paths(grid)
+    print path.vec_feas_paths(grid, unusedpaths=unusedpaths)
 
 if __name__ == '__main__':
     main()
