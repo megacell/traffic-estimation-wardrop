@@ -19,13 +19,15 @@ def constraints(graph):
     Aeq: matrix of incidence nodes-links
     beq: matrix of incidence nodes-ODs
     """
-    entries, I, J, beq = [], [], [], []
+    m = graph.numnodes;
+    entries, I, J, beq = [], [], [], matrix(0.0, (m,1))
+    
     for id1,node in graph.nodes.items():
         for id2,link in node.inlinks.items(): entries.append(1.0); I.append(id1-1); J.append(graph.indlinks[id2])
         for id2,link in node.outlinks.items(): entries.append(-1.0); I.append(id1-1); J.append(graph.indlinks[id2])
-        beq.append( sum([od.flow for od in node.endODs.values()]) - sum([od.flow for od in node.startODs.values()]) )
+        beq[id1-1] = sum([od.flow for od in node.endODs.values()]) - sum([od.flow for od in node.startODs.values()])
     Aeq = spmatrix(entries,I,J)
-    M = matrix(Aeq); m = graph.numnodes; ind = range(m); r = rank(M)
+    M = matrix(Aeq); ind = range(m); r = rank(M)
     if r < m: print 'Remove {} redundant constraint(s)'.format(m-r); ind = find_basis(M.trans())
     n = graph.numlinks
     A, b, Aeq, beq = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1)), Aeq[ind,:], matrix(beq)[ind]
@@ -52,9 +54,9 @@ def solver(graph, update=False):
     
     if type == 'Affine':
         from cvxopt.solvers import qp
-        entries = []; I=[]; q = []
+        entries = []; I=[]; q = matrix(0.0, (graph.numlinks,1))
         for id,link in graph.links.items():
-            entries.append(link.delayfunc.slope); I.append(graph.indlinks[id]); q.append(link.delayfunc.ffdelay)
+            entries.append(link.delayfunc.slope); I.append(graph.indlinks[id]); q[graph.indlinks[id]] = link.delayfunc.ffdelay
         P = spmatrix(entries,I,I)
         linkflows = qp(P, matrix(q), A, b, Aeq, beq)['x']
         

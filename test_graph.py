@@ -41,7 +41,6 @@ def small_grid():
     # paths for OD (2,4)
     grid.add_path([(2,1,1), (1,4,1)])
     grid.add_path([(2,5,1), (5,4,1)])
-    grid.indlinks = grid.index_links()
     return grid
 
 

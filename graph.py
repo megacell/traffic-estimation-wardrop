@@ -17,15 +17,10 @@ class Graph:
         self.numlinks = numlinks
         self.numODs = numODs
         self.numpaths = numpaths
-        self.indlinks = indlinks
-        self.indods = indods
-        self.indpaths = indpaths
+        self.indlinks = indlinks # indexation for matrix generations
+        self.indods = indods # indexation for matrix generations
+        self.indpaths = indpaths # indexation for matrix generations
         
-    
-    def index_links(self):
-        """Index links of the graph with integers from 0 to numlinks-1"""
-        return {self.links.keys()[i]: i for i in range(self.numlinks)}
-    
     
     def add_node(self):
         self.numnodes += 1
@@ -42,7 +37,7 @@ class Graph:
             print 'ERROR: link ({},{},{}) already exists'.format(startnode, endnode, route); return
         else:
             link = Link(startnode, endnode, route, flow, delay, ffdelay, delayfunc, {})
-            #self.indlinks[(startnode, endnode, route)] = self.numlinks
+            self.indlinks[(startnode, endnode, route)] = self.numlinks
             self.numlinks += 1
             self.links[(startnode, endnode, route)] = link
             self.nodes[startnode].outlinks[(startnode, endnode, route)] = link
@@ -214,6 +209,9 @@ def visualize(graph, general=False, nodes=False, links=False, ODs=False, paths=F
         print 'Number of OD pairs: ', graph.numODs
         print 'Paths: ', graph.paths
         print 'Number of paths: ', graph.numpaths
+        print 'Link indexation', graph.indlinks
+        print 'OD indexation', graph.indods
+        print 'Path indexation', graph.indpaths
         print
   
     if nodes==True:

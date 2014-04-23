@@ -5,7 +5,6 @@ Created on Apr 21, 2014
 '''
 
 import ue_solver as ue
-import Graph as g
 import test_graph as testg
 
 def main():
@@ -14,7 +13,6 @@ def main():
     print 'links\' indices: ', grid.indlinks
     print 'UE flow: '
     print linkflows
-    #g.visualize(grid, links=True, paths=True)
     return grid, linkflows
 
 if __name__ == '__main__':

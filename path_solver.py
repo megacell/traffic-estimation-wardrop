@@ -4,7 +4,8 @@ Created on Apr 22, 2014
 @author: jeromethai
 '''
 
-from cvxopt import matrix, spmatrix
+from cvxopt import matrix, spmatrix, sparse
+from rank_nullspace import nullspace
 
 
 def constraints(graph):
@@ -47,7 +48,6 @@ def solver(graph, linkflows, update=False, model='lls'):
     model: if model=='lls', solve with linear-least-squares """
     
     A, U, r, C, d = constraints(graph)
-
     
     if model == 'lls':
         from cvxopt.solvers import qp
@@ -56,4 +56,15 @@ def solver(graph, linkflows, update=False, model='lls'):
     if model == 'other':
         pass
     
+    if update == True:
+        for id,path in graph.paths.items():
+            path.flow = pathflows[graph.indpaths[id]]
+    
     return pathflows
+
+
+def vec_feas_paths(graph):
+    """Find a basis of the space of feasible paths"""
+    A, U, r, C, d = constraints(graph)
+    return nullspace(matrix(sparse([A, U])))
+    
