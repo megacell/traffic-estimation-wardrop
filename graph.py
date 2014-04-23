@@ -8,7 +8,7 @@ from sets import Set
 
 class Graph:
     """A graph containing nodes and links"""
-    def __init__(self, nodes={}, links={}, ODs={}, paths={}, numnodes=0, numlinks=0, numODs=0, numpaths=0, indods={}, indpaths={}):
+    def __init__(self, nodes={}, links={}, ODs={}, paths={}, numnodes=0, numlinks=0, numODs=0, numpaths=0, indlinks={}, indods={}, indpaths={}):
         self.nodes = nodes
         self.links = links
         self.ODs = ODs
@@ -17,10 +17,16 @@ class Graph:
         self.numlinks = numlinks
         self.numODs = numODs
         self.numpaths = numpaths
+        self.indlinks = indlinks
         self.indods = indods
         self.indpaths = indpaths
         
-        
+    
+    def index_links(self):
+        """Index links of the graph with integers from 0 to numlinks-1"""
+        return {self.links.keys()[i]: i for i in range(self.numlinks)}
+    
+    
     def add_node(self):
         self.numnodes += 1
         self.nodes[self.numnodes] = Node({}, {}, {}, {})
@@ -36,6 +42,7 @@ class Graph:
             print 'ERROR: link ({},{},{}) already exists'.format(startnode, endnode, route); return
         else:
             link = Link(startnode, endnode, route, flow, delay, ffdelay, delayfunc, {})
+            #self.indlinks[(startnode, endnode, route)] = self.numlinks
             self.numlinks += 1
             self.links[(startnode, endnode, route)] = link
             self.nodes[startnode].outlinks[(startnode, endnode, route)] = link
