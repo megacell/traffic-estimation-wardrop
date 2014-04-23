@@ -10,9 +10,9 @@ from cvxopt import matrix
 
 def main():
     grid, indlinks, linkflows = testue.main()
-    indpaths, pathflows = path.solver(grid, linkflows, indlinks)
+    pathflows = path.solver(grid, linkflows, indlinks)
     print 'links\' indices: ', indlinks
-    print 'paths\' indices: ', indpaths
+    print 'paths\' indices: ', grid.indpaths
     print pathflows
     #print U
     #print r

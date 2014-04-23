@@ -21,7 +21,7 @@ def constraints(graph):
     ------------
     indlinks: dict of link id to index
     A: matrix -eye(numlinks)
-    b: matrix ones(numlinks,1)
+    b: matrix zeros(numlinks,1)
     Aeq: matrix of incidence nodes-links
     beq: matrix of incidence nodes-ODs
     """
