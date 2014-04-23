@@ -8,8 +8,7 @@ from sets import Set
 
 class Graph:
     """A graph containing nodes and links"""
-    def __init__(self, nodes={}, links={}, ODs={}, paths={}, numnodes=0, numlinks=0, numODs=0, 
-                 numpaths=0, indlinks={}, indods={}, indpaths={}):
+    def __init__(self, nodes, links, ODs, paths, numnodes=0, numlinks=0, numODs=0, numpaths=0):
         self.nodes = nodes
         self.links = links
         self.ODs = ODs
@@ -18,9 +17,6 @@ class Graph:
         self.numlinks = numlinks
         self.numODs = numODs
         self.numpaths = numpaths
-        self.indlinks = indlinks # link indices for matrix construction
-        self.indods = indods # ods indices for matrix construction
-        self.indpaths = indpaths # paths indices for matrix construction
         
         
     def add_node(self):
@@ -38,7 +34,6 @@ class Graph:
             print 'ERROR: link ({},{},{}) already exists'.format(startnode, endnode, route); return
         else:
             link = Link(startnode, endnode, route, flow, delay, ffdelay, delayfunc, {})
-            self.indlinks[(startnode, endnode, route)] = self.numlinks
             self.numlinks += 1
             self.links[(startnode, endnode, route)] = link
             self.nodes[startnode].outlinks[(startnode, endnode, route)] = link
@@ -57,7 +52,6 @@ class Graph:
         if (origin, destination) in self.ODs:
             print 'ERROR: OD ({},{}) already exists'.format(origin, destination); return
         else:
-            self.indods[(origin, destination)] = self.numODs
             self.numODs += 1
             od = OD(origin, destination, flow, {})
             self.ODs[(origin, destination)] = od
@@ -82,11 +76,10 @@ class Graph:
             link = self.links[(id[0], id[1], id[2])]; links.append(link); delay += link.delay; ffdelay += link.ffdelay
             
         path = Path(origin, destination, links, 0.0, delay, ffdelay)
+        self.numpaths += 1
         self.ODs[(origin, destination)].numpaths += 1
         route = self.ODs[(origin, destination)].numpaths
-        self.indpaths[(origin, destination, route)] = self.numpaths
         self.paths[(origin, destination, route)] = path
-        self.numpaths += 1
         self.ODs[(origin, destination)].paths[(origin, destination, route)] = path
         for link in links:
             self.links[(link.startnode, link.endnode, link.route)].numpaths += 1
@@ -147,61 +140,56 @@ class AffineDelay:
         return self.ffdelay + self.slope*flow
         
         
-def create_grid(m, n, inright=None, indown=None, outright=None, outdown=None, 
+def create_grid(n, m, inright=None, indown=None, outright=None, outdown=None, 
          inrdelay=None, inddelay=None, outrdelay=None, outddelay=None):
-    """construct a grid with m rows and n columns
+    """construct a grid with n rows and m columns
                                         1 - 2 - 3 - 4
-    for a m=2 X n=4 grid, nodes are: |   |   |   |
+       for a n=2 X m=4 grid, nodes are: |   |   |   |
                                         5 - 6 - 7 - 8
-                                        
-    Parameters
-    ----------
-    
-    inright: list [k1, k2, k3, k4, k5, ...]: creates ki in-links of node i connected to the right neighbor of i
-    indown: list [k1, k2, k3, k4, k5, ...]: creates ki in-links of node i connected to the down neighbor of i
-    outright: list [k1, k2, k3, k4, k5, ...]: creates ki out-links of node i connected to the right neighbor of i
-    outdown: list [k1, k2, k3, k4, k5, ...]: creates ki out-links of node i connected to the down neighbor of i
-    inrdelay: list [[(f11,a11), (f12,a12), ...], [(f21,a21), (f22,a22), ...], ...]: 
+       inright = [k1, k2, k3, k4, k5, ...]: creates ki in-links of node i connected to the right neighbor of i
+       indown = [k1, k2, k3, k4, k5, ...]: creates ki in-links of node i connected to the down neighbor of i
+       outright = [k1, k2, k3, k4, k5, ...]: creates ki out-links of node i connected to the right neighbor of i
+       outdown = [k1, k2, k3, k4, k5, ...]: creates ki out-links of node i connected to the down neighbor of i
+       inrdelay = [[(f11,a11), (f12,a12), ...], [(f21,a21), (f22,a22), ...], ...]: 
            add AffineDelay(fij, aij) to j-th in-link connected to the right neighbor if i 
     
     """
-    grid = Graph()
-    [grid.add_node() for i in range(m) for j in range(n)]
+    grid = Graph({},{},{},{})
+    [grid.add_node() for i in range(n) for j in range(m)]
     
     if not inright is None:
         if inrdelay is None:
-            [grid.add_link(i*n+j+2, i*n+j+1, k+1) for i in range(m) for j in range(n-1) for k in range(inright[i*n+j])]
+            [grid.add_link(i*m+j+2, i*m+j+1, k+1) for i in range(n) for j in range(m-1) for k in range(inright[i*m+j])]
         else:                
-            [grid.add_link(i*n+j+2, i*n+j+1, k+1, delayfunc=AffineDelay(inrdelay[i*n+j][k][0], inrdelay[i*n+j][k][1])) 
-             for i in range(m) for j in range(n-1) for k in range(inright[i*n+j])]
+            [grid.add_link(i*m+j+2, i*m+j+1, k+1, delayfunc=AffineDelay(inrdelay[i*m+j][k][0], inrdelay[i*m+j][k][1])) 
+             for i in range(n) for j in range(m-1) for k in range(inright[i*m+j])]
             
     if not indown is None:
         if inddelay is None:
-            [grid.add_link((i+1)*n+j+1, i*n+j+1, k+1) for i in range(m-1) for j in range(n) for k in range(indown[i*n+j])]
+            [grid.add_link((i+1)*m+j+1, i*m+j+1, k+1) for i in range(n-1) for j in range(m) for k in range(indown[i*m+j])]
         else:
-            [grid.add_link((i+1)*n+j+1, i*n+j+1, k+1, delayfunc=AffineDelay(inddelay[i*n+j][k][0], inddelay[i*n+j][k][1])) 
-             for i in range(m-1) for j in range(n) for k in range(indown[i*n+j])]
+            [grid.add_link((i+1)*m+j+1, i*m+j+1, k+1, delayfunc=AffineDelay(inddelay[i*m+j][k][0], inddelay[i*m+j][k][1])) 
+             for i in range(n-1) for j in range(m) for k in range(indown[i*m+j])]
         
     if not outright is None:
         if outrdelay is None:
-            [grid.add_link(i*n+j+1, i*n+j+2, k+1) for i in range(m) for j in range(n-1) for k in range(outright[i*n+j])]
+            [grid.add_link(i*m+j+1, i*m+j+2, k+1) for i in range(n) for j in range(m-1) for k in range(outright[i*m+j])]
         else:
-            [grid.add_link(i*n+j+1, i*n+j+2, k+1, delayfunc=AffineDelay(outrdelay[i*n+j][k][0], outrdelay[i*n+j][k][1]))
-             for i in range(m) for j in range(n-1) for k in range(outright[i*n+j])]
+            [grid.add_link(i*m+j+1, i*m+j+2, k+1, delayfunc=AffineDelay(outrdelay[i*m+j][k][0], outrdelay[i*m+j][k][1]))
+             for i in range(n) for j in range(m-1) for k in range(outright[i*m+j])]
         
     if not outdown is None:
         if outddelay is None:
-            [grid.add_link(i*n+j+1, (i+1)*n+j+1, k+1) for i in range(m-1) for j in range(n) for k in range(outdown[i*n+j])]
+            [grid.add_link(i*m+j+1, (i+1)*m+j+1, k+1) for i in range(n-1) for j in range(m) for k in range(outdown[i*m+j])]
         else:
-            [grid.add_link(i*n+j+1, (i+1)*n+j+1, k+1, delayfunc=AffineDelay(outddelay[i*n+j][k][0], outddelay[i*n+j][k][1])) 
-             for i in range(m-1) for j in range(n) for k in range(outdown[i*n+j])]
+            [grid.add_link(i*m+j+1, (i+1)*m+j+1, k+1, delayfunc=AffineDelay(outddelay[i*m+j][k][0], outddelay[i*m+j][k][1])) 
+             for i in range(n-1) for j in range(m) for k in range(outdown[i*m+j])]
         
     return grid
 
 
 def visualize(graph, general=False, nodes=False, links=False, ODs=False, paths=False):
-    """visualize graph
-    """
+    
     if general==True:
         print 'Nodes: ', graph.nodes
         print 'Number of nodes: ', graph.numnodes
@@ -211,9 +199,6 @@ def visualize(graph, general=False, nodes=False, links=False, ODs=False, paths=F
         print 'Number of OD pairs: ', graph.numODs
         print 'Paths: ', graph.paths
         print 'Number of paths: ', graph.numpaths
-        print 'Link indexation', graph.indlinks
-        print 'OD indexation', graph.indods
-        print 'Path indexation', graph.indpaths
         print
   
     if nodes==True:

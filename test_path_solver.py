@@ -8,12 +8,16 @@ import test_ue_solver as testue
 import path_solver as path
 from cvxopt import matrix
 
-
 def main():
-    grid, linkflows = testue.main()
-    pathflows = path.solver(grid, linkflows)
-    print 'paths\' indices: ', grid.indpaths
+    grid, indlinks, linkflows = testue.main()
+    indpaths, pathflows = path.solver(grid, linkflows, indlinks)
+    print 'links\' indices: ', indlinks
+    print 'paths\' indices: ', indpaths
     print pathflows
+    #print U
+    #print r
+    #print C
+    #print d
 
 
 if __name__ == '__main__':
