@@ -5,7 +5,6 @@ Created on Apr 18, 2014
 '''
 
 from sets import Set
-import itertools as iter
 
 class Graph:
     """A graph containing nodes and links"""
@@ -229,6 +228,7 @@ def visualize(graph, general=False, nodes=False, links=False, ODs=False, paths=F
     if links==True:    
         for id, link in graph.links.items():
             print 'Link id: ', id
+            print 'Flow: ', link.flow
             print 'Number of paths: ', link.numpaths
             print 'Paths: ', link.paths
             print 'Delay: ', link.delay
@@ -246,9 +246,8 @@ def visualize(graph, general=False, nodes=False, links=False, ODs=False, paths=F
     if paths==True:   
         for id, path in graph.paths.items():
             print 'Path id: ', id
-            print 'Origin: ', path.o
-            print 'Destination: ', path.d
             print 'Links: ', [(link.startnode, link.endnode, link.route) for link in path.links]
+            print 'Flow: ', path.flow
             print 'Delay: ', path.delay
             print 'Free flow delay: ', path.ffdelay
             print 

@@ -6,12 +6,10 @@ Created on Apr 20, 2014
 
 from cvxopt import matrix, spmatrix
 import scipy.linalg as sla
-import numpy as ny
 from rank_nullspace import rank
 
 
 def constraints(graph):
-<<<<<<< HEAD
     """Construct constraints for the UE link flow
     
      Return value
@@ -25,16 +23,6 @@ def constraints(graph):
     for id1,node in graph.nodes.items():
         for id2,link in node.inlinks.items(): entries.append(1.0); I.append(id1-1); J.append(graph.indlinks[id2])
         for id2,link in node.outlinks.items(): entries.append(-1.0); I.append(id1-1); J.append(graph.indlinks[id2])
-=======
-    """Construct constraints for the UE link flow"""
-    indlinks = index_links(graph)
-    entries = []; I = []; J = []; beq=[]
-    for id1,node in graph.nodes.items():
-        for id2,link in node.inlinks.items():
-            entries.append(1); I.append(id1-1); J.append(indlinks[id2])
-        for id2,link in node.outlinks.items():
-            entries.append(-1); I.append(id1-1); J.append(indlinks[id2])
->>>>>>> parent of 47bc38d... complete path_solver.py and test_path_solver
         beq.append( sum([od.flow for od in node.endODs.values()]) - sum([od.flow for od in node.startODs.values()]) )
     Aeq = spmatrix(entries,I,J)
     M = matrix(Aeq); m = graph.numnodes; ind = range(m); r = rank(M)
@@ -57,7 +45,8 @@ def find_basis(M):
 
 
 def solver(graph, update=False):
-    """Find the UE link flow and update link path flows in graph if update==True"""
+    """Find the UE link flow
+    if update==True: update link flows and link,path delays in graph"""
     
     A, b, Aeq, beq = constraints(graph)
     
@@ -72,6 +61,9 @@ def solver(graph, update=False):
         #print P
         #print q
         linkflows = qp(P, matrix(q), A, b, Aeq, beq)['x']
+        
+    if type == 'Other':
+        pass
     
     if update == True:
         for id,link in graph.links.items(): flow = linkflows[graph.indlinks[id]]; link.flow, link.delay = flow, link.delayfunc.compute_delay(flow)

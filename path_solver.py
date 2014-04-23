@@ -4,7 +4,6 @@ Created on Apr 22, 2014
 @author: jeromethai
 '''
 
-<<<<<<< HEAD
 from cvxopt import matrix, spmatrix
 
 
@@ -56,13 +55,3 @@ def solver(graph, linkflows, update=False, model='lls'):
         pass
     
     return pathflows
-=======
-def constraints(graph, linkflows, indlinks):
-    """Construct constraints for feasible path flows"""
-    return indpaths, C, d, A, d, Aeq, beq
-
-
-def solver(graph, linkflows, indlinks, update=False, type='lls'):
-    """Find a feasible path flow"""
-    return indpaths, pathflows
->>>>>>> parent of 47bc38d... complete path_solver.py and test_path_solver
