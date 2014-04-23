@@ -10,12 +10,12 @@ import test_graph as testg
 
 def main():
     grid = testg.small_grid()
-    linkflows = ue.solver(grid, update=True)
-    print 'links\' indices: ', grid.indlinks
+    indlinks, linkflows = ue.solver(grid, update=True)
+    print 'links\' indices: ', indlinks
     print 'UE flow: '
     print linkflows
     #g.visualize(grid, links=True, paths=True)
-    return grid, linkflows
+    return grid, indlinks, linkflows
 
 if __name__ == '__main__':
     main()
