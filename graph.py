@@ -4,7 +4,7 @@ Created on Apr 18, 2014
 @author: jeromethai
 '''
 
-from sets import Set
+from cvxopt import matrix
 
 class Graph:
     """A graph containing nodes and links"""
@@ -28,13 +28,13 @@ class Graph:
         
           
     def add_link(self, startnode, endnode, route=1, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None):
-        formatStr = 'ERROR: node {} doesn\'t exist, graph countains {} nodes'
-        if startnode == endnode: print 'ERROR: self-loop not allowed'; return
+        formatStr = 'ERROR: node {} doesn\'t exist, graph countains {} nodes.'
+        if startnode == endnode: print 'ERROR: self-loop not allowed.'; return
         if startnode < 1 or startnode > self.numnodes: print formatStr.format(startnode, self.numnodes); return
         if endnode < 1 or endnode > self.numnodes: print formatStr.format(endnode, self.numnodes); return
         
         if (startnode, endnode, route) in self.links:
-            print 'ERROR: link ({},{},{}) already exists'.format(startnode, endnode, route); return
+            print 'ERROR: link ({},{},{}) already exists.'.format(startnode, endnode, route); return
         else:
             link = Link(startnode, endnode, route, flow, delay, ffdelay, delayfunc, {})
             self.indlinks[(startnode, endnode, route)] = self.numlinks
@@ -48,8 +48,8 @@ class Graph:
                     
    
     def add_od(self, origin, destination, flow=0.0):
-        formatStr = 'ERROR: node {} doesn\'t exist, graph countains {} nodes'
-        if origin == destination: print 'ERROR: self-loop not allowed'; return
+        formatStr = 'ERROR: node {} doesn\'t exist, graph countains {} nodes.'
+        if origin == destination: print 'ERROR: self-loop not allowed.'; return
         if origin < 1 or origin > self.numnodes: print formatStr.format(origin, self.numnodes); return
         if destination < 1 or destination > self.numnodes: print formatStr.format(destination, self.numnodes); return
         
@@ -68,13 +68,13 @@ class Graph:
         
         origin = link_ids[0][0]
         destination = link_ids[len(link_ids)-1][1]
-        if not (origin, destination) in self.ODs: print 'ERROR: OD ({},{}) doesn\'t exist'.format(origin, destination); return
+        if not (origin, destination) in self.ODs: print 'ERROR: OD ({},{}) doesn\'t exist.'.format(origin, destination); return
         
         for i in range(len(link_ids)-1):
-            if link_ids[i][1] != link_ids[i+1][0]: print 'ERROR: path not valid'; return
+            if link_ids[i][1] != link_ids[i+1][0]: print 'ERROR: path not valid.'; return
         
         for path in self.ODs[(origin, destination)].paths.values():
-            if [(link.startnode,link.endnode,link.route) for link in path.links] == link_ids: print 'ERROR: path already exists'; return
+            if [(link.startnode,link.endnode,link.route) for link in path.links] == link_ids: print 'ERROR: path already exists.'; return
         
         links = []; delay = 0.0; ffdelay = 0.0
         for id in link_ids:
@@ -90,6 +90,65 @@ class Graph:
         for link in links:
             self.links[(link.startnode, link.endnode, link.route)].numpaths += 1
             self.links[(link.startnode, link.endnode, link.route)].paths[(origin, destination, route)] = path   
+        
+        
+    def visualize(self, general=False, nodes=False, links=False, ODs=False, paths=False):
+    
+        if general==True:
+            print 'Nodes: ', self.nodes
+            print 'Number of nodes: ', self.numnodes
+            print 'Links: ', self.links
+            print 'Number of links: ', self.numlinks
+            print 'OD pairs: ', self.ODs
+            print 'Number of OD pairs: ', self.numODs
+            print 'Paths: ', self.paths
+            print 'Number of paths: ', self.numpaths
+            print 'Link indexation', self.indlinks
+            print 'OD indexation', self.indods
+            print 'Path indexation', self.indpaths
+            print
+  
+        if nodes==True:
+            for id, node in self.nodes.items():
+                print 'Node id: ', id
+                print 'In-links: ', node.inlinks
+                print 'Out-links: ', node.outlinks
+                print 'Start ODs: ', node.startODs
+                print 'End ODs: ', node.endODs
+                print
+     
+        if links==True:    
+            for id, link in self.links.items():
+                print 'Link id: ', id
+                print 'Flow: ', link.flow
+                print 'Number of paths: ', link.numpaths
+                print 'Paths: ', link.paths
+                print 'Delay: ', link.delay
+                print 'Free flow delay: ', link.ffdelay
+                print
+        
+        if ODs==True:
+            for id, od in self.ODs.items():
+                print 'OD pair id: ', id
+                print 'Flow: ', od.flow
+                print 'Number of paths: ', od.numpaths
+                print 'Paths: ', od.paths
+                print
+     
+        if paths==True:   
+            for id, path in self.paths.items():
+                print 'Path id: ', id
+                print 'Links: ', [(link.startnode, link.endnode, link.route) for link in path.links]
+                print 'Flow: ', path.flow
+                print 'Delay: ', path.delay
+                print 'Free flow delay: ', path.ffdelay
+                print 
+        
+        
+    def get_linkflows(self):
+        linkflows = matrix(0.0, (self.numlinks, 1))
+        for id,link in self.links.items(): linkflows[self.indlinks[id]] = link.flow
+        return linkflows
         
     
 class Link:
@@ -199,54 +258,3 @@ def create_grid(m, n, inright=None, indown=None, outright=None, outdown=None,
     return grid
 
 
-def visualize(graph, general=False, nodes=False, links=False, ODs=False, paths=False):
-    
-    if general==True:
-        print 'Nodes: ', graph.nodes
-        print 'Number of nodes: ', graph.numnodes
-        print 'Links: ', graph.links
-        print 'Number of links: ', graph.numlinks
-        print 'OD pairs: ', graph.ODs
-        print 'Number of OD pairs: ', graph.numODs
-        print 'Paths: ', graph.paths
-        print 'Number of paths: ', graph.numpaths
-        print 'Link indexation', graph.indlinks
-        print 'OD indexation', graph.indods
-        print 'Path indexation', graph.indpaths
-        print
-  
-    if nodes==True:
-        for id, node in graph.nodes.items():
-            print 'Node id: ', id
-            print 'In-links: ', node.inlinks
-            print 'Out-links: ', node.outlinks
-            print 'Start ODs: ', node.startODs
-            print 'End ODs: ', node.endODs
-            print
-     
-    if links==True:    
-        for id, link in graph.links.items():
-            print 'Link id: ', id
-            print 'Flow: ', link.flow
-            print 'Number of paths: ', link.numpaths
-            print 'Paths: ', link.paths
-            print 'Delay: ', link.delay
-            print 'Free flow delay: ', link.ffdelay
-            print
-        
-    if ODs==True:
-        for id, od in graph.ODs.items():
-            print 'OD pair id: ', id
-            print 'Flow: ', od.flow
-            print 'Number of paths: ', od.numpaths
-            print 'Paths: ', od.paths
-            print
-     
-    if paths==True:   
-        for id, path in graph.paths.items():
-            print 'Path id: ', id
-            print 'Links: ', [(link.startnode, link.endnode, link.route) for link in path.links]
-            print 'Flow: ', path.flow
-            print 'Delay: ', path.delay
-            print 'Free flow delay: ', path.ffdelay
-            print 

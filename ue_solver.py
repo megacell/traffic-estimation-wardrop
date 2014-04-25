@@ -8,15 +8,14 @@ from cvxopt import matrix, spmatrix, solvers
 from rank_nullspace import rank
 from util import find_basis
 
+
 def constraints(graph):
     """Construct constraints for the UE link flow
     
      Return value
     ------------
-    A: matrix -eye(numlinks)
-    b: matrix zeros(numlinks,1)
     Aeq: matrix of incidence nodes-links
-    beq: matrix of incidence nodes-ODs
+    beq: matrix of OD flows at each node
     """
     m = graph.numnodes;
     entries, I, J, beq = [], [], [], matrix(0.0, (m,1))
@@ -28,16 +27,16 @@ def constraints(graph):
     Aeq = spmatrix(entries,I,J)
     M = matrix(Aeq); ind = range(m); r = rank(M)
     if r < m: print 'Remove {} redundant constraint(s)'.format(m-r); ind = find_basis(M.trans())
-    n = graph.numlinks
-    A, b, Aeq, beq = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1)), Aeq[ind,:], matrix(beq)[ind]
-    return A, b, Aeq, beq
+    return Aeq[ind,:], matrix(beq)[ind]
 
 
 def solver(graph, update=True):
     """Find the UE link flow
     if update==True: update link flows and link,path delays in graph"""
     
-    A, b, Aeq, beq = constraints(graph)
+    Aeq, beq = constraints(graph)
+    n = graph.numlinks
+    A, b = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1))
     
     type = graph.links.values()[0].delayfunc.type    
     
@@ -52,7 +51,9 @@ def solver(graph, update=True):
         pass
     
     if update == True:
+        print 'Update link flows and link delays in Graph object.'
         for id,link in graph.links.items(): flow = linkflows[graph.indlinks[id]]; link.flow, link.delay = flow, link.delayfunc.compute_delay(flow)
+        print 'Update path delays in Graph object.'
         for path in graph.paths.values():
             delay = 0.0
             for link in path.links: delay += link.delay
@@ -66,5 +67,5 @@ def unused_paths(graph, tol=1e-3):
     pathids = []
     for od in graph.ODs.values():
         mindelay = min([path.delay for path in od.paths.values()])
-        [pathids.append((path.o, path.d, path.route)) for path in od.paths.values() if path.delay > mindelay + tol]
+        [pathids.append((path.o, path.d, path.route)) for path in od.paths.values() if path.delay > mindelay*(1 + tol)]
     return pathids

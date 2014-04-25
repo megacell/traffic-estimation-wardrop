@@ -47,7 +47,7 @@ def small_grid():
 def main():
     print 'Evening rush example'; print 
     grid = small_grid()
-    g.visualize(grid, True, True, True, True, True)    
+    grid.visualize(True, True, True, True, True)    
 
 
 if __name__ == '__main__':

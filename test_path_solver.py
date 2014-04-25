@@ -6,7 +6,6 @@ Created on Apr 22, 2014
 
 import test_ue_solver as testue
 import path_solver as path
-from cvxopt import matrix
 
 def main():
     grid, linkflows, unusedpaths = testue.main()
