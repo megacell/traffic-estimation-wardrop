@@ -25,7 +25,7 @@ def constraints(graph):
         for id2,link in node.outlinks.items(): entries.append(-1.0); I.append(id1-1); J.append(graph.indlinks[id2])
         beq[id1-1] = sum([od.flow for od in node.endODs.values()]) - sum([od.flow for od in node.startODs.values()])
     Aeq = spmatrix(entries,I,J)
-    M = matrix(Aeq); ind = range(m); r = rank(M)
+    M = matrix(Aeq); r = rank(M)
     if r < m: print 'Remove {} redundant constraint(s)'.format(m-r); ind = find_basis(M.trans())
     return Aeq[ind,:], matrix(beq)[ind]
 
@@ -50,7 +50,7 @@ def solver(graph, update=True):
     if type == 'Other':
         pass
     
-    if update == True:
+    if update:
         print 'Update link flows and link delays in Graph object.'
         for id,link in graph.links.items(): flow = linkflows[graph.indlinks[id]]; link.flow, link.delay = flow, link.delayfunc.compute_delay(flow)
         print 'Update path delays in Graph object.'

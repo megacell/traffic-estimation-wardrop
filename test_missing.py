@@ -7,16 +7,24 @@ Created on Apr 23, 2014
 import path_solver as path
 import test_ue_solver as testue
 import missing as mis
+import numpy as np
+import matplotlib.pyplot as plt
+
 
 def main():
     grid, linkflows, unusedpaths = testue.main()
-    A = path.incidence(grid)
-    ind, misA, misflows = mis.remove_meas(grid, [(2,5,1), (5,2,1)], A, linkflows)
-    print ind
-    print grid.indlinks
-    print misA
-    print misflows
-    print mis.remove_meas_rand(grid, 2, A, linkflows)
+    errors = mis.avg_error(grid, [0, 1, 2, 3, 4, 5, 6, 7], 50)
+    x = np.arange(8)
+    xlabel = []
+    for i in x: xlabel.append('%i%%' % ((100*i)/8))
+    fig, ax = plt.subplots()
+    plt.bar(x, errors)
+    plt.xticks( x + 0.5,  xlabel )
+    plt.xlabel('Percentage of missing values')
+    plt.ylabel('Error in link flows')
+    plt.title(r'Relative $\ell$-2 error for link flows')
+    plt.show()
 
+    
 if __name__ == '__main__':
     main()

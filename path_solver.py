@@ -55,7 +55,7 @@ def solver(graph, linkflows=None, update=True, model='lls', A=None, U=None, r=No
         
     if model == 'other': pass
     
-    if update == True:
+    if update:
         print 'Update path flows in Graph object.'
         for id,path in graph.paths.items(): path.flow = pathflows[graph.indpaths[id]]
     

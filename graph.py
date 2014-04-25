@@ -94,7 +94,7 @@ class Graph:
         
     def visualize(self, general=False, nodes=False, links=False, ODs=False, paths=False):
     
-        if general==True:
+        if general:
             print 'Nodes: ', self.nodes
             print 'Number of nodes: ', self.numnodes
             print 'Links: ', self.links
@@ -108,7 +108,7 @@ class Graph:
             print 'Path indexation', self.indpaths
             print
   
-        if nodes==True:
+        if nodes:
             for id, node in self.nodes.items():
                 print 'Node id: ', id
                 print 'In-links: ', node.inlinks
@@ -117,7 +117,7 @@ class Graph:
                 print 'End ODs: ', node.endODs
                 print
      
-        if links==True:    
+        if links:    
             for id, link in self.links.items():
                 print 'Link id: ', id
                 print 'Flow: ', link.flow
@@ -127,7 +127,7 @@ class Graph:
                 print 'Free flow delay: ', link.ffdelay
                 print
         
-        if ODs==True:
+        if ODs:
             for id, od in self.ODs.items():
                 print 'OD pair id: ', id
                 print 'Flow: ', od.flow
@@ -135,7 +135,7 @@ class Graph:
                 print 'Paths: ', od.paths
                 print
      
-        if paths==True:   
+        if paths:   
             for id, path in self.paths.items():
                 print 'Path id: ', id
                 print 'Links: ', [(link.startnode, link.endnode, link.route) for link in path.links]
