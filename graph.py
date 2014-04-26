@@ -8,7 +8,8 @@ from cvxopt import matrix
 
 class Graph:
     """A graph containing nodes and links"""
-    def __init__(self, nodes={}, links={}, ODs={}, paths={}, numnodes=0, numlinks=0, numODs=0, numpaths=0, indlinks={}, indods={}, indpaths={}):
+    def __init__(self, description=None, nodes={}, links={}, ODs={}, paths={}, numnodes=0, numlinks=0, numODs=0, numpaths=0, nodes_position={}, indlinks={}, indods={}, indpaths={}):
+        self.description = description
         self.nodes = nodes
         self.links = links
         self.ODs = ODs
@@ -17,14 +18,16 @@ class Graph:
         self.numlinks = numlinks
         self.numODs = numODs
         self.numpaths = numpaths
+        self.nodes_position = nodes_position
         self.indlinks = indlinks # indexation for matrix generations
         self.indods = indods # indexation for matrix generations
         self.indpaths = indpaths # indexation for matrix generations
         
     
-    def add_node(self):
+    def add_node(self, position=None):
         self.numnodes += 1
-        self.nodes[self.numnodes] = Node({}, {}, {}, {})
+        self.nodes_position[self.numnodes] = position
+        self.nodes[self.numnodes] = Node(position, inlinks={}, outlinks={}, startODs={}, endODs={})
         
           
     def add_link(self, startnode, endnode, route=1, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None):
@@ -95,6 +98,7 @@ class Graph:
     def visualize(self, general=False, nodes=False, links=False, ODs=False, paths=False):
     
         if general:
+            print 'Description: ', self.description
             print 'Nodes: ', self.nodes
             print 'Number of nodes: ', self.numnodes
             print 'Links: ', self.links
@@ -103,6 +107,7 @@ class Graph:
             print 'Number of OD pairs: ', self.numODs
             print 'Paths: ', self.paths
             print 'Number of paths: ', self.numpaths
+            print 'Nodes\' position: ', self.nodes_position
             print 'Link indexation', self.indlinks
             print 'OD indexation', self.indods
             print 'Path indexation', self.indpaths
@@ -111,6 +116,7 @@ class Graph:
         if nodes:
             for id, node in self.nodes.items():
                 print 'Node id: ', id
+                print 'Position', node.position
                 print 'In-links: ', node.inlinks
                 print 'Out-links: ', node.outlinks
                 print 'Start ODs: ', node.startODs
@@ -125,6 +131,7 @@ class Graph:
                 print 'Paths: ', link.paths
                 print 'Delay: ', link.delay
                 print 'Free flow delay: ', link.ffdelay
+                print 'Type of delay function: ', link.delayfunc.type
                 print
         
         if ODs:
@@ -153,7 +160,7 @@ class Graph:
     
 class Link:
     """A link in the graph"""
-    def __init__(self, startnode, endnode, route=1, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None, paths={}, numpaths=0):
+    def __init__(self, startnode, endnode, route, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None, paths={}, numpaths=0):
         self.startnode = startnode
         self.endnode = endnode
         self.route = route  #if multiple edges
@@ -167,7 +174,8 @@ class Link:
 
 class Node:
     """A node in the graph"""
-    def __init__(self, inlinks, outlinks, startODs, endODs):
+    def __init__(self, position, inlinks, outlinks, startODs, endODs):
+        self.position = position
         self.inlinks = inlinks
         self.outlinks = outlinks
         self.startODs = startODs   #set of OD pairs with origin at node
@@ -197,17 +205,23 @@ class OD:
         
 class AffineDelay:
     """Affine Delay function"""
-    def __init__(self, ffdelay, slope, type='Affine'):
+    def __init__(self, ffdelay, slope):
         self.ffdelay = ffdelay
         self.slope = slope
-        self.type = type
+        self.type = 'Affine'
         
     def compute_delay(self, flow):
         return self.ffdelay + self.slope*flow
         
+
+def create_delayfunc(type, parameters):
+    """Create a Delay function of a specific type"""
+    if type == 'Affine': return AffineDelay(parameters[0], parameters[1])
+    if type == 'Other': return Other(parameters[0], parameters[1], parameters[2])
+
         
 def create_grid(m, n, inright=None, indown=None, outright=None, outdown=None, 
-         inrdelay=None, inddelay=None, outrdelay=None, outddelay=None):
+         inrdelay=None, inddelay=None, outrdelay=None, outddelay=None, delaytype=None):
     """construct a grid with m rows and n columns
                                         1 - 2 - 3 - 4
        for a m=2 X n=4 grid, nodes are: |   |   |   |
@@ -220,39 +234,39 @@ def create_grid(m, n, inright=None, indown=None, outright=None, outdown=None,
     indown: list [k1, k2, k3, k4, k5, ...]: creates ki in-links of node i connected to the down neighbor of i
     outright: list [k1, k2, k3, k4, k5, ...]: creates ki out-links of node i connected to the right neighbor of i
     outdown: list [k1, k2, k3, k4, k5, ...]: creates ki out-links of node i connected to the down neighbor of i
-    inrdelay: list [[(f11,a11), (f12,a12), ...], [(f21,a21), (f22,a22), ...], ...]: 
-
+    inrdelay: list [[args11, args12, ...], [args21, args22, ,...], ...]: add delay function with parameters ij to link (right neighbor, i, route j)
+    ...
     
     """
-    grid = Graph()
-    [grid.add_node() for i in range(m) for j in range(n)]
+    grid = Graph('Grid of size {}X{}'.format(m,n))
+    [grid.add_node((j, m-i-1)) for i in range(m) for j in range(n)]
     
     if not inright is None:
         if inrdelay is None:
             [grid.add_link(i*n+j+2, i*n+j+1, k+1) for i in range(m) for j in range(n-1) for k in range(inright[i*n+j])]
         else:                
-            [grid.add_link(i*n+j+2, i*n+j+1, k+1, delayfunc=AffineDelay(inrdelay[i*n+j][k][0], inrdelay[i*n+j][k][1])) 
+            [grid.add_link(i*n+j+2, i*n+j+1, k+1, delayfunc=create_delayfunc(delaytype, inrdelay[i*n+j][k])) 
              for i in range(m) for j in range(n-1) for k in range(inright[i*n+j])]
             
     if not indown is None:
         if inddelay is None:
             [grid.add_link((i+1)*n+j+1, i*n+j+1, k+1) for i in range(m-1) for j in range(n) for k in range(indown[i*n+j])]
         else:
-            [grid.add_link((i+1)*n+j+1, i*n+j+1, k+1, delayfunc=AffineDelay(inddelay[i*n+j][k][0], inddelay[i*n+j][k][1])) 
+            [grid.add_link((i+1)*n+j+1, i*n+j+1, k+1, delayfunc=create_delayfunc(delaytype, inddelay[i*n+j][k][0])) 
              for i in range(m-1) for j in range(n) for k in range(indown[i*n+j])]
         
     if not outright is None:
         if outrdelay is None:
             [grid.add_link(i*n+j+1, i*n+j+2, k+1) for i in range(m) for j in range(n-1) for k in range(outright[i*n+j])]
         else:
-            [grid.add_link(i*n+j+1, i*n+j+2, k+1, delayfunc=AffineDelay(outrdelay[i*n+j][k][0], outrdelay[i*n+j][k][1]))
+            [grid.add_link(i*n+j+1, i*n+j+2, k+1, delayfunc=create_delayfunc(delaytype, outrdelay[i*n+j][k]))
              for i in range(m) for j in range(n-1) for k in range(outright[i*n+j])]
         
     if not outdown is None:
         if outddelay is None:
             [grid.add_link(i*n+j+1, (i+1)*n+j+1, k+1) for i in range(m-1) for j in range(n) for k in range(outdown[i*n+j])]
         else:
-            [grid.add_link(i*n+j+1, (i+1)*n+j+1, k+1, delayfunc=AffineDelay(outddelay[i*n+j][k][0], outddelay[i*n+j][k][1])) 
+            [grid.add_link(i*n+j+1, (i+1)*n+j+1, k+1, delayfunc=create_delayfunc(delaytype, outddelay[i*n+j][k])) 
              for i in range(m-1) for j in range(n) for k in range(outdown[i*n+j])]
         
     return grid

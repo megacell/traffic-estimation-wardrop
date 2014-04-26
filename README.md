@@ -8,10 +8,13 @@ Python dependencies (once only):
 
     sudo easy_install pip
     pip install cvxopt
+    pip install networkx
 
 Running
 -----
 python test_ue_solver.py
+python test_path_solver.py
+python test_missing.py
 
 Troubleshooting
 --------
