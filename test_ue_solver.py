@@ -5,17 +5,19 @@ Created on Apr 21, 2014
 '''
 
 import ue_solver as ue
-from test_graph import small_grid
+from test_graph import small_grid, small_example
 
 def main():
-    grid = small_grid()
-    linkflows = ue.solver(grid)
-    print 'links\' indices: ', grid.indlinks
+    #graph = small_grid()
+    graph = small_example()
+    linkflows = ue.solver(graph)
+    print 'links\' indices: ', graph.indlinks
     print 'UE flow: '
     print linkflows
-    unusedpaths = ue.unused_paths(grid)
+    unusedpaths = ue.unused_paths(graph)
     print 'Unused paths: ', unusedpaths
-    return grid, linkflows, unusedpaths
+    graph.visualize(paths=True)
+    return graph, linkflows, unusedpaths
 
 if __name__ == '__main__':
     main()

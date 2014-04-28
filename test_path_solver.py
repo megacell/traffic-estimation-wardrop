@@ -8,12 +8,12 @@ import test_ue_solver as testue
 import path_solver as path
 
 def main():
-    grid, linkflows, unusedpaths = testue.main()
-    pathflows = path.solver(grid, linkflows, unusedpaths=unusedpaths)
-    print 'links\' indices: ', grid.indlinks
-    print 'paths\' indices: ', grid.indpaths
+    graph, linkflows, unusedpaths = testue.main()
+    pathflows = path.solver(graph, linkflows, unusedpaths=unusedpaths)
+    print 'links\' indices: ', graph.indlinks
+    print 'paths\' indices: ', graph.indpaths
     print pathflows
-    print path.vec_feas_paths(grid, unusedpaths=unusedpaths)
+    print path.vec_feas_paths(graph, unusedpaths=unusedpaths)
 
 if __name__ == '__main__':
     main()

@@ -252,7 +252,7 @@ def create_grid(m, n, inright=None, indown=None, outright=None, outdown=None,
         if inddelay is None:
             [grid.add_link((i+1)*n+j+1, i*n+j+1, k+1) for i in range(m-1) for j in range(n) for k in range(indown[i*n+j])]
         else:
-            [grid.add_link((i+1)*n+j+1, i*n+j+1, k+1, delayfunc=create_delayfunc(delaytype, inddelay[i*n+j][k][0])) 
+            [grid.add_link((i+1)*n+j+1, i*n+j+1, k+1, delayfunc=create_delayfunc(delaytype, inddelay[i*n+j][k])) 
              for i in range(m-1) for j in range(n) for k in range(indown[i*n+j])]
         
     if not outright is None:
