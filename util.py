@@ -3,8 +3,8 @@ Created on Apr 23, 2014
 
 @author: jeromethai
 '''
-
 import scipy.linalg as sla
+
 
 def place_zeros(M, atol=1e-13):
     """Replace entries in M less than atol by 0.0"""

@@ -25,12 +25,14 @@ class Graph:
         
     
     def add_node(self, position=None):
+        """Add a node"""
         self.numnodes += 1
         self.nodes_position[self.numnodes] = position
         self.nodes[self.numnodes] = Node(position, inlinks={}, outlinks={}, startODs={}, endODs={})
         
           
     def add_link(self, startnode, endnode, route=1, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None):
+        """Add a link"""
         formatStr = 'ERROR: node {} doesn\'t exist, graph countains {} nodes.'
         if startnode == endnode: print 'ERROR: self-loop not allowed.'; return
         if startnode < 1 or startnode > self.numnodes: print formatStr.format(startnode, self.numnodes); return
@@ -51,6 +53,7 @@ class Graph:
                     
    
     def add_od(self, origin, destination, flow=0.0):
+        """Add an OD pair"""
         formatStr = 'ERROR: node {} doesn\'t exist, graph countains {} nodes.'
         if origin == destination: print 'ERROR: self-loop not allowed.'; return
         if origin < 1 or origin > self.numnodes: print formatStr.format(origin, self.numnodes); return
@@ -68,7 +71,7 @@ class Graph:
    
    
     def add_path(self, link_ids):
-        
+        """Add a path"""
         origin = link_ids[0][0]
         destination = link_ids[len(link_ids)-1][1]
         if not (origin, destination) in self.ODs: print 'ERROR: OD ({},{}) doesn\'t exist.'.format(origin, destination); return
@@ -96,7 +99,7 @@ class Graph:
         
         
     def visualize(self, general=False, nodes=False, links=False, ODs=False, paths=False):
-    
+        """Visualize graph"""
         if general:
             print 'Description: ', self.description
             print 'Nodes: ', self.nodes
@@ -153,9 +156,28 @@ class Graph:
         
         
     def get_linkflows(self):
+        """Get link flows in a matrix of dimension numlinks X 1"""
         linkflows = matrix(0.0, (self.numlinks, 1))
         for id,link in self.links.items(): linkflows[self.indlinks[id]] = link.flow
         return linkflows
+    
+    
+    def update_linkflows_linkdlays(self, linkflows):
+        """Update link flows and link delays in Graph object"""
+        for id,link in self.links.items(): flow = linkflows[self.indlinks[id]]; link.flow, link.delay = flow, link.delayfunc.compute_delay(flow)
+        
+        
+    def update_pathdelays(self):
+        """Update path delays in Graph object"""
+        for path in self.paths.values():
+            delay = 0.0
+            for link in path.links: delay += link.delay
+            path.delay = delay
+        
+        
+    def update_pathflows(self, pathflows):
+        """Update path flows in Graph object"""
+        for id,path in self.paths.items(): path.flow = pathflows[self.indpaths[id]]
         
     
 class Link:

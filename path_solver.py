@@ -4,6 +4,9 @@ Created on Apr 22, 2014
 @author: jeromethai
 '''
 
+import numpy as np
+import scipy.sparse as sps
+import scipy.io as sio
 from cvxopt import matrix, spmatrix, sparse, solvers
 from rank_nullspace import nullspace
 from util import place_zeros
@@ -55,10 +58,6 @@ def solver(graph, linkflows=None, update=True, model='lls', A=None, U=None, r=No
         
     if model == 'other': pass
     
-    if update:
-        print 'Update path flows in Graph object.'
-        for id,path in graph.paths.items(): path.flow = pathflows[graph.indpaths[id]]
-    
     if unusedpaths is not None:
         valid = True
         for id in unusedpaths:
@@ -67,6 +66,8 @@ def solver(graph, linkflows=None, update=True, model='lls', A=None, U=None, r=No
             else:
                 pathflows[graph.indpaths[id]] = 0.0
         if valid == True: print 'Path flow satisfies UE'
+        
+        if update: print 'Update path flows in Graph object.'; graph.update_pathflows(pathflows)
         
     return pathflows
 
@@ -88,3 +89,25 @@ def vec_feas_paths(graph, A=None, U=None, unusedpaths=None, tol=1e-2):
     
     return place_zeros(null[:,ind])
  
+
+def save_mat(filepath, graph, linkflows):
+    """Save sparse matrices for the Path problem in solve_path_data.mat file
+    A: incidence matrix link-path
+    b: flow on each link
+    U: incidence matrix link-OD
+    r: OD flows
+    """
+    I, J = [], []
+    b = np.array([linkflows[i] for i in range(len(linkflows))])
+    for id,path in graph.paths.items():
+        for link in path.links: I.append(graph.indlinks[(link.startnode, link.endnode, link.route)]); J.append(graph.indpaths[id])
+    A = sps.coo_matrix(([1]*len(I),(I,J)))
+        
+    I, J, r = [], [], np.zeros((graph.numODs,1))
+    for id1,od in graph.ODs.items():
+        r[graph.indods[id1]] = od.flow
+        for id2,path in od.paths.items(): I.append(graph.indods[id1]); J.append(graph.indpaths[id2])
+    U = sps.coo_matrix(([1]*len(I),(I,J)))
+        
+    sio.savemat(filepath+'solve_path_data.mat', mdict={'A': A, 'b': b, 'U': U, 'r': r})
+    
