@@ -63,7 +63,7 @@ def error_linkflows(graph, link_ids=None, k=None, A=None, linkflows=None, U=None
     
     linkflows2 = A*path.solver(graph, misflows, False, 'lls', misA, U, r)
     error = np.linalg.norm(linkflows-linkflows2, ord)
-    if relative: error /= np.linalg.norm(linkflows)
+    if relative: error /= np.linalg.norm(linkflows, ord)
     return error, linkflows2
 
 
