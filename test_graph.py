@@ -72,6 +72,29 @@ def small_grid():
     return grid
 
 
+def small_grid2():
+    grid = g.create_grid(2, 3, outdown=[1,1,1], outddelay=[[(1.0, 4.0)], [(1.0, 4.0)], [(1.0, 1.0)]], 
+                  inright=[1,1,0,1,1], inrdelay=[[(3.0, 1.0)], [(2.0, 1.0)], [(0.0, 0.0)], [(2.0, 1.0)], [(3.0, 1.0)]], delaytype='Affine')
+    
+    grid.add_link(5, 2, 1, delayfunc=g.AffineDelay(1.0, 4.0))
+    
+    grid.add_od(3, 6, 1.0)
+    grid.add_od(3, 4, 1.0)
+    grid.add_od(3, 2, 1.0)
+    grid.add_od(2, 4, 4.0)
+    
+    grid.add_path([(3,6,1)])
+    grid.add_path([(3,2,1), (2,1,1), (1,4,1)])
+    grid.add_path([(3,2,1), (2,5,1), (5,4,1)])
+    grid.add_path([(3,6,1), (6,5,1), (5,4,1)])
+    grid.add_path([(3,6,1), (6,5,1), (5,2,1), (2,1,1), (1,4,1)])
+    grid.add_path([(3,2,1)])
+    grid.add_path([(3,6,1), (6,5,1), (5,2,1)])
+    grid.add_path([(2,1,1), (1,4,1)])
+    grid.add_path([(2,5,1), (5,4,1)])
+    return grid
+
+
 def main():
     #graph = small_example()
     graph = small_grid()

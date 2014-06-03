@@ -69,7 +69,7 @@ def unused_paths(graph, tol=1e-3):
     return pathids
 
 
-def save_mat(filepath, graph):
+def save_mat(filepath, name, graph):
     """Save sparse matrices for the UE problem in solve_ue_data.mat file
     solve_ue_data.mat contains:
     C: incidence matrix node-link
@@ -89,7 +89,7 @@ def save_mat(filepath, graph):
     if type == 'Affine':
         p, q = np.zeros((graph.numlinks, 1)), np.zeros((graph.numlinks, 1))
         for id,link in graph.links.items(): p[graph.indlinks[id]], q[graph.indlinks[id]] = link.delayfunc.slope, link.delayfunc.ffdelay
-        sio.savemat(filepath+'solve_ue_data.mat', mdict={'C': Aeq, 'd': beq, 'p': p, 'q': q})
+        sio.savemat(filepath + name + '.mat', mdict={'C': Aeq, 'd': beq, 'p': p, 'q': q})
         
     if type == 'Other':
         pass

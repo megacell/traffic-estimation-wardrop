@@ -5,10 +5,10 @@ Created on Apr 21, 2014
 '''
 
 import ue_solver as ue
-from test_graph import small_grid, small_example
+from test_graph import small_grid, small_grid2, small_example
 
 def main():
-    graph = small_grid()
+    graph = small_grid2()
     #graph = small_example()
     linkflows = ue.solver(graph)
     print 'links\' indices: ', graph.indlinks
@@ -16,7 +16,8 @@ def main():
     print linkflows
     unusedpaths = ue.unused_paths(graph)
     print 'Unused paths: ', unusedpaths
-    ue.save_mat('../Dropbox/Mega_Cell/data/', graph)
+    ue.save_mat('../Dropbox/Mega_Cell/data/', 'ue_data2', graph)
+    graph.visualize(paths=True)
     return graph, linkflows, unusedpaths
 
 if __name__ == '__main__':
