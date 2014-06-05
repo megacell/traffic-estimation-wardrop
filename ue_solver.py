@@ -33,11 +33,11 @@ def constraints(graph, save=False):
     return Aeq[ind,:], beq[ind]
 
 
-def solver(graph, update=True):
+def solver(graph, update=True, Aeq=None, beq=None):
     """Find the UE link flow
     if update==True: update link flows and link,path delays in graph"""
     
-    Aeq, beq = constraints(graph)
+    if Aeq is None or beq is None: Aeq, beq = constraints(graph)
     n = graph.numlinks
     A, b = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1))
     
@@ -49,6 +49,15 @@ def solver(graph, update=True):
             entries.append(link.delayfunc.slope); I.append(graph.indlinks[id]); q[graph.indlinks[id]] = link.delayfunc.ffdelay
         P = spmatrix(entries,I,I)
         linkflows = solvers.qp(P, matrix(q), A, b, Aeq, beq)['x']
+        
+    if type == 'Polynomial':
+        def F(x=None, z=None):
+            if x is None: return 0, matrix(1.0, (n,1))
+            #if min(x) <= 0.0: return None #implicit constraints
+            
+            
+        linkflows = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
+        pass
         
     if type == 'Other':
         pass

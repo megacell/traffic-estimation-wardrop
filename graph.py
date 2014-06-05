@@ -5,6 +5,7 @@ Created on Apr 18, 2014
 '''
 
 from cvxopt import matrix
+import numpy as np
 
 class Graph:
     """A graph containing nodes and links"""
@@ -234,11 +235,24 @@ class AffineDelay:
         
     def compute_delay(self, flow):
         return self.ffdelay + self.slope*flow
+       
+       
+class PolyDelay:
+    """Polynomial Delay function"""
+    def __init__(self, ffdelay, coef):
+        self.ffdelay = ffdelay
+        self.coef = coef
+        self.degree = len(coef)
+        self.type = 'Polynomial'
+        
+    def compute_delay(self, flow):
+        return self.ffdelay + np.dot(self.coef, np.power(flow, range(1,self.degree+1)))
         
 
 def create_delayfunc(type, parameters):
     """Create a Delay function of a specific type"""
     if type == 'Affine': return AffineDelay(parameters[0], parameters[1])
+    if type == 'Polynomial': return PolyDelay(parameters[0], parameters[1])
     if type == 'Other': return Other(parameters[0], parameters[1], parameters[2])
 
         

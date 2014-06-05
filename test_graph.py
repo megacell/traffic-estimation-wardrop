@@ -5,7 +5,7 @@ Created on Apr 18, 2014
 '''
 
 import Graph as g
-
+import numpy as np
 
 def small_example():
     
@@ -34,17 +34,37 @@ def small_example():
     return graph
 
 
-def small_grid():
+def small_grid(od_flows, delaytype='Affine', theta=None):
+    """Creates a small grid with fixed geometry, fixed affine/polynomial latency functions, and fixed OD pairs
+    variable OD flows
+    """
     
-    grid = g.create_grid(2, 3, outdown=[1,1,1], outddelay=[[(1.0, 4.0)], [(1.0, 4.0)], [(1.0, 1.0)]], 
-                  inright=[1,1,0,1,1], inrdelay=[[(3.0, 1.0)], [(2.0, 1.0)], [(0.0, 0.0)], [(2.0, 1.0)], [(3.0, 1.0)]], delaytype='Affine')
+    ffdelays = [1.0, 1.0, 1.0, 3.0, 2.0, 2.0, 3.0, 1.0]
+    slope = [4.0, 4.0, 1.0, 1.0, 1.0, 1.0, 1.0, 4.0]
     
-    grid.add_link(5, 2, 1, delayfunc=g.AffineDelay(1.0, 4.0))
     
-    grid.add_od(3, 6, 3.0)
-    grid.add_od(3, 4, 3.0)
-    grid.add_od(3, 2, 1.0)
-    grid.add_od(2, 4, 1.0)
+    if delaytype == 'Affine':
+        coefs = slope
+    elif delaytype == 'Polynomial':
+        degree = len(theta)
+        coefs = []
+        for j in range(8):
+            coefs.append([a*b for a,b in zip(theta, np.power(slope[j], range(1,degree+1)))])
+        
+    data = zip(ffdelays, coefs)
+    grid = g.create_grid(2, 3, outdown=[1,1,1],
+        outddelay=[[data[0]], [data[1]], [data[2]]], 
+        inright=[1,1,0,1,1],
+        inrdelay=[[data[3]], [data[4]], [(0.0, 0.0)], [data[5]], [data[6]]],
+        delaytype=delaytype)
+    
+    
+    grid.add_link(5, 2, 1, delayfunc=g.create_delayfunc(delaytype,data[7]))
+        
+    grid.add_od(3, 6, od_flows[0])
+    grid.add_od(3, 4, od_flows[1])
+    grid.add_od(3, 2, od_flows[2])
+    grid.add_od(2, 4, od_flows[3])
     
     #grid.add_od(10,3) # error
     #grid.add_od(0,3) # error
@@ -72,32 +92,10 @@ def small_grid():
     return grid
 
 
-def small_grid2():
-    grid = g.create_grid(2, 3, outdown=[1,1,1], outddelay=[[(1.0, 4.0)], [(1.0, 4.0)], [(1.0, 1.0)]], 
-                  inright=[1,1,0,1,1], inrdelay=[[(3.0, 1.0)], [(2.0, 1.0)], [(0.0, 0.0)], [(2.0, 1.0)], [(3.0, 1.0)]], delaytype='Affine')
-    
-    grid.add_link(5, 2, 1, delayfunc=g.AffineDelay(1.0, 4.0))
-    
-    grid.add_od(3, 6, 1.0)
-    grid.add_od(3, 4, 1.0)
-    grid.add_od(3, 2, 1.0)
-    grid.add_od(2, 4, 4.0)
-    
-    grid.add_path([(3,6,1)])
-    grid.add_path([(3,2,1), (2,1,1), (1,4,1)])
-    grid.add_path([(3,2,1), (2,5,1), (5,4,1)])
-    grid.add_path([(3,6,1), (6,5,1), (5,4,1)])
-    grid.add_path([(3,6,1), (6,5,1), (5,2,1), (2,1,1), (1,4,1)])
-    grid.add_path([(3,2,1)])
-    grid.add_path([(3,6,1), (6,5,1), (5,2,1)])
-    grid.add_path([(2,1,1), (1,4,1)])
-    grid.add_path([(2,5,1), (5,4,1)])
-    return grid
-
-
 def main():
     #graph = small_example()
-    graph = small_grid()
+    #graph = small_grid([3.0, 3.0, 1.0, 1.0])
+    graph = small_grid([3.0, 3.0, 1.0, 1.0], 'Polynomial', [1.0, 2.0, 3.0])
     graph.visualize(True, True, True, True, True)    
 
 
