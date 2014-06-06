@@ -18,6 +18,7 @@ def affine():
     print 'UE flow: '
     print linkflows
     unusedpaths = ue.unused_paths(graph)
+    print
     print 'Unused paths: ', unusedpaths
     #ue.save_mat('../Dropbox/Mega_Cell/data/', 'ue_data2', graph)
     graph.visualize(paths=True)
@@ -25,10 +26,15 @@ def affine():
 
 
 def polynomial():
-    graph = small_grid(od_flows2, 'Polynomial', [3.0, 2.0, 1.0])
-    linkflows = ue.solver(graph, update=False)
+    graph = small_grid(od_flows1, 'Polynomial', [3.0, 2.0, 1.0])
+    linkflows = ue.solver(graph)
+    print 'UE flow: '
     print linkflows
-
+    unusedpaths = ue.unused_paths(graph)
+    print
+    print 'Unused paths: ', unusedpaths
+    graph.visualize(paths=True)
+    
 
 def main():
     #affine()

@@ -12,7 +12,7 @@ from rank_nullspace import rank
 from util import find_basis
 
 
-def constraints(graph, save=False):
+def constraints(graph):
     """Construct constraints for the UE link flow
     
     Return value

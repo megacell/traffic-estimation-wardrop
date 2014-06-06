@@ -37,21 +37,27 @@ def small_example():
 def small_grid(od_flows, delaytype='Affine', theta=None):
     """Creates a small grid with fixed geometry, fixed affine/polynomial latency functions, and fixed OD pairs
     variable OD flows
+    
+    Parameters
+    ----------
+    od_flows: OD demands
+    delaytype: type  of the delay functions
+    theta: if delaytype = 'Polynomial', 
+            then delay at link i is D_i(x) = ffdelays[i] + sum^{degree}_{k=1} theta[k-1]*(slopes[i]*x)^k
     """
     
     ffdelays = [1.0, 1.0, 1.0, 3.0, 2.0, 2.0, 3.0, 1.0]
-    slope = [4.0, 4.0, 1.0, 1.0, 1.0, 1.0, 1.0, 4.0]
+    slopes = [4.0, 4.0, 1.0, 1.0, 1.0, 1.0, 1.0, 4.0]
     
     
-    if delaytype == 'Affine':
-        coefs = slope
+    if delaytype == 'Affine': data = zip(ffdelays, slopes)
     elif delaytype == 'Polynomial':
         degree = len(theta)
         coefs = []
         for j in range(8):
-            coefs.append([a*b for a,b in zip(theta, np.power(slope[j], range(1,degree+1)))])
-        
-    data = zip(ffdelays, coefs)
+            coefs.append([a*b for a,b in zip(theta, np.power(slopes[j], range(1,degree+1)))])
+        data = zip(ffdelays, slopes, coefs)
+    
     grid = g.create_grid(2, 3, outdown=[1,1,1],
         outddelay=[[data[0]], [data[1]], [data[2]]], 
         inright=[1,1,0,1,1],

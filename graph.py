@@ -230,7 +230,7 @@ class AffineDelay:
     """Affine Delay function"""
     def __init__(self, ffdelay, slope):
         self.ffdelay = ffdelay
-        self.slope = slope
+        self.slope = slope # this can be seen as inverse capacities
         self.type = 'Affine'
         
     def compute_delay(self, flow):
@@ -239,8 +239,9 @@ class AffineDelay:
        
 class PolyDelay:
     """Polynomial Delay function"""
-    def __init__(self, ffdelay, coef):
+    def __init__(self, ffdelay, slope, coef):
         self.ffdelay = ffdelay
+        self.slope = slope # this can be seen as inverse capacities
         self.coef = coef
         self.degree = len(coef)
         self.type = 'Polynomial'
@@ -252,7 +253,7 @@ class PolyDelay:
 def create_delayfunc(type, parameters):
     """Create a Delay function of a specific type"""
     if type == 'Affine': return AffineDelay(parameters[0], parameters[1])
-    if type == 'Polynomial': return PolyDelay(parameters[0], parameters[1])
+    if type == 'Polynomial': return PolyDelay(parameters[0], parameters[1], parameters[2])
     if type == 'Other': return Other(parameters[0], parameters[1], parameters[2])
 
         
