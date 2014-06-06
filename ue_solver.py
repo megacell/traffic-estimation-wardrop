@@ -7,7 +7,7 @@ Created on Apr 20, 2014
 import numpy as np
 import scipy.sparse as sps
 import scipy.io as sio
-from cvxopt import matrix, spmatrix, solvers
+from cvxopt import matrix, spmatrix, solvers, spdiag
 from rank_nullspace import rank
 from util import find_basis
 
@@ -51,14 +51,37 @@ def solver(graph, update=True, Aeq=None, beq=None):
         linkflows = solvers.qp(P, matrix(q), A, b, Aeq, beq)['x']
         
     if type == 'Polynomial':
+        degree = graph.links.values()[0].delayfunc.degree
+        coefs, coefs_int, coefs_der = matrix(0.0, (n, degree)), matrix(0.0, (n, degree)), matrix(0.0, (n, degree))
+        ffdelays = matrix(0.0, (n,1))
+        for id,link in graph.links.items():
+            i = graph.indlinks[id]
+            ffdelays[i] = link.delayfunc.ffdelay
+            for j in range(degree):
+                coef = link.delayfunc.coef[j]
+                coefs[i,j] = coef
+                coefs_int[i,j] = coef/(j+2)
+                coefs_der[i,j] = coef*(j+1)
+                        
         def F(x=None, z=None):
             if x is None: return 0, matrix(1.0, (n,1))
             #if min(x) <= 0.0: return None #implicit constraints
-            
+            f = 0.0
+            Df = matrix(0.0, (1,n))
+            tmp2 = matrix(0.0, (n,1))
+            for id,link in graph.links.items():
+                i = graph.indlinks[id]
+                tmp1 = matrix(np.power(x[i],range(degree+2)))
+                f += ffdelays[i]*x[i] + coefs_int[i,:] * tmp1[range(2,degree+2)]
+                Df[i] = ffdelays[i] + coefs[i,:] * tmp1[range(1,degree+1)]
+                tmp2[i] = coefs_der[i,:] * tmp1[range(degree)]
+            if z is None: return f, Df
+            H = spdiag(z[0] * tmp2)
+            return f, Df, H
             
         linkflows = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
-        pass
         
+                
     if type == 'Other':
         pass
     

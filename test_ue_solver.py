@@ -7,10 +7,11 @@ Created on Apr 21, 2014
 import ue_solver as ue
 from test_graph import small_grid, small_example
 
-def main():
-    od_flows1 = [3.0, 3.0, 1.0, 1.0];
-    od_flows2 = [1.0, 1.0, 1.0, 4.0];
-    graph = small_grid(od_flows1)
+od_flows1 = [3.0, 3.0, 1.0, 1.0];
+od_flows2 = [1.0, 1.0, 1.0, 4.0];
+
+def affine():
+    graph = small_grid(od_flows2)
     #graph = small_example()
     linkflows = ue.solver(graph)
     print 'links\' indices: ', graph.indlinks
@@ -21,6 +22,18 @@ def main():
     #ue.save_mat('../Dropbox/Mega_Cell/data/', 'ue_data2', graph)
     graph.visualize(paths=True)
     return graph, linkflows, unusedpaths
+
+
+def polynomial():
+    graph = small_grid(od_flows2, 'Polynomial', [3.0, 2.0, 1.0])
+    linkflows = ue.solver(graph, update=False)
+    print linkflows
+
+
+def main():
+    #affine()
+    polynomial()
+    
 
 if __name__ == '__main__':
     main()
