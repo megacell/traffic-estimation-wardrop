@@ -29,11 +29,13 @@ def polynomial():
     graph = small_grid(od_flows1, 'Polynomial', [3.0, 2.0, 1.0])
     linkflows = ue.solver(graph)
     print 'UE flow: '
+    print linkflows.size
     print linkflows
     unusedpaths = ue.unused_paths(graph)
     print
     print 'Unused paths: ', unusedpaths
     graph.visualize(paths=True)
+    return graph, linkflows, unusedpaths
     
 
 def main():

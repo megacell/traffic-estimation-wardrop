@@ -9,7 +9,8 @@ import numpy as np
 
 class Graph:
     """A graph containing nodes and links"""
-    def __init__(self, description=None, nodes={}, links={}, ODs={}, paths={}, numnodes=0, numlinks=0, numODs=0, numpaths=0, nodes_position={}, indlinks={}, indods={}, indpaths={}):
+    def __init__(self, description=None, nodes={}, links={}, ODs={}, paths={}, 
+                 numnodes=0, numlinks=0, numODs=0, numpaths=0, nodes_position={}, indlinks={}, indods={}, indpaths={}):
         self.description = description
         self.nodes = nodes
         self.links = links
@@ -275,7 +276,7 @@ def create_grid(m, n, inright=None, indown=None, outright=None, outdown=None,
     ...
     
     """
-    grid = Graph('Grid of size {}X{}'.format(m,n))
+    grid = Graph('Grid of size {}X{}'.format(m,n), {},{},{},{},0,0,0,0,{},{},{},{})
     [grid.add_node((j, m-i-1)) for i in range(m) for j in range(n)]
     
     if not inright is None:
