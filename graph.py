@@ -27,10 +27,15 @@ class Graph:
         
     
     def add_node(self, position=None):
-        """Add a node"""
+        """Add a node with coordinates as a tuple"""
         self.numnodes += 1
         self.nodes_position[self.numnodes] = position
         self.nodes[self.numnodes] = Node(position, inlinks={}, outlinks={}, startODs={}, endODs={})
+        
+        
+    def add_nodes_from_list(self, list):
+        """Add nodes from list of positions"""
+        for position in list: self.add_node(position)
         
           
     def add_link(self, startnode, endnode, route=1, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None):
@@ -53,6 +58,11 @@ class Graph:
                 link.ffdelay = delayfunc.ffdelay
                 link.delay = delayfunc.compute_delay(link.flow)
                     
+   
+    def add_links_from_list(self, list):
+        """Add links from list"""
+        pass
+   
    
     def add_od(self, origin, destination, flow=0.0):
         """Add an OD pair"""
