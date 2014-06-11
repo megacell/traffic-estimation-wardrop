@@ -20,6 +20,13 @@ Troubleshooting
 --------
 ...
 
+Network of L.A.
+--------
+
+Coordinates for bounding box in L.A.: [-118.328299, 33.984601, -117.68132, 34.255881]
+
+<img src="figures/map_graph.jpg" width=300px />
+
 References
 --------
 chapter 11 of resilient networks: http://faculty.unlv.edu/pushkin/Resilient%20Networks.pdf
