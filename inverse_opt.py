@@ -62,9 +62,9 @@ def constraints(list_graphs, list_linkflows, degree):
             
             tmp5 = mul(slopes, linkflows)
             for deg in range(degree):
-                tmp6 = tmp5**(deg+1)
+                tmp6 = mul(tmp5**(deg+1), ffdelays)
                 tmp1[deg] += (linkflows.T) * tmp6
-                tmp2[degree+ind_start2[j]:degree+ind_end2[j], deg] = -tmp6
+                tmp2[degree+ind_start2[j]:degree+ind_end2[j], deg] = spmatrix(-ffdelays,range(n),range(n))*tmp6
                 
             if j>0: C, beq = ue.constraints(graph)
             tmp3[degree+ind_start2[j]:degree+ind_end2[j], ind_start1[j]:ind_end1[j]] = C.T

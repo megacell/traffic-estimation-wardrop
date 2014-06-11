@@ -57,7 +57,7 @@ def small_grid(od_flows, delaytype='Affine', theta=None):
         degree = len(theta)
         coefs = []
         for j in range(8):
-            coefs.append([a*b for a,b in zip(theta, np.power(slopes[j], range(1,degree+1)))])
+            coefs.append([ffdelays[j]*a*b for a,b in zip(theta, np.power(slopes[j], range(1,degree+1)))])
         data = zip(ffdelays, slopes, coefs)
     
     grid = g.create_grid(2, 3, outdown=[1,1,1],

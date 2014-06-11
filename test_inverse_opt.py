@@ -30,8 +30,8 @@ def main():
     xdata = np.linspace(0.0, 5.0, num=10)
     vals = [(theta.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
     true_vals = [(theta_true.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
-    #scale = sum(true_vals) / sum(vals)
-    scale = 1
+    scale = sum(true_vals) / sum(vals)
+    #scale = 1
     scaled_vals = [scale*val for val in vals]
     
     #Check if we find the right link flows

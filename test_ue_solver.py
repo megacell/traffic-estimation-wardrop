@@ -26,7 +26,7 @@ def affine():
 
 
 def polynomial():
-    graph = small_grid(od_flows1, 'Polynomial', [3.0, 2.0, 1.0])
+    graph = small_grid(od_flows2, 'Polynomial', [3.0, 2.0, 1.0])
     linkflows = ue.solver(graph)
     print 'UE flow: '
     print linkflows
