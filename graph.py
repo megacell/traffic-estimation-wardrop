@@ -48,7 +48,7 @@ class Graph:
         if (startnode, endnode, route) in self.links:
             print 'ERROR: link ({},{},{}) already exists.'.format(startnode, endnode, route); return
         else:
-            link = Link(startnode, endnode, route, flow, delay, ffdelay, delayfunc, {})
+            link = Link(startnode, endnode, route, float(flow), float(delay), float(ffdelay), delayfunc, {})
             self.indlinks[(startnode, endnode, route)] = self.numlinks
             self.numlinks += 1
             self.links[(startnode, endnode, route)] = link
@@ -59,9 +59,12 @@ class Graph:
                 link.delay = delayfunc.compute_delay(link.flow)
                     
    
-    def add_links_from_list(self, list):
-        """Add links from list"""
-        pass
+    def add_links_from_list(self, list, delaytype):
+        """Add links from list
+        the list is must contain starnode, endnode, ffdelay, and parameters of delay functions
+        """
+        for startnode, endnode, route, ffdelay, parameters in list:
+            self.add_link(startnode, endnode, route, 0.0, ffdelay, ffdelay, delayfunc=create_delayfunc(delaytype, parameters))
    
    
     def add_od(self, origin, destination, flow=0.0):
@@ -146,7 +149,7 @@ class Graph:
                 print 'Paths: ', link.paths
                 print 'Delay: ', link.delay
                 print 'Free flow delay: ', link.ffdelay
-                print 'Type of delay function: ', link.delayfunc.type
+                if link.delayfunc is not None: print 'Type of delay function: ', link.delayfunc.type
                 print
         
         if ODs:
@@ -261,11 +264,21 @@ class PolyDelay:
         return self.ffdelay + np.dot(self.coef, np.power(flow, range(1,self.degree+1)))
         
 
-def create_delayfunc(type, parameters):
+def create_delayfunc(type, parameters=None):
     """Create a Delay function of a specific type"""
+    if type == 'None': return None
     if type == 'Affine': return AffineDelay(parameters[0], parameters[1])
     if type == 'Polynomial': return PolyDelay(parameters[0], parameters[1], parameters[2])
     if type == 'Other': return Other(parameters[0], parameters[1], parameters[2])
+
+
+def create_graph_from_list(list_nodes, list_links, delaytype, description):
+    """Create a graph from a list of of nodes and links
+    """
+    graph = Graph(description, {},{},{},{},0,0,0,0,{},{},{},{})
+    graph.add_nodes_from_list(list_nodes)
+    graph.add_links_from_list(list_links, delaytype)
+    return graph
 
         
 def create_grid(m, n, inright=None, indown=None, outright=None, outdown=None, 

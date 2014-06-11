@@ -4,8 +4,10 @@ Created on Apr 18, 2014
 @author: jeromethai
 '''
 
+import Graph
 import Graph as g
 import numpy as np
+import scipy.io as sio
 
 def small_example():
     
@@ -98,11 +100,21 @@ def small_grid(od_flows, delaytype='Affine', theta=None):
     return grid
 
 
+def los_angeles_map():
+    data = sio.loadmat('los_angeles_data.mat')
+    links = data['links']
+    nodes = data['nodes']
+    graph = g.create_graph_from_list(nodes, links, 'None', 'Map of L.A.')
+    return graph
+
+
 def main():
     #graph = small_example()
     #graph = small_grid([3.0, 3.0, 1.0, 1.0])
-    graph = small_grid([3.0, 3.0, 1.0, 1.0], 'Polynomial', [1.0, 2.0, 3.0])
-    graph.visualize(True, True, True, True, True)    
+    #graph = small_grid([3.0, 3.0, 1.0, 1.0], 'Polynomial', [1.0, 2.0, 3.0])
+    #graph.visualize(True, True, True, True, True)    
+    graph = los_angeles_map()
+    graph.visualize(True, True, True, True, True)
 
 
 if __name__ == '__main__':
