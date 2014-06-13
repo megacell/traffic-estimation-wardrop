@@ -41,6 +41,7 @@ class Graph:
     def add_link(self, startnode, endnode, route=1, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None):
         """Add a link"""
         formatStr = 'ERROR: node {} doesn\'t exist, graph countains {} nodes.'
+        startnode, endnode, route = int(startnode), int(endnode), int(route)
         if startnode == endnode: print 'ERROR: self-loop not allowed.'; return
         if startnode < 1 or startnode > self.numnodes: print formatStr.format(startnode, self.numnodes); return
         if endnode < 1 or endnode > self.numnodes: print formatStr.format(endnode, self.numnodes); return
@@ -70,6 +71,7 @@ class Graph:
     def add_od(self, origin, destination, flow=0.0):
         """Add an OD pair"""
         formatStr = 'ERROR: node {} doesn\'t exist, graph countains {} nodes.'
+        origin, destination = int(origin), int(destination)
         if origin == destination: print 'ERROR: self-loop not allowed.'; return
         if origin < 1 or origin > self.numnodes: print formatStr.format(origin, self.numnodes); return
         if destination < 1 or destination > self.numnodes: print formatStr.format(destination, self.numnodes); return
@@ -79,7 +81,7 @@ class Graph:
         else:
             self.indods[(origin, destination)] = self.numODs
             self.numODs += 1
-            od = OD(origin, destination, flow, {})
+            od = OD(origin, destination, float(flow), {})
             self.ODs[(origin, destination)] = od
             self.nodes[origin].startODs[(origin, destination)] = od
             self.nodes[destination].endODs[(origin, destination)] = od

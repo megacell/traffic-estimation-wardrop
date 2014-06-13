@@ -33,7 +33,7 @@ def polynomial():
     unusedpaths = ue.unused_paths(graph)
     print
     print 'Unused paths: ', unusedpaths
-    graph.visualize(paths=True)
+    graph.visualize(links=True, paths=True)
     return graph, linkflows, unusedpaths
     
 

@@ -26,10 +26,10 @@ def constraints(list_graphs, list_linkflows, degree):
     
     Return value
     ------------
-    c, A, b, C, beq: such that 
+    c, A, b, Aeq, beq: such that 
         min c'*x 
         s.t. A*x <= b
-        C*x = beq
+        Aeq*x = beq
     """
     
     if len(list_graphs) != len(list_linkflows): print 'ERROR: Lists not same length'; return
@@ -52,7 +52,7 @@ def constraints(list_graphs, list_linkflows, degree):
     
     if type == 'Polynomial':
         
-        b, Aeq = matrix(0.0, (n*N + degree, 1)), matrix(0.0, (1, N*m + degree))
+        b = matrix(0.0, (n*N + degree, 1))
         tmp1, tmp2 = matrix(0.0, (degree,1)), matrix(0.0, (N*n + degree, degree))
         tmp3, tmp4 = matrix(0.0, (n*N + degree, m*N)), matrix(0.0, (m*N,1))
         ind_start1, ind_end1 = [j*m for j in range(N)], [(j+1)*m for j in range(N)]
@@ -73,18 +73,27 @@ def constraints(list_graphs, list_linkflows, degree):
             b[degree+ind_start2[j]:degree+ind_end2[j]] = ffdelays
             
         scale = (sum(abs(tmp4)) * float(len(tmp1))) / (sum(abs(tmp1)) * float(len(tmp4)))
-        c, A, beq = matrix([scale*tmp1, tmp4]), matrix([[scale*tmp2], [tmp3]]), matrix([1.0])
+        c, A = matrix([scale*tmp1, tmp4]), matrix([[scale*tmp2], [tmp3]])
     
-        for deg in range(degree):
-            Aeq[deg] = 1.0
-            A[deg, deg] = -1.0
+        for deg in range(degree): A[deg, deg] = -1.0
     
-        return c, A, scale*b, Aeq, beq
+        return c, A, scale*b
 
 
 def solver(list_graphs, list_linkflows, degree, data=None):
     """Solves the inverse optimization problem
     (only available for polynomial delays)
+    
+    Parameters
+    ----------
+    list_graphs: list of graphs with same geometry, different OD demands
+                 delay functions of links must contain ffdelays and slopes 
+    
+    list_linkflows: list of link flow vectors in equilibrium
+    
+    degree: degree of the polynomial function to estimate
+    
+    data: constraints and objective for the optimization problem
     """
     type = list_graphs[0].links.values()[0].delayfunc.type
     
@@ -94,7 +103,40 @@ def solver(list_graphs, list_linkflows, degree, data=None):
     
     if type == 'Polynomial':
         if data is None: data = constraints(list_graphs, list_linkflows, degree)
-        c, A, b, Aeq, beq = data
-        x = solvers.lp(c, G=A, h=b, A=Aeq, b=beq)['x']
+        c, A, b = data
+        x = solvers.lp(c, G=A, h=b)['x']
         
     return x[range(degree)]
+
+
+def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, max_iter):
+    """Solves the inverse optimization problem with missing values
+    (only available for polynomial delays)
+    
+    Parameters
+    ----------
+    list_graphs: list of graphs with same geometry, different OD demands
+                 delay functions of links must contain ffdelays and slopes 
+    
+    list_linkflows_obs: list of partially-observed link flow vectors in equilibrium
+    
+    indlinks_obs: indices of observed links
+    
+    degree: degree of the polynomial function to estimate
+    
+    max_iter: maximum number of iterations
+    """
+    N = len(list_graphs)
+    theta_init = matrix(np.ones(degree))/degree
+    Aeqs, beqs = [], []
+    for j in range(N):
+        tmp1, tmp2 = ue.constraints(list_graphs[j])
+        Aeqs.append()
+        beqs.append()
+    
+    theta = theta_init
+    for k in range(max_iter):
+        list_linkflows = []
+        for j in range(N):
+            list_linkflows.append(ue.solver(list_graphs[j], False, Aeqs[j], beqs[j], list_linkflows_obs[j], indlinks_obs))
+        theta = invopt.solver(list_graphs, list_linkflows, degree)

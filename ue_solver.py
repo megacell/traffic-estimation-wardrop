@@ -33,13 +33,29 @@ def constraints(graph):
     return Aeq[ind,:], beq[ind]
 
 
-def solver(graph, update=True, Aeq=None, beq=None):
+def solver(graph, update=True, Aeq=None, beq=None, linkflows_obs=None, indlinks_obs=None):
     """Find the UE link flow
-    if update==True: update link flows and link,path delays in graph"""
+    
+    Parameters
+    ----------
+    update: if update==True: update link flows and link,path delays in graph
+    Aeq: matrix of incidence nodes-links
+    beq: matrix of OD flows at each node
+    linkflows_obs: vector of observed link flows (sorted)
+    indlinks_obs: list of indices of observed link flows (sorted)
+    """
     
     if Aeq is None or beq is None: Aeq, beq = constraints(graph)
     n = graph.numlinks
     A, b = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1))
+    
+    if linkflows_obs is not None and indlinks_obs is not None:
+        print 'Include observed link flows in UE computation'
+        num_obs = len(indlinks_obs)
+        entries, I, J = np.ones(num_obs), range(num_obs), []
+        for id in indlink_obs: J.append(graph.indlinks[id])
+        Aeq = sparse([Aeq, spmatrix(entries,I,J)])
+        beq = matrix([beq, linkflows_obs])
     
     type = graph.links.values()[0].delayfunc.type    
     
