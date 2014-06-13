@@ -15,6 +15,12 @@ from util import find_basis
 def constraints(graph, linkflows_obs=None, indlinks_obs=None):
     """Construct constraints for the UE link flow
     
+    Parameters
+    ----------
+    graph: graph object
+    linkflows_obs: vector of observed link flows (must be in the same order)
+    indlinks_obs: list of indices of observed link flows (must be in the same order)
+    
     Return value
     ------------
     Aeq: matrix of incidence nodes-links
@@ -51,8 +57,8 @@ def solver(graph, update=True, Aeq=None, beq=None, linkflows_obs=None, indlinks_
     update: if update==True: update link flows and link,path delays in graph
     Aeq: matrix of incidence nodes-links
     beq: matrix of OD flows at each node
-    linkflows_obs: vector of observed link flows (sorted)
-    indlinks_obs: list of indices of observed link flows (sorted)
+    linkflows_obs: vector of observed link flows (must be in the same order)
+    indlinks_obs: list of indices of observed link flows (must be in the same order)
     """
     
     if Aeq is None or beq is None: Aeq, beq = constraints(graph, linkflows_obs, indlinks_obs)

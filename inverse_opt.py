@@ -144,12 +144,10 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, max_iter):
     
     for k in range(max_iter):
         
-        list_linkflows = []
         for id, link in graph.links.items():
             i = graph.indlinks[id]
             link.delayfunc.coef = [ffdelays[i]*a*b for a,b in zip(theta, np.power(slopes[i], range(1,degree+1)))]
-        for j in range(N):
-            list_linkflows.append(ue.solver(graph, False, Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs))
+        list_linkflows = [ue.solver(graph, False, Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs) for j in range(N)]
         print list_linkflows[0]
         print list_linkflows[1]
         theta = solver(list_graphs, list_linkflows, degree)
