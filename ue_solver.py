@@ -7,12 +7,12 @@ Created on Apr 20, 2014
 import numpy as np
 import scipy.sparse as sps
 import scipy.io as sio
-from cvxopt import matrix, spmatrix, solvers, spdiag
+from cvxopt import matrix, spmatrix, solvers, spdiag, sparse
 from rank_nullspace import rank
 from util import find_basis
 
 
-def constraints(graph):
+def constraints(graph, linkflows_obs=None, indlinks_obs=None):
     """Construct constraints for the UE link flow
     
     Return value
@@ -20,16 +20,26 @@ def constraints(graph):
     Aeq: matrix of incidence nodes-links
     beq: matrix of OD flows at each node
     """
-    m = graph.numnodes;
+    m, n = graph.numnodes, graph.numlinks
     entries, I, J, beq = [], [], [], matrix(0.0, (m,1))
     
     for id1,node in graph.nodes.items():
         for id2,link in node.inlinks.items(): entries.append(1.0); I.append(id1-1); J.append(graph.indlinks[id2])
         for id2,link in node.outlinks.items(): entries.append(-1.0); I.append(id1-1); J.append(graph.indlinks[id2])
         beq[id1-1] = sum([od.flow for od in node.endODs.values()]) - sum([od.flow for od in node.startODs.values()])
-    Aeq = spmatrix(entries,I,J)
+    Aeq = spmatrix(entries, I, J, (m,n))
+    
+    num_obs = 0
+    if linkflows_obs is not None and indlinks_obs is not None:
+        print 'Include observed link flows in UE computation'
+        num_obs = len(indlinks_obs)
+        entries, I, J = np.ones(num_obs), range(num_obs), []
+        for id in indlinks_obs: J.append(graph.indlinks[id])
+        Aeq = sparse([Aeq, spmatrix(entries, I, J, (num_obs,n))])
+        beq = matrix([beq, matrix(linkflows_obs)])
+        
     M = matrix(Aeq); r = rank(M)
-    if r < m: print 'Remove {} redundant constraint(s)'.format(m-r); ind = find_basis(M.trans())
+    if r < m+num_obs: print 'Remove {} redundant constraint(s)'.format(m+num_obs-r); ind = find_basis(M.trans())
     return Aeq[ind,:], beq[ind]
 
 
@@ -45,18 +55,9 @@ def solver(graph, update=True, Aeq=None, beq=None, linkflows_obs=None, indlinks_
     indlinks_obs: list of indices of observed link flows (sorted)
     """
     
-    if Aeq is None or beq is None: Aeq, beq = constraints(graph)
+    if Aeq is None or beq is None: Aeq, beq = constraints(graph, linkflows_obs, indlinks_obs)
     n = graph.numlinks
     A, b = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1))
-    
-    if linkflows_obs is not None and indlinks_obs is not None:
-        print 'Include observed link flows in UE computation'
-        num_obs = len(indlinks_obs)
-        entries, I, J = np.ones(num_obs), range(num_obs), []
-        for id in indlink_obs: J.append(graph.indlinks[id])
-        Aeq = sparse([Aeq, spmatrix(entries,I,J)])
-        beq = matrix([beq, linkflows_obs])
-    
     type = graph.links.values()[0].delayfunc.type    
     
     if type == 'Affine':
