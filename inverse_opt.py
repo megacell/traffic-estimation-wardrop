@@ -9,7 +9,7 @@ import numpy as np
 from cvxopt import matrix, spmatrix, solvers, spdiag, mul
 
 
-def constraints(list_graphs, list_linkflows, degree):
+def constraints(list_graphs, list_linkflows, degree, alpha=None):
     """Construct constraints for the Inverse Optimization
     (only available for polynomial delays)
     delay at link i is D_i(x) = ffdelays[i] + sum^{degree}_{k=1} theta[k-1]*(slope[i]*x)^k
@@ -23,6 +23,8 @@ def constraints(list_graphs, list_linkflows, degree):
     list_linkflows: list of link flow vectors in equilibrium
     
     degree: degree of the polynomial function to estimate
+    
+    alpha: scaling factor for the parameters theta
     
     Return value
     ------------
@@ -52,7 +54,7 @@ def constraints(list_graphs, list_linkflows, degree):
     
     if type == 'Polynomial':
         
-        b, Aeq = matrix(0.0, (n*N + degree, 1)), matrix(0.0, (1, N*m + degree))
+        b = matrix(0.0, (n*N + degree, 1))
         tmp1, tmp2 = matrix(0.0, (degree,1)), matrix(0.0, (N*n + degree, degree))
         tmp3, tmp4 = matrix(0.0, (n*N + degree, m*N)), matrix(0.0, (m*N,1))
         ind_start1, ind_end1 = [j*m for j in range(N)], [(j+1)*m for j in range(N)]
@@ -73,14 +75,19 @@ def constraints(list_graphs, list_linkflows, degree):
             b[degree+ind_start2[j]:degree+ind_end2[j]] = ffdelays
             
         scale = (sum(abs(tmp4)) * float(len(tmp1))) / (sum(abs(tmp1)) * float(len(tmp4)))
-        c, A, beq = matrix([scale*tmp1, tmp4]), matrix([[scale*tmp2], [tmp3]]), matrix([1.0])
+        c, A = matrix([scale*tmp1, tmp4]), matrix([[scale*tmp2], [tmp3]])
     
-        for deg in range(degree): Aeq[deg] = 1.0; A[deg, deg] = -1.0
+        for deg in range(degree): A[deg, deg] = -1.0
     
-        return c, A, scale*b, Aeq, beq
+        if alpha is not None:
+            Aeq, beq = matrix(0.0, (1, N*m + degree)), matrix([alpha])
+            for deg in range(degree): Aeq[deg] = 1.0
+            return c, A, scale*b, Aeq, beq
+        else:
+            return c, A, scale*b
 
 
-def solver(list_graphs, list_linkflows, degree, data=None):
+def solver(list_graphs, list_linkflows, degree, alpha=None, data=None):
     """Solves the inverse optimization problem
     (only available for polynomial delays)
     
@@ -93,6 +100,8 @@ def solver(list_graphs, list_linkflows, degree, data=None):
     
     degree: degree of the polynomial function to estimate
     
+    alpha: scaling factor for the parameters theta
+    
     data: constraints and objective for the optimization problem
     """
     type = list_graphs[0].links.values()[0].delayfunc.type
@@ -102,14 +111,18 @@ def solver(list_graphs, list_linkflows, degree, data=None):
         return
     
     if type == 'Polynomial':
-        if data is None: data = constraints(list_graphs, list_linkflows, degree)
-        c, A, b, Aeq, beq = data
-        x = solvers.lp(c, G=A, h=b, A=Aeq, b=beq)['x']
+        if data is None: data = constraints(list_graphs, list_linkflows, degree, alpha)
+        if alpha is not None:
+            c, A, b, Aeq, beq = data
+            x = solvers.lp(c, G=A, h=b, A=Aeq, b=beq)['x']
+        else:
+            c, A, b = data
+            x = solvers.lp(c, G=A, h=b)['x']
         
     return x[range(degree)]
 
 
-def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, max_iter):
+def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, alpha=None, max_iter=1):
     """Solves the inverse optimization problem with missing values
     (only available for polynomial delays)
     
@@ -148,8 +161,6 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, max_iter):
             i = graph.indlinks[id]
             link.delayfunc.coef = [ffdelays[i]*a*b for a,b in zip(theta, np.power(slopes[i], range(1,degree+1)))]
         list_linkflows = [ue.solver(graph, False, Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs) for j in range(N)]
-        print list_linkflows[0]
-        print list_linkflows[1]
-        theta = solver(list_graphs, list_linkflows, degree)
+        theta = solver(list_graphs, list_linkflows, degree, alpha)
         
     return theta

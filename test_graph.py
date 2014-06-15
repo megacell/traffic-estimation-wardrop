@@ -8,6 +8,7 @@ import Graph
 import Graph as g
 import numpy as np
 import scipy.io as sio
+from cvxopt import matrix
 
 def small_example():
     
@@ -100,22 +101,42 @@ def small_grid(od_flows, delaytype='Affine', theta=None):
     return grid
 
 
-def los_angeles_map():
+def los_angeles(theta=None, delaytype='None', multiple=False):
+    
     data = sio.loadmat('los_angeles_data.mat')
     links = data['links']
     nodes = data['nodes']
-    graph = g.create_graph_from_list(nodes, links, 'None', 'Map of L.A.')
-    return graph
+    ODs = data['ODs']
+    if multiple: ODs1, ODs2, ODs3 = data['ODs1'], data['ODs2'], data['ODs3']
+    
+    if theta is not None:
+        degree = len(theta)
+        tmp = links
+        links = []
+        for startnode, endnode, route, ffdelay, slope in tmp:
+            coef = [ffdelay*a*b for a,b in zip(theta, np.power(slope, range(1,degree+1)))]
+            links.append((startnode, endnode, route, ffdelay, (ffdelay, slope, coef)))
+    
+    if multiple:
+        graph1 = g.create_graph_from_list(nodes, links, delaytype, ODs1, 'Map of L.A.')
+        graph2 = g.create_graph_from_list(nodes, links, delaytype, ODs2, 'Map of L.A.')
+        graph3 = g.create_graph_from_list(nodes, links, delaytype, ODs3, 'Map of L.A.')
+        return graph1, graph2, graph3
+    else:
+        return g.create_graph_from_list(nodes, links, delaytype, ODs, 'Map of L.A.')
 
 
 def main():
     #graph = small_example()
     #graph = small_grid([3.0, 3.0, 1.0, 1.0])
     #graph = small_grid([3.0, 3.0, 1.0, 1.0], 'Polynomial', [1.0, 2.0, 3.0])
-    #graph.visualize(True, True, True, True, True)    
-    graph = los_angeles_map()
+    #graph.visualize(True, True, True, True, True)
+    theta = matrix([0.0, 0.0, 0.0, 1.0])
+    theta /= np.sum(theta)
+    theta *= 0.15
+    graph = los_angeles(theta, 'Polynomial')
     graph.visualize(True, True, True, True, True)
-
+    
 
 if __name__ == '__main__':
     main()

@@ -87,6 +87,13 @@ class Graph:
             self.nodes[destination].endODs[(origin, destination)] = od
    
    
+    def add_ods_from_list(self, list):
+        """Add OD's from list
+        the list is must contain origin, destimation, ffdelay, flow
+        """
+        for origin, destination, flow in list: self.add_od(origin, destination, flow)
+   
+   
     def add_path(self, link_ids):
         """Add a path"""
         origin = link_ids[0][0]
@@ -115,7 +122,7 @@ class Graph:
             self.links[(link.startnode, link.endnode, link.route)].paths[(origin, destination, route)] = path   
         
         
-    def visualize(self, general=False, nodes=False, links=False, ODs=False, paths=False):
+    def visualize(self, general=False, nodes=False, links=False, ODs=False, paths=False, only_pos_flows=False, tol=1e-3):
         """Visualize graph"""
         if general:
             print 'Description: ', self.description
@@ -145,14 +152,15 @@ class Graph:
      
         if links:    
             for id, link in self.links.items():
-                print 'Link id: ', id
-                print 'Flow: ', link.flow
-                print 'Number of paths: ', link.numpaths
-                print 'Paths: ', link.paths
-                print 'Delay: ', link.delay
-                print 'Free flow delay: ', link.ffdelay
-                if link.delayfunc is not None: print 'Type of delay function: ', link.delayfunc.type
-                print
+                if link.flow > tol or not only_pos_flows:
+                    print 'Link id: ', id
+                    print 'Flow: ', link.flow
+                    print 'Number of paths: ', link.numpaths
+                    print 'Paths: ', link.paths
+                    print 'Delay: ', link.delay
+                    print 'Free flow delay: ', link.ffdelay
+                    if link.delayfunc is not None: print 'Type of delay function: ', link.delayfunc.type
+                    print
         
         if ODs:
             for id, od in self.ODs.items():
@@ -274,12 +282,13 @@ def create_delayfunc(type, parameters=None):
     if type == 'Other': return Other(parameters[0], parameters[1], parameters[2])
 
 
-def create_graph_from_list(list_nodes, list_links, delaytype, description):
+def create_graph_from_list(list_nodes, list_links, delaytype, list_ods=None, description=None):
     """Create a graph from a list of of nodes and links
     """
     graph = Graph(description, {},{},{},{},0,0,0,0,{},{},{},{})
     graph.add_nodes_from_list(list_nodes)
     graph.add_links_from_list(list_links, delaytype)
+    if list_ods is not None: graph.add_ods_from_list(list_ods)
     return graph
 
         
