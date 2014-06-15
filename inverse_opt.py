@@ -141,7 +141,7 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, alpha=None
     """
     N, graph = len(list_graphs), list_graphs[0]
     n = graph.numlinks
-    theta_init = matrix(np.ones(degree))
+    theta_init = matrix(np.ones(degree))/float(degree)
     beqs = []
     for j in range(N):
         tmp1, tmp2 = ue.constraints(list_graphs[j], list_linkflows_obs[j], indlinks_obs)

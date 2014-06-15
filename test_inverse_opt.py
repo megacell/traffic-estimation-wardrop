@@ -99,33 +99,38 @@ def test2(max_obs, trials, max_iter):
     plt.show()
     
     
-def test3(missing, max_iter):
+def test3(missing, max_iter, alpha=None):
     graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True)
     linkflows1 = ue.solver(graph1)
     linkflows2 = ue.solver(graph2)
     linkflows3 = ue.solver(graph3)
     
     if not missing:
-        theta = invopt.solver([graph1, graph2, graph3], [linkflows1, linkflows2, linkflows3], degree)
+        theta = invopt.solver([graph1, graph2, graph3], [linkflows1, linkflows2, linkflows3], degree, alpha)
+        graph1, graph2, graph3 = los_angeles(theta, 'Polynomial', True)
+        l_lkflows = [ue.solver(graph1, update=False), ue.solver(graph2, update=False), 
+                     ue.solver(graph3, update=False)]
     else:
-        indlinks_obs = [(17,24,1), (16,23,1)]
+        indlinks_obs = [(8,17,1), (17,24,1), (24,40,1), (14,21,1), (16,23,1), (23,28,1), (12,34,1), (13,14,1)]
+        #indlinks_obs = []
         obs = [graph1.indlinks[id] for id in indlinks_obs]
         theta, l_lkflows = invopt.solver_mis([graph1, graph2, graph3], [linkflows1[obs], linkflows2[obs], linkflows3[obs]], 
-                                  indlinks_obs, degree, max_iter=max_iter)
+                                  indlinks_obs, degree, alpha, max_iter)
     
     print 'Estimated parameters'
     print theta
-    xdata = np.linspace(0.0, 5.0, num=10)
+    xdata = np.linspace(0.0, 3.0, num=10)
     vals = [1+(theta.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
     true_vals = [1+(theta_true.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
     
     n = graph1.numlinks
-    e1 = linkflows1-l_lkflows[0]
-    e2 = linkflows2-l_lkflows[1]
-    e3 = linkflows3-l_lkflows[2]
-    print max(e1)
-    print max(e2)
-    print max(e3)
+    e1 = abs(linkflows1-l_lkflows[0])
+    e2 = abs(linkflows2-l_lkflows[1])
+    e3 = abs(linkflows3-l_lkflows[2])
+    #print l_lkflows[2][graph1.indlinks[(15,22,1)]]
+    print np.mean(e1)
+    print np.mean(e2)
+    print np.mean(e3)
     #reverse = {v:id for id,v in graph1.indlinks.items()}
     #print [(reverse[i], x1[i], linkflows1[i]) for i in range(n) if abs(e1[i]) > 1e-1]
     #print [(reverse[i], x2[i], linkflows2[i]) for i in range(n) if abs(e2[i]) > 1e-1]
@@ -144,7 +149,7 @@ def test3(missing, max_iter):
 def main():
     #test1(True)
     #test2(7, 20, 3)
-    test3(True, 7)
+    test3(True, 1, alpha)
     
     
 if __name__ == '__main__':
