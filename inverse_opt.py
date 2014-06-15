@@ -141,7 +141,7 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, alpha=None
     """
     N, graph = len(list_graphs), list_graphs[0]
     n = graph.numlinks
-    theta_init = matrix(np.ones(degree))/degree
+    theta_init = matrix(np.ones(degree))
     beqs = []
     for j in range(N):
         tmp1, tmp2 = ue.constraints(list_graphs[j], list_linkflows_obs[j], indlinks_obs)
@@ -157,10 +157,12 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, alpha=None
     
     for k in range(max_iter):
         
-        for id, link in graph.links.items():
-            i = graph.indlinks[id]
-            link.delayfunc.coef = [ffdelays[i]*a*b for a,b in zip(theta, np.power(slopes[i], range(1,degree+1)))]
-        list_linkflows = [ue.solver(graph, False, Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs) for j in range(N)]
-        theta = solver(list_graphs, list_linkflows, degree, alpha)
+        if k%2 == 0:
+            for id, link in graph.links.items():
+                i = graph.indlinks[id]
+                link.delayfunc.coef = [ffdelays[i]*a*b for a,b in zip(theta, np.power(slopes[i], range(1,degree+1)))]
+            list_linkflows = [ue.solver(graph, False, Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs) for j in range(N)]
+        else:
+            theta = solver(list_graphs, list_linkflows, degree, alpha)
         
-    return theta
+    return theta, list_linkflows

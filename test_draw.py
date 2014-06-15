@@ -23,8 +23,8 @@ def draw_los_angeles():
 
 
 def main():
-    small_graph()
-    #draw_los_angeles()
+    #small_graph()
+    draw_los_angeles()
 
 if __name__ == '__main__':
     main()
