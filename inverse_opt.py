@@ -26,8 +26,8 @@ def constraints(list_graphs, list_linkflows, degree):
         
     Return value
     ------------
-    c, A, b, Aeq, beq: such that 
-        min c'*x 
+    c, A, b: such that 
+        min c'*x + r(x)
         s.t. A*x <= b
     """
     
@@ -51,9 +51,9 @@ def constraints(list_graphs, list_linkflows, degree):
     
     if type == 'Polynomial':
         
-        b = matrix(0.0, (n*N + degree, 1))
-        tmp1, tmp2 = matrix(0.0, (degree,1)), matrix(0.0, (N*n + degree, degree))
-        tmp3, tmp4 = matrix(0.0, (n*N + degree, m*N)), matrix(0.0, (m*N,1))
+        b = matrix(0.0, (n*N, 1))
+        tmp1, tmp2 = matrix(0.0, (degree,1)), matrix(0.0, (N*n, degree))
+        tmp3, tmp4 = matrix(0.0, (n*N, m*N)), matrix(0.0, (m*N,1))
         ind_start1, ind_end1 = [j*m for j in range(N)], [(j+1)*m for j in range(N)]
         ind_start2, ind_end2 = [j*n for j in range(N)], [(j+1)*n for j in range(N)]
         
@@ -63,18 +63,18 @@ def constraints(list_graphs, list_linkflows, degree):
             for deg in range(degree):
                 tmp6 = mul(tmp5**(deg+1), ffdelays)
                 tmp1[deg] += (linkflows.T) * tmp6
-                tmp2[degree+ind_start2[j]:degree+ind_end2[j], deg] = spmatrix(-ffdelays,range(n),range(n))*tmp6
+                tmp2[ind_start2[j]:ind_end2[j], deg] = spmatrix(-ffdelays,range(n),range(n))*tmp6
                 
             if j>0: C, beq = ue.constraints(graph)
-            tmp3[degree+ind_start2[j]:degree+ind_end2[j], ind_start1[j]:ind_end1[j]] = C.T
+            tmp3[ind_start2[j]:ind_end2[j], ind_start1[j]:ind_end1[j]] = C.T
             tmp4[ind_start1[j]:ind_end1[j], 0] = -beq
             
-            b[degree+ind_start2[j]:degree+ind_end2[j]] = ffdelays
+            b[ind_start2[j]:ind_end2[j]] = ffdelays
             
         scale = (sum(abs(tmp4)) * float(len(tmp1))) / (sum(abs(tmp1)) * float(len(tmp4)))
         c, A = matrix([scale*tmp1, tmp4]), matrix([[scale*tmp2], [tmp3]])
     
-        for deg in range(degree): A[deg, deg] = -1.0
+        #for deg in range(degree): A[deg, deg] = -1.0
         return c, A, scale*b
 
 
@@ -102,6 +102,9 @@ def solver(list_graphs, list_linkflows, degree, smooth, data=None):
     if type == 'Polynomial':
         if data is None: data = constraints(list_graphs, list_linkflows, degree)
         c, A, b = data
+        print c.size
+        print A.size
+        print b.size
         P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
         #x = solvers.lp(c, G=A, h=b)['x']
         x = solvers.qp(P, c, G=A, h=b)['x']
