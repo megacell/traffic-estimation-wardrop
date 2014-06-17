@@ -29,7 +29,6 @@ def constraints(list_graphs, list_linkflows, degree):
     c, A, b, Aeq, beq: such that 
         min c'*x 
         s.t. A*x <= b
-        Aeq*x = beq
     """
     
     if len(list_graphs) != len(list_linkflows): print 'ERROR: Lists not same length'; return

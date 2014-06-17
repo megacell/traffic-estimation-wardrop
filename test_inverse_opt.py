@@ -235,8 +235,8 @@ def test5():
 
     
 def main():
-    #test3(False, 2, 600.0*np.ones(degree))
-    #test3(False, 2, np.hstack((30.0*np.ones(degree/2), 1533.3*np.ones(degree/2))))
+    #test3(False, 2, 500.0*np.ones(degree))
+    #test3(False, 2, np.hstack((30.0*np.ones(degree/2), 1000.0*np.ones(degree/2))))
     test3(False, 10, np.hstack((30.0*np.ones(degree/3), 60.0*np.ones(degree/3), 3000.0*np.ones(degree/3))))
     #test4()
     #test5()
