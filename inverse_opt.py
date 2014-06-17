@@ -23,9 +23,7 @@ def constraints(list_graphs, list_linkflows, degree):
     list_linkflows: list of link flow vectors in equilibrium
     
     degree: degree of the polynomial function to estimate
-    
-    alpha: scaling factor for the parameters theta
-    
+        
     Return value
     ------------
     c, A, b, Aeq, beq: such that 
@@ -93,9 +91,7 @@ def solver(list_graphs, list_linkflows, degree, smooth, data=None):
     list_linkflows: list of link flow vectors in equilibrium
     
     degree: degree of the polynomial function to estimate
-    
-    alpha: scaling factor for the parameters theta
-    
+        
     data: constraints and objective for the optimization problem
     """
     type = list_graphs[0].links.values()[0].delayfunc.type
