@@ -18,13 +18,13 @@ def create_networkx_graph(graph):
     return G
 
 
-def draw(graph, pathid=None, G=None, width=7, alpha=0.5, edge_color='r'):
+def draw(graph, link_ids=None, G=None, width=7, alpha=0.5, edge_color='r'):
     """Draw graph
     
     Parameters
     ----------
     graph: graph object
-    pathid: if provides a path id, display it in the graph
+    link_ids: if provided, highlight links
     G: networkx equivalent of the graph object
     width: width of the highlights for the path
     alpha: transparency of the highlights
@@ -33,9 +33,8 @@ def draw(graph, pathid=None, G=None, width=7, alpha=0.5, edge_color='r'):
     pos=graph.nodes_position
     if G is None: G = create_networkx_graph(graph)
     nx.draw(G, pos)
-    if pathid is not None:
-        edgelist = [(link.startnode, link.endnode) for link in graph.paths[pathid].links]
-        nx.draw_networkx_edges(G, pos, edgelist=edgelist, width=width, 
+    if link_ids is not None:
+        nx.draw_networkx_edges(G, pos, edgelist=[(id[0],id[1]) for id in link_ids], width=width, 
                                alpha=alpha, edge_color=edge_color, arrows=False)
     plt.show()
     

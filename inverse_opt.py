@@ -157,4 +157,4 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, ma
         else:
             theta = solver(list_graphs, list_linkflows, degree, smooth)
         
-    return theta, list_linkflows
+    return theta
