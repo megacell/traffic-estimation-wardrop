@@ -9,7 +9,7 @@ import numpy as np
 from cvxopt import matrix, spmatrix, solvers, spdiag, mul
 
 
-def constraints(list_graphs, list_linkflows, degree, alpha=None):
+def constraints(list_graphs, list_linkflows, degree):
     """Construct constraints for the Inverse Optimization
     (only available for polynomial delays)
     delay at link i is D_i(x) = ffdelays[i] + sum^{degree}_{k=1} theta[k-1]*(slope[i]*x)^k
@@ -78,16 +78,10 @@ def constraints(list_graphs, list_linkflows, degree, alpha=None):
         c, A = matrix([scale*tmp1, tmp4]), matrix([[scale*tmp2], [tmp3]])
     
         for deg in range(degree): A[deg, deg] = -1.0
-    
-        if alpha is not None:
-            Aeq, beq = matrix(0.0, (1, N*m + degree)), matrix([alpha])
-            for deg in range(degree): Aeq[deg] = 1.0
-            return c, A, scale*b, Aeq, beq
-        else:
-            return c, A, scale*b
+        return c, A, scale*b
 
 
-def solver(list_graphs, list_linkflows, degree, alpha=None, data=None):
+def solver(list_graphs, list_linkflows, degree, smooth, data=None):
     """Solves the inverse optimization problem
     (only available for polynomial delays)
     
@@ -111,18 +105,16 @@ def solver(list_graphs, list_linkflows, degree, alpha=None, data=None):
         return
     
     if type == 'Polynomial':
-        if data is None: data = constraints(list_graphs, list_linkflows, degree, alpha)
-        if alpha is not None:
-            c, A, b, Aeq, beq = data
-            x = solvers.lp(c, G=A, h=b, A=Aeq, b=beq)['x']
-        else:
-            c, A, b = data
-            x = solvers.lp(c, G=A, h=b)['x']
+        if data is None: data = constraints(list_graphs, list_linkflows, degree)
+        c, A, b = data
+        P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
+        #x = solvers.lp(c, G=A, h=b)['x']
+        x = solvers.qp(P, c, G=A, h=b)['x']
         
     return x[range(degree)]
 
 
-def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, alpha=None, max_iter=1):
+def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, max_iter=2):
     """Solves the inverse optimization problem with missing values
     (only available for polynomial delays)
     
@@ -141,7 +133,9 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, alpha=None
     """
     N, graph = len(list_graphs), list_graphs[0]
     n = graph.numlinks
-    theta_init = matrix(np.ones(degree))/float(degree)
+    #theta_init = matrix(np.ones(degree))/float(degree)
+    theta_init = matrix(np.zeros(degree))
+    theta_init[0] = 1.0
     beqs = []
     for j in range(N):
         tmp1, tmp2 = ue.constraints(list_graphs[j], list_linkflows_obs[j], indlinks_obs)
@@ -163,6 +157,6 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, alpha=None
                 link.delayfunc.coef = [ffdelays[i]*a*b for a,b in zip(theta, np.power(slopes[i], range(1,degree+1)))]
             list_linkflows = [ue.solver(graph, False, Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs) for j in range(N)]
         else:
-            theta = solver(list_graphs, list_linkflows, degree, alpha)
+            theta = solver(list_graphs, list_linkflows, degree, smooth)
         
     return theta, list_linkflows
