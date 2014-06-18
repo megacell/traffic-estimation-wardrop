@@ -16,7 +16,8 @@ od_flows2 = [1.0, 1.0, 1.0, 4.0];
 def affine():
     graph = small_grid(od_flows2)
     #graph = small_example()
-    linkflows = ue.solver(graph)
+    linkflows_obs, indlinks_obs = [1.46, 3.54], [(2,1,1), (5,4,1)]
+    linkflows = ue.solver(graph, linkflows_obs=linkflows_obs, indlinks_obs=indlinks_obs, soft=100.0)
     print 'links\' indices: ', graph.indlinks
     print 'UE flow: '
     print linkflows
@@ -43,7 +44,7 @@ def polynomial():
     
     
 def los_angeles_ue():
-    theta = matrix([0.0, 0.0, 0.0, 1.0])
+    theta = matrix([0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
     theta /= np.sum(theta)
     theta *= 0.15
     graph1, graph2, graph3 = los_angeles(theta, 'Polynomial', True)

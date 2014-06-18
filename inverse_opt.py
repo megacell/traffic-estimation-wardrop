@@ -91,6 +91,8 @@ def solver(list_graphs, list_linkflows, degree, smooth, data=None):
     
     degree: degree of the polynomial function to estimate
         
+    smooth: regularization parameters on theta
+        
     data: constraints and objective for the optimization problem
     """
     type = list_graphs[0].links.values()[0].delayfunc.type
@@ -112,7 +114,7 @@ def solver(list_graphs, list_linkflows, degree, smooth, data=None):
     return x[range(degree)]
 
 
-def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, max_iter=2):
+def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, soft=None, max_iter=2):
     """Solves the inverse optimization problem with missing values
     (only available for polynomial delays)
     
@@ -127,6 +129,10 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, ma
     
     degree: degree of the polynomial function to estimate
     
+    smooth: regularization parameter on theta
+    
+    soft: regularization parameter for soft constraints
+    
     max_iter: maximum number of iterations
     """
     N, graph = len(list_graphs), list_graphs[0]
@@ -136,7 +142,7 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, ma
     theta_init[0] = 1.0
     beqs = []
     for j in range(N):
-        tmp1, tmp2 = ue.constraints(list_graphs[j], list_linkflows_obs[j], indlinks_obs)
+        tmp1, tmp2 = ue.constraints(list_graphs[j], list_linkflows_obs[j], indlinks_obs, soft)
         if j<1: Aeq = tmp1 # same node-link incidence matrix
         beqs.append(tmp2) # different demands
     
@@ -153,7 +159,7 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, ma
             for id, link in graph.links.items():
                 i = graph.indlinks[id]
                 link.delayfunc.coef = [ffdelays[i]*a*b for a,b in zip(theta, np.power(slopes[i], range(1,degree+1)))]
-            list_linkflows = [ue.solver(graph, False, Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs) for j in range(N)]
+            list_linkflows = [ue.solver(graph, False, Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs, soft) for j in range(N)]
         else:
             theta = solver(list_graphs, list_linkflows, degree, smooth)
         

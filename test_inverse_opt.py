@@ -41,7 +41,7 @@ def test1(missing, max_iter, alpha=None):
         #indlinks_obs = graph1.indlinks.keys()
         obs = [graph1.indlinks[id] for id in indlinks_obs]
         theta, l_lkflows = invopt.solver_mis([graph1, graph2], [linkflows1[obs], linkflows2[obs]],
-                                              indlinks_obs, degree, smooth, alpha, max_iter)
+                                              indlinks_obs, degree, smooth, None, max_iter)
     
     graph1 = small_grid(od_flows1, 'Polynomial', theta)
     graph2 = small_grid(od_flows2, 'Polynomial', theta)
@@ -90,7 +90,7 @@ def test2(max_obs, trials, max_iter):
             for j in obs: mis.remove(j)
             indlinks_obs = [indlinks2[i] for i in obs]
             theta, l_lkflows = invopt.solver_mis([graph1, graph2], [linkflows1[matrix(obs)], linkflows2[matrix(obs)]], 
-                                                 indlinks_obs, degree, smooth, alpha, max_iter=max_iter)
+                                                 indlinks_obs, degree, smooth, None, max_iter)
             tmp1 = matrix([linkflows1[mis], linkflows2[mis]]) - matrix([l_lkflows[0][mis], l_lkflows[1][mis]])
             tmp2.append(max(abs(tmp1)) / float(n-k))
             
@@ -106,18 +106,18 @@ def test2(max_obs, trials, max_iter):
     plt.show()
     
     
-def test3(missing, max_iter, smooth, indlinks_obs=None):
+def test3(missing, max_iter, smooth, indlinks_obs=None, soft=None):
     graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True)
-    linkflows1 = ue.solver(graph1)
-    linkflows2 = ue.solver(graph2)
-    linkflows3 = ue.solver(graph3)
+    linkflows1 = ue.solver(graph1, update=False)
+    linkflows2 = ue.solver(graph2, update=False)
+    linkflows3 = ue.solver(graph3, update=False)
     
     if not missing:
         theta = invopt.solver([graph1, graph2, graph3], [linkflows1, linkflows2, linkflows3], degree, smooth)
     else:
         obs = [graph1.indlinks[id] for id in indlinks_obs]
         theta = invopt.solver_mis([graph1, graph2, graph3], [linkflows1[obs], linkflows2[obs], linkflows3[obs]], 
-                                  indlinks_obs, degree, smooth, max_iter)
+                                  indlinks_obs, degree, smooth, soft, max_iter)
         
     graph1, graph2, graph3 = los_angeles(theta, 'Polynomial', True)
     l_lkflows = [ue.solver(graph1, update=False), ue.solver(graph2, update=False), 
@@ -249,7 +249,7 @@ def test6(indlinks_obs, max_iter):
         for j in [1000.0, 3000.0, 6000.0, 10000.0]:
             smooth = np.hstack((i*np.ones(degree/2), j*np.ones(degree/2)))
             theta = invopt.solver_mis([graph1, graph2, graph3], [l1[obs], l2[obs], l3[obs]], 
-                                  indlinks_obs, degree, smooth, max_iter)
+                                  indlinks_obs, degree, smooth, None, max_iter)
             g1, g2, g3 = los_angeles(theta, 'Polynomial', True)
             x1 = ue.solver(g1, update=False)
             x2 = ue.solver(g2, update=False) 
@@ -278,19 +278,19 @@ def test6(indlinks_obs, max_iter):
 def main():
     
     #indlinks_obs = [(8,17,1), (17,24,1), (24,40,1), (14,21,1), (16,23,1), (23,28,1), (12,34,1), (13,14,1)]
-    #indlinks_obs = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
+    indlinks_obs = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
     #indlinks_obs = graph1.indlinks.keys()
     #indlinks_obs = []
-    indlinks_obs = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
+    #indlinks_obs = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
     
-    #smooth = 500.0*np.ones(degree)
-    #smooth = np.hstack((30.0*np.ones(degree/2), 1000.0*np.ones(degree/2)))
+    smooth = 500.0*np.ones(degree)
+    #smooth = np.hstack((100.0*np.ones(degree/2), 3000.0*np.ones(degree/2)))
     #smooth = np.hstack((30.0*np.ones(degree/3), 60.0*np.ones(degree/3), 3000.0*np.ones(degree/3)))
     
-    #test3(False, 8, smooth, indlinks_obs)
+    test3(True, 10, smooth, indlinks_obs, 2000.0)
     #test4()
     #test5()
-    test6(indlinks_obs, 10)
+    #test6(indlinks_obs, 10)
     
 if __name__ == '__main__':
     main()
