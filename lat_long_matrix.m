@@ -210,12 +210,21 @@ ODs = [[2, dest, 6.0]
     [31, dest, 10.0];
     [33, dest, 2.0]];
 
+ODs_noisy = [ODs(:,1:2), normrnd(ODs(:,3), ODs(:,3)/30)];
+
 ODs1 = [ODs(:,1:2), 0.5*ODs(:,3)];
 ODs2 = ODs;
 ODs3 = [ODs(:,1:2), 1.2*ODs(:,3)];
-    
+ 
+ODs1_noisy = [ODs1(:,1:2), normrnd(ODs1(:,3), ODs1(:,3)/30)];
+ODs2_noisy = [ODs2(:,1:2), normrnd(ODs2(:,3), ODs2(:,3)/30)];
+ODs3_noisy = [ODs3(:,1:2), normrnd(ODs3(:,3), ODs3(:,3)/30)];
+
 %figure;
 %plot(D(:,2),D(:,1),'.','MarkerSize',20)
 
 links = [links; [links(:,2), links(:,1), links(:,3:5)]];
-save('los_angeles_data.mat','nodes','links','ODs','ODs1','ODs2','ODs3')
+links_noisy = [links(:,1:3), normrnd(links(:,4), links(:,4)/30), ...
+    normrnd(links(:,5), links(:,5)/30)];
+save('los_angeles_data.mat','nodes','links','ODs','ODs1','ODs2','ODs3',...
+    'links_noisy','ODs_noisy','ODs1_noisy','ODs2_noisy','ODs3_noisy')
