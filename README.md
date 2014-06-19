@@ -27,6 +27,10 @@ Coordinates for bounding box in L.A.: [-118.328299, 33.984601, -117.68132, 34.25
 
 <img src="figures/map_graph.jpg" width=300px />
 
+Add flow in equilibrium to model morning congestion
+
+<img src="figures/map_congestion.jpg" width=300px />
+
 References
 --------
 chapter 11 of resilient networks: http://faculty.unlv.edu/pushkin/Resilient%20Networks.pdf
