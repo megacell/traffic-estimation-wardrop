@@ -19,9 +19,7 @@ def constraints(list_graphs, list_linkflows, degree):
     ----------
     list_graphs: list of graphs with same geometry, different OD demands
                  delay functions of links must contain ffdelays and slopes 
-    
     list_linkflows: list of link flow vectors in equilibrium
-    
     degree: degree of the polynomial function to estimate
         
     Return value
@@ -78,7 +76,7 @@ def constraints(list_graphs, list_linkflows, degree):
         return c, A, scale*b
 
 
-def solver(list_graphs, list_linkflows, degree, smooth, data=None):
+def solver(list_graphs, list_linkflows, degree, smooth, data=None, fvalue=False):
     """Solves the inverse optimization problem
     (only available for polynomial delays)
     
@@ -86,16 +84,14 @@ def solver(list_graphs, list_linkflows, degree, smooth, data=None):
     ----------
     list_graphs: list of graphs with same geometry, different OD demands
                  delay functions of links must contain ffdelays and slopes 
-    
     list_linkflows: list of link flow vectors in equilibrium
-    
     degree: degree of the polynomial function to estimate
-        
     smooth: regularization parameters on theta
-        
     data: constraints and objective for the optimization problem
+    fvalue: if True, returns value of the objective without regularization
     """
     type = list_graphs[0].links.values()[0].delayfunc.type
+    N = len(list_graphs)
     
     if type != 'Polynomial':
         print 'Inverse Optimization only available for polynomial delay functions'
@@ -104,17 +100,16 @@ def solver(list_graphs, list_linkflows, degree, smooth, data=None):
     if type == 'Polynomial':
         if data is None: data = constraints(list_graphs, list_linkflows, degree)
         c, A, b = data
-        print c.size
-        print A.size
-        print b.size
         P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
-        #x = solvers.lp(c, G=A, h=b)['x']
-        x = solvers.qp(P, c, G=A, h=b)['x']
+        sol = solvers.qp(P, c, G=A, h=b)
+        x = sol['x'][range(degree)]
+        if fvalue:
+            return x, sol['primal objective'] + (b.T*matrix(list_linkflows))[0] - 0.5*(x.T*P[:degree,:degree]*x)[0]
         
-    return x[range(degree)]
+    return x
 
 
-def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, soft=None, max_iter=2):
+def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, soft=None, max_iter=2, fvalue=False):
     """Solves the inverse optimization problem with missing values
     (only available for polynomial delays)
     
@@ -122,21 +117,17 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, so
     ----------
     list_graphs: list of graphs with same geometry, different OD demands
                  delay functions of links must contain ffdelays and slopes 
-    
     list_linkflows_obs: list of partially-observed link flow vectors in equilibrium
-    
     indlinks_obs: indices of observed links
-    
     degree: degree of the polynomial function to estimate
-    
     smooth: regularization parameter on theta
-    
     soft: regularization parameter for soft constraints
-    
     max_iter: maximum number of iterations
+    fvalue: if True, returns value of the objective without regularization
     """
     N, graph = len(list_graphs), list_graphs[0]
     n = graph.numlinks
+    obs = [graph.indlinks[id] for id in indlinks_obs]
     #theta_init = matrix(np.ones(degree))/float(degree)
     theta_init = matrix(np.zeros(degree))
     theta_init[0] = 1.0
@@ -151,7 +142,7 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, so
         slopes[graph.indlinks[id]] = link.delayfunc.slope
         ffdelays[graph.indlinks[id]] = link.delayfunc.ffdelay # same slopes
     
-    theta = theta_init
+    theta, f1, f2 = theta_init, [], []
     
     for k in range(max_iter):
         
@@ -160,7 +151,18 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, so
                 i = graph.indlinks[id]
                 link.delayfunc.coef = [ffdelays[i]*a*b for a,b in zip(theta, np.power(slopes[i], range(1,degree+1)))]
             list_linkflows = [ue.solver(graph, False, Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs, soft) for j in range(N)]
+            if fvalue:
+                error = 0
+                for i in range(N):
+                    e = list_linkflows[i][obs] - list_linkflows_obs[i]
+                    error += e.T*e
+                    f1.append(error[0])
         else:
-            theta = solver(list_graphs, list_linkflows, degree, smooth)
+            if fvalue:
+                theta, f = solver(list_graphs, list_linkflows, degree, smooth, fvalue=True)
+                f2.append(f)
+            else:
+                theta = solver(list_graphs, list_linkflows, degree, smooth, fvalue=fvalue)
         
+    if fvalue: return theta, f1, f2
     return theta
