@@ -347,7 +347,7 @@ def test8(max_iter):
     results when obs = [(17,24),(24,40),(14,21),(16,23)] and (24,40) has been attacked
     """
     indlinks_obs = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True)
+    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', multiple=True)
     l1 = ue.solver(graph1, update=False)
     l2 = ue.solver(graph2, update=False)
     l3 = ue.solver(graph3, update=False)
@@ -383,17 +383,17 @@ def test9(max_iter):
     in the NOISY case
     """
     indlinks_obs = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True)
+    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', multiple=True)
     l1 = ue.solver(graph1, update=False)
     l2 = ue.solver(graph2, update=False)
     l3 = ue.solver(graph3, update=False)
     np.random.seed(21)
     l1, l2, l3 = matrix(np.random.normal(l1, l1/30.0)), matrix(np.random.normal(l2, l2/30.0)), matrix(np.random.normal(l3, l3/30.0))
     faulty_id = graph1.indlinks[(24,40,1)]
-    l1[faulty_id] = 0.5*l1[faulty_id]
-    l2[faulty_id] = 0.5*l2[faulty_id]
-    l3[faulty_id] = 0.5*l3[faulty_id]
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True, True)
+    l1[faulty_id] = 0.3*l1[faulty_id]
+    l2[faulty_id] = 0.3*l2[faulty_id]
+    l3[faulty_id] = 0.3*l3[faulty_id]
+    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', multiple=True, noisy=True)
     min_error = []
     for k in range(4):
         indlinks = list(indlinks_obs)
@@ -404,8 +404,8 @@ def test9(max_iter):
             for j in [600.0, 1000.0, 3000.0]:
                 smooth = np.hstack((i*np.ones(degree/2), j*np.ones(degree/2)))
                 theta = invopt.solver_mis([graph1, graph2, graph3], [l1[obs], l2[obs], l3[obs]], 
-                                  indlinks, degree, smooth, None, max_iter)
-                g1, g2, g3 = los_angeles(theta, 'Polynomial', True, True)
+                                  indlinks, degree, smooth, 1000.0, max_iter)
+                g1, g2, g3 = los_angeles(theta, 'Polynomial', multiple=True, noisy=True)
                 x1 = ue.solver(g1, update=False)
                 x2 = ue.solver(g2, update=False) 
                 x3 = ue.solver(g3, update=False)
