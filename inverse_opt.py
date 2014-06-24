@@ -9,7 +9,7 @@ import numpy as np
 from cvxopt import matrix, spmatrix, solvers, spdiag, mul
 
 
-def constraints(list_graphs, list_linkflows, degree, lasso=False):
+def constraints(list_graphs, list_linkflows, degree):
     """Construct constraints for the Inverse Optimization
     (only available for polynomial delays)
     delay at link i is D_i(x) = ffdelays[i] + sum^{degree}_{k=1} theta[k-1]*(slope[i]*x)^k
@@ -71,20 +71,12 @@ def constraints(list_graphs, list_linkflows, degree, lasso=False):
             
         scale = (sum(abs(tmp4)) * float(len(tmp1))) / (sum(abs(tmp1)) * float(len(tmp4)))
         c, A = matrix([scale*tmp1, tmp4]), matrix([[scale*tmp2], [tmp3]])
-        b *= scale
-        if lasso:
-            I = spmatrix(1.0, range(degree), range(degree))
-            A = matrix([[A], [matrix(0.0, (N*n, degree))]])
-            A1 = matrix([[I], [matrix(0.0, (degree, m*N))], [-I]])
-            A2 = matrix([[-I], [matrix(0.0, (degree, m*N))], [-I]])
-            A = matrix([A, A1, A2])
-            b = matrix([b, matrix(0.0, (degree,1)), matrix(0.0, (degree,1))])
     
         #for deg in range(degree): A[deg, deg] = -1.0
-        return c, A, b
+        return c, A, scale*b
 
 
-def solver(list_graphs, list_linkflows, degree, smooth, data=None, fvalue=False, lasso=False):
+def solver(list_graphs, list_linkflows, degree, smooth, data=None, fvalue=False):
     """Solves the inverse optimization problem
     (only available for polynomial delays)
     
@@ -94,14 +86,9 @@ def solver(list_graphs, list_linkflows, degree, smooth, data=None, fvalue=False,
                  delay functions of links must contain ffdelays and slopes 
     list_linkflows: list of link flow vectors in equilibrium
     degree: degree of the polynomial function to estimate
-    smooth: regularization parameters on theta (l2 or l1)
+    smooth: regularization parameters on theta
     data: constraints and objective for the optimization problem
     fvalue: if True, returns value of the objective without regularization
-    
-    Return value
-    ------------
-    x: optimal parameters theta
-    val: if fvalue=True, value of the objective
     """
     type = list_graphs[0].links.values()[0].delayfunc.type
     N = len(list_graphs)
@@ -111,16 +98,10 @@ def solver(list_graphs, list_linkflows, degree, smooth, data=None, fvalue=False,
         return
     
     if type == 'Polynomial':
-        if data is None: data = constraints(list_graphs, list_linkflows, degree, lasso)
+        if data is None: data = constraints(list_graphs, list_linkflows, degree)
         c, A, b = data
-        if lasso:
-            print 'Do LASSO'
-            c = matrix([c, matrix(smooth)])
-            sol = solvers.lp(c, G=A, h=b)
-        else:
-            pass
-            #P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
-            #sol = solvers.qp(P, c, G=A, h=b)
+        P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
+        sol = solvers.qp(P, c, G=A, h=b)
         x = sol['x'][range(degree)]
         if fvalue:
             return x, sol['primal objective'] + (b.T*matrix(list_linkflows))[0] - 0.5*(x.T*P[:degree,:degree]*x)[0]
