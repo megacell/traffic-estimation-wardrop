@@ -248,9 +248,8 @@ def test6(indlinks_obs, max_iter, fvalue=False):
     l2 = ue.solver(graph2, update=False)
     l3 = ue.solver(graph3, update=False)
     obs = [graph1.indlinks[id] for id in indlinks_obs]
-    
     min_error = np.inf
-    for i in [10.0, 30.0, 60.0]:
+    for i in [30.0, 60.0, 100.0]:
         for j in [600.0, 1000.0, 3000.0]:
             smooth = np.hstack((i*np.ones(degree/2), j*np.ones(degree/2)))
             if fvalue:
@@ -258,7 +257,7 @@ def test6(indlinks_obs, max_iter, fvalue=False):
                                   indlinks_obs, degree, smooth, 1000.0, max_iter, fvalue=True)
             else:
                 theta = invopt.solver_mis([graph1, graph2, graph3], [l1[obs], l2[obs], l3[obs]], 
-                                  indlinks_obs, degree, smooth, 1000.0, max_iter)
+                                  indlinks_obs, degree, smooth, 1000.0, max_iter, alt=True)
             g1, g2, g3 = los_angeles(theta, 'Polynomial', True)
             x1 = ue.solver(g1, update=False)
             x2 = ue.solver(g2, update=False) 
@@ -302,18 +301,18 @@ def test7(indlinks_obs, max_iter, fvalue=False):
     graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True, True)
     z1, z2, z3 = l1, l2, l3
     np.random.seed(21)
-    l1, l2, l3 = matrix(np.random.normal(l1, l1/10.0)), matrix(np.random.normal(l2, l2/10.0)), matrix(np.random.normal(l3, l3/10.0))
+    l1, l2, l3 = matrix(np.random.normal(l1, l1/30.0)), matrix(np.random.normal(l2, l2/30.0)), matrix(np.random.normal(l3, l3/30.0))
     
     min_error = np.inf
-    for i in [6.0, 10.0, 30.0, 60.0, 100.0, 300.0, 600.0, 1000.0, 3000.0]:
-        for j in [300.0, 600.0, 1000.0, 3000.0, 6000.0, 10000.0]:
+    for i in [30.0, 60.0, 100.0]:
+        for j in [600.0, 1000.0, 3000.0, 6000.0]:
             smooth = np.hstack((i*np.ones(degree/2), j*np.ones(degree/2)))
             if fvalue:
                 theta, f1, f2 = invopt.solver_mis([graph1, graph2, graph3], [l1[obs], l2[obs], l3[obs]], 
                                   indlinks_obs, degree, smooth, 1000.0, max_iter, fvalue=True)
             else:
                 theta = invopt.solver_mis([graph1, graph2, graph3], [l1[obs], l2[obs], l3[obs]], 
-                                  indlinks_obs, degree, smooth, 1000.0, max_iter)
+                                  indlinks_obs, degree, smooth, 1000.0, max_iter, alt=True)
             g1, g2, g3 = los_angeles(theta, 'Polynomial', True, True)
             x1 = ue.solver(g1, update=False)
             x2 = ue.solver(g2, update=False) 
@@ -431,8 +430,8 @@ def main():
     #test3(True, 10, smooth, indlinks_obs, 0.0)
     #test4(True)
     #test5()
-    test6(indlinks_obs, 10, False)
-    #test7(indlinks_obs, 10, True)
+    #test6(indlinks_obs, 10, False)
+    test7(indlinks_obs, 10, False)
     #test9(10)
     
 if __name__ == '__main__':

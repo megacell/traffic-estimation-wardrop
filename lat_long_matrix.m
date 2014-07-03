@@ -224,7 +224,6 @@ ODs3_noisy = [ODs3(:,1:2), normrnd(ODs3(:,3), ODs3(:,3)/30)];
 %plot(D(:,2),D(:,1),'.','MarkerSize',20)
 
 links = [links; [links(:,2), links(:,1), links(:,3:5)]];
-links_noisy = [links(:,1:3), normrnd(links(:,4), links(:,4)/30), ...
-    normrnd(links(:,5), links(:,5)/30)];
+links_noisy = [links(:,1:3), normrnd(links(:,4), links(:,4)/30), links(:,5)];
 save('los_angeles_data.mat','nodes','links','ODs','ODs1','ODs2','ODs3',...
     'links_noisy','ODs_noisy','ODs1_noisy','ODs2_noisy','ODs3_noisy')

@@ -105,15 +105,14 @@ def los_angeles(theta=None, delaytype='None', multiple=False, noisy=False):
     
     data = sio.loadmat('los_angeles_data.mat')
     
+    ODs = data['ODs']
+    
     if not noisy:
         links = data['links']
-        ODs = data['ODs']
         ODs1, ODs2, ODs3 = data['ODs1'], data['ODs2'], data['ODs3']
     else:
         links = data['links_noisy']
-        ODs = data['ODs_noisy']
-        ODs1, ODs2, ODs3 = data['ODs1'], data['ODs2'], data['ODs3']
-        #ODs1, ODs2, ODs3 = data['ODs1_noisy'], data['ODs2_noisy'], data['ODs3_noisy']
+        ODs1, ODs2, ODs3 = data['ODs1_noisy'], data['ODs2_noisy'], data['ODs3_noisy']
         
     nodes = data['nodes']
         

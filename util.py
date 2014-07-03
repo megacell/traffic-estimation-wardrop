@@ -22,3 +22,22 @@ def find_basis(M):
         for j in range(i+1,u.shape[1]):
             if u[i,j] != 0.0: ind.append(j); break
     return ind
+
+
+def bisection(F, f, left, right, tol=1e-8):
+    """Use bisection to find x such that F(x)=f
+    we suppose F is strictly increasing"""
+    l, r = left, right
+    while r-l>tol:
+        if F((l+r)/2.0) < f:
+            l = (l+r)/2.0
+        else:
+            r = (l+r)/2.0
+    return (l+r)/2.0
+
+
+if __name__ == '__main__':
+    def F(x):
+        return x**2
+    print bisection(F, 9.0, 0.0, 5.0)
+    
