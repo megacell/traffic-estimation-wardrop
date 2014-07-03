@@ -101,8 +101,7 @@ def solver(graph, update=True, Aeq=None, beq=None, linkflows_obs=None, indlinks_
         def F(x=None, z=None):
             if x is None: return 0, matrix(1.0, (n,1))
             #if min(x) <= 0.0: return None #implicit constraints
-            f = 0.0
-            Df = matrix(0.0, (1,n))
+            f, Df = 0.0, matrix(0.0, (1,n))
             tmp2 = matrix(0.0, (n,1))
             for id,link in graph.links.items():
                 i = graph.indlinks[id]
