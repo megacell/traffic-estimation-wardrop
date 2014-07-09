@@ -47,17 +47,15 @@ def los_angeles_ue():
     theta = matrix([0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
     theta /= np.sum(theta)
     theta *= 0.15
-    graph1, graph2, graph3 = los_angeles(theta, 'Polynomial', True)
-    linkflows1 = ue.solver(graph1)
-    linkflows2 = ue.solver(graph2)
-    linkflows3 = ue.solver(graph3)
-    #print 'UE flow: '
-    #print 'links\' indices: ', graph.indlinks
-    #print linkflows
-    #graph.visualize(links=True, only_pos_flows=True)
-    d.draw_delays(graph1)
-    d.draw_delays(graph2)
-    d.draw_delays(graph3)
+    g1, g2, g3, g4 = los_angeles(theta, 'Polynomial')
+    linkflows1 = ue.solver(g1)
+    linkflows2 = ue.solver(g2)
+    linkflows3 = ue.solver(g3)
+    linkflows4 = ue.solver(g4)
+    d.draw_delays(g1)
+    d.draw_delays(g2)
+    d.draw_delays(g3)
+    d.draw_delays(g4)
     
 
 def main():

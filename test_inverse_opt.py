@@ -7,10 +7,11 @@ Created on Jun 6, 2014
 import numpy as np
 import ue_solver as ue
 import inverse_opt as invopt
-from test_graph import small_grid, los_angeles
+from test_graph import los_angeles
 import matplotlib.pyplot as plt
 from cvxopt import matrix
 import draw_graph as d
+from numpy.random import normal
 
 od_flows1 = [3.0, 3.0, 1.0, 1.0];
 od_flows2 = [1.0, 1.0, 1.0, 4.0];
@@ -19,132 +20,22 @@ theta_true /= np.sum(theta_true)
 
 theta_true *= 0.15
 degree = len(theta_true)
-
-def test1(missing, max_iter, alpha=None):
-    
-    graph1 = small_grid(od_flows1, 'Polynomial', theta_true)
-    graph2 = small_grid(od_flows2, 'Polynomial', theta_true)
-    linkflows1 = ue.solver(graph1, update=False)
-    linkflows2 = ue.solver(graph2, update=False)
-    
-    if not missing:
-        
-        theta = invopt.solver([graph1, graph2], [linkflows1, linkflows2], degree, smooth, alpha)
-    
-    else:
-    
-        #indlinks_obs = [(6,5,1)]
-        #indlinks_obs = []
-        #indlinks_obs = [(2, 1, 1), (5, 4, 1), (1, 4, 1), (2, 5, 1), (3, 2, 1), (3, 6, 1), (5, 2, 1), (6, 5, 1)]
-        #indlinks_obs = [(2, 1, 1), (5, 4, 1), (1, 4, 1), (2, 5, 1), (5, 2, 1), (6, 5, 1)]
-        indlinks_obs = [(3, 2, 1), (3, 6, 1), (2, 1, 1), (2, 5, 1)]
-        #indlinks_obs = graph1.indlinks.keys()
-        obs = [graph1.indlinks[id] for id in indlinks_obs]
-        theta, l_lkflows = invopt.solver_mis([graph1, graph2], [linkflows1[obs], linkflows2[obs]],
-                                              indlinks_obs, degree, smooth, None, max_iter)
-    
-    graph1 = small_grid(od_flows1, 'Polynomial', theta)
-    graph2 = small_grid(od_flows2, 'Polynomial', theta)
-    l_lkflows = [ue.solver(graph1, update=False), ue.solver(graph2, update=False)]
-    print 'Estimated parameters'
-    print theta
-    xdata = np.linspace(0.0, 5.0, num=10)
-    vals = [1+(theta.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
-    true_vals = [1+(theta_true.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
-    scale = sum(true_vals) / sum(vals)
-    #scale = 1
-    scaled_vals = [scale*val for val in vals]
-    
-    print (l_lkflows[0]-linkflows1).T*(l_lkflows[0]-linkflows1)
-    print (l_lkflows[1]-linkflows2).T*(l_lkflows[1]-linkflows2)
-    
-    plt.plot(xdata, scaled_vals, 'r', label='estimate')
-    plt.plot( xdata, true_vals, 'b', label='true')
-    plt.xlabel('Link flow')
-    plt.ylabel('Delay')
-    plt.title(r'Estimated delay function')
-    plt.legend()
-    plt.show()
     
     
-def test2(max_obs, trials, max_iter):
+def display_results(true_linkflows, est_linkflows, theta_true, best_theta):
+    """Display results
     
-    graph1 = small_grid(od_flows1, 'Polynomial', theta_true)
-    graph2 = small_grid(od_flows2, 'Polynomial', theta_true)
-    linkflows1 = ue.solver(graph1, update=False)
-    linkflows2 = ue.solver(graph2, update=False)
-    n = graph1.numlinks
-    indlinks = graph1.indlinks
-    indlinks2 = {value: key for key, value in indlinks.items()}
-    
-    error = []
-    error_var = []
-    
-    for k in range(max_obs+1):
-        
-        tmp2 = []
-        
-        for i in range(trials):
-            obs = np.random.permutation(n)[range(k)]
-            mis = range(n)
-            for j in obs: mis.remove(j)
-            indlinks_obs = [indlinks2[i] for i in obs]
-            theta, l_lkflows = invopt.solver_mis([graph1, graph2], [linkflows1[matrix(obs)], linkflows2[matrix(obs)]], 
-                                                 indlinks_obs, degree, smooth, None, max_iter)
-            tmp1 = matrix([linkflows1[mis], linkflows2[mis]]) - matrix([l_lkflows[0][mis], l_lkflows[1][mis]])
-            tmp2.append(max(abs(tmp1)) / float(n-k))
-            
-        error.append(np.mean(tmp2))
-        error_var.append(np.std(tmp2))
-    
-    plt.plot(range(max_obs+1), error)
-    plt.errorbar(range(max_obs+1), error, yerr = error_var, fmt = 'o')
-    plt.xlabel('Number of sensors')
-    plt.ylabel('Error')
-    plt.title(r'Error in estimate')
-    plt.legend()
-    plt.show()
-    
-    
-def test3(missing, max_iter, smooth, indlinks_obs=None, soft=None):
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True)
-    linkflows1 = ue.solver(graph1, update=False)
-    linkflows2 = ue.solver(graph2, update=False)
-    linkflows3 = ue.solver(graph3, update=False)
-    
-    if not missing:
-        theta = invopt.solver([graph1, graph2, graph3], [linkflows1, linkflows2, linkflows3], degree, smooth)
-    else:
-        obs = [graph1.indlinks[id] for id in indlinks_obs]
-        theta = invopt.solver_mis([graph1, graph2, graph3], [linkflows1[obs], linkflows2[obs], linkflows3[obs]], 
-                                  indlinks_obs, degree, smooth, soft, max_iter)
-        
-    graph1, graph2, graph3 = los_angeles(theta, 'Polynomial', True)
-    l_lkflows = [ue.solver(graph1, update=False), ue.solver(graph2, update=False), 
-                     ue.solver(graph3, update=False)]
-    print 'Estimated parameters'
-    print theta
+    Parameters
+    ----------
+    true_linkflows: list of true linkflows
+    est_linkflows: list of estimated linkflows
+    theta_true: true parameters
+    best_theta: best parameters
+    """
+    error = np.linalg.norm(matrix(true_linkflows) - matrix(est_linkflows))
     xdata = np.linspace(0.0, 2.5, num=100)
-    vals = [1+(theta.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
+    vals = [1+(best_theta.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
     true_vals = [1+(theta_true.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
-    
-    n = graph1.numlinks
-    e1 = abs(linkflows1-l_lkflows[0])
-    e2 = abs(linkflows2-l_lkflows[1])
-    e3 = abs(linkflows3-l_lkflows[2])
-    #print l_lkflows[2][graph1.indlinks[(15,22,1)]]
-    print 'l1 norm'
-    print np.mean(e1)
-    print np.mean(e2)
-    print np.mean(e3)
-    print 'l2 norm'
-    error = np.linalg.norm(matrix([e1,e2,e3]))
-    print error
-    #reverse = {v:id for id,v in graph1.indlinks.items()}
-    #print [(reverse[i], x1[i], linkflows1[i]) for i in range(n) if abs(e1[i]) > 1e-1]
-    #print [(reverse[i], x2[i], linkflows2[i]) for i in range(n) if abs(e2[i]) > 1e-1]
-    #print [(reverse[i], x3[i], linkflows3[i]) for i in range(n) if abs(e3[i]) > 1e-1]
-    
     plt.plot(xdata, vals, 'r', label='estimate')
     plt.plot( xdata, true_vals, 'b', label='true')
     plt.xlabel('Link flow')
@@ -154,202 +45,115 @@ def test3(missing, max_iter, smooth, indlinks_obs=None, soft=None):
     plt.show()
     
     
-def test4(fvalue=False):
+def get_graphs_linkflows(theta, noisy=False):
+    """Given parameters theta, get L.A. graphs and associated UE linkflows for polynomial delay functions
+    """
+    g1, g2, g3, g4 = los_angeles(theta, 'Polynomial', noisy)
+    l1, l2, l3, l4 = ue.solver(g1, update=False), ue.solver(g2, update=False), ue.solver(g3, update=False), ue.solver(g4, update=False)
+    return g1, g2, g3, g4, l1, l2, l3, l4
+    
+    
+def test1():
     """3-fold test to find smooth that minimizes the distance between x_true (exact)
     and x generated by each candidate function with TOTAL observation
-    results of the 1-fold: best smooth = [600.0, 600.0, 600.0, 600.0, 600.0, 600.0]
-    results of the 2-fold: best smooth = [30.0, 30.0, 30.0, 1000.0, 1000.0, 1000.0]
-    results of the 3-fold: best smooth = [30.0, 30.0, 60.0, 60.0, 3000.0, 3000.0]
+    results of the 3-fold: best smooth = [30, 30, 60, 60, 3000, 3000]
     """
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True)
-    l1 = ue.solver(graph1, update=False)
-    l2 = ue.solver(graph2, update=False)
-    l3 = ue.solver(graph3, update=False)
-    
+    g1, g2, g3, g4, l1, l2, l3, l4 = get_graphs_linkflows(theta_true)
     min_error = np.inf
     for i in [10.0, 30.0, 60.0]:
         for j in [30.0, 60.0, 100.0]:
             for k in [1000.0, 3000.0, 6000.0]:
                 smooth = np.hstack((i*np.ones(degree/3), j*np.ones(degree/3), k*np.ones(degree/3)))
-                if fvalue:
-                    theta, f = invopt.solver([graph1, graph2, graph3], [l1, l2, l3], degree, smooth, fvalue=True)
-                else:
-                    theta = invopt.solver([graph1, graph2, graph3], [l1, l2, l3], degree, smooth)
-                g1, g2, g3 = los_angeles(theta, 'Polynomial', True)
-                x1 = ue.solver(g1, update=False)
-                x2 = ue.solver(g2, update=False) 
-                x3 = ue.solver(g3, update=False)
-                error = np.linalg.norm(matrix([l1,l2,l3])-matrix([x1,x2,x3]))
+                theta = invopt.solver([g1, g2, g3, g4], [l1, l2, l3, l4], degree, smooth)
+                g1, g2, g3, g4, x1, x2, x3, x4 = get_graphs_linkflows(theta)
+                error = np.linalg.norm(matrix([l1,l2,l3,l4])-matrix([x1,x2,x3,x4]))
                 if error < min_error:
-                    best_smooth, min_error = (i,j,k), error
-                    if fvalue: obj = f
+                    best_smooth, min_error, best_theta, y1, y2, y3, y4 = (i,j,k), error, theta, x1, x2, x3, x4
     print best_smooth, min_error
-    if fvalue: print obj
+    display_results([l1, l2, l3, l4], [y1, y2, y3, y4], theta_true, best_theta)
     
 
-def test5():
+def test2():
     """3-fold test to find the best smooth using cross validation
     average over the three results with TOTAL observation
-    results of the 1-fold best smooth = smooth = [500.0, 500.0, 500.0, 500.0, 500.0, 500.0]
-    results of the 2-fold best smooth = smooth = [30.0, 30.0, 30.0, 1533.3, 1533.3, 1533.3]
-    results of the 3-fold best smooth = smooth = [30.0, 30.0, 73.3, 73.3, 3000.0, 3000.0]
-    !!!!! For the 3-fold experiment, had to throw away the value of i for the first rotation !!!!!
+    results of the 3-fold best smooth = smooth = [55, 55, 60, 60, 3250, 3250]
     """
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True)
-    l1 = ue.solver(graph1, update=False)
-    l2 = ue.solver(graph2, update=False)
-    l3 = ue.solver(graph3, update=False)
+    g1, g2, g3, g4, l1, l2, l3, l4 = get_graphs_linkflows(theta_true)
+    gs, ls = [g1,g2,g3,g4], [l1,l2,l3,l4]
+    best_smooth = [0.0]*4
     
-    
-    min_error = np.inf
-    for i in [10.0, 30.0, 60.0]:
-        for j in [30.0, 60.0, 100.0]:
-            for k in [1000.0, 3000.0, 6000.0]:
-                smooth = np.hstack((i*np.ones(degree/3), j*np.ones(degree/3), k*np.ones(degree/3)))
-                theta = invopt.solver([graph1, graph2], [l1, l2], degree, smooth)
-                g1, g2, g3 = los_angeles(theta, 'Polynomial', True)
-                x3 = ue.solver(g3, update=False)
-                error = np.linalg.norm(l3-x3)
-                if error < min_error: best_smooth1, min_error = (i,j,k), error
-        
-    min_error = np.inf
-    for i in [10.0, 30.0, 60.0]:
-        for j in [30.0, 60.0, 100.0]:
-            for k in [1000.0, 3000.0, 6000.0]:
-                smooth = np.hstack((i*np.ones(degree/3), j*np.ones(degree/3), k*np.ones(degree/3)))
-                theta = invopt.solver([graph1, graph3], [l1, l3], degree, smooth)
-                g1, g2, g3 = los_angeles(theta, 'Polynomial', True)
-                x2 = ue.solver(g2, update=False)
-                error = np.linalg.norm(l2-x2)
-                if error < min_error: best_smooth2, min_error = (i,j,k), error
-        
-    min_error = np.inf
-    for i in [10.0, 30.0, 60.0]:
-        for j in [60.0, 100.0, 300.0]:
-            for k in [1000.0, 3000.0, 6000.0]:
-                smooth = np.hstack((i*np.ones(degree/3), j*np.ones(degree/3), k*np.ones(degree/3)))
-                theta = invopt.solver([graph3, graph2], [l3, l2], degree, smooth)
-                g1, g2, g3 = los_angeles(theta, 'Polynomial', True)
-                x1 = ue.solver(g1, update=False)
-                error = np.linalg.norm(l1-x1)
-                if error < min_error: best_smooth3, min_error = (i,j,k), error
-        
-    print best_smooth1, best_smooth2, best_smooth3
+    for index in range(4):
+        min_error = np.inf
+        for i in [10.0, 30.0, 60.0, 100.0]:
+            for j in [30.0, 60.0, 100.0]:
+                for k in [600.0, 1000.0, 3000.0, 6000.0]:
+                    smooth = np.hstack((i*np.ones(degree/3), j*np.ones(degree/3), k*np.ones(degree/3)))
+                    theta = invopt.solver(gs[:index]+gs[index+1:], ls[:index]+ls[index+1:], degree, smooth)
+                    l = get_graphs_linkflows(theta)[4+index]
+                    error = np.linalg.norm(ls[index]-l)
+                    if error < min_error: best_smooth[index], min_error = (i,j,k), error    
+    print best_smooth
 
     
-def test6(indlinks_obs, max_iter, fvalue=False):
-    """2-fold test to find smooth that minimizes the distance between x^obs_true (exact)
+def test3(indlinks_obs, max_iter, alt=False):
+    """3-fold test to find smooth that minimizes the distance between x^obs_true EXACT
     and x^obs generated by each candidate function with PARTIAL observation
-    results for 2-fold with obs = [(17,24),(24,40),(14,21),(16,23)]: best smooth = [30.0, 30.0, 30.0, 1000.0, 1000.0, 1000.0]
-    results for 2-fold with obs = [(10,9),(19,18),(4,5),(29,21)]: best smooth = [100.0, 100.0, 100.0, 3000.0, 3000.0, 3000.0]
+    results for 3-fold with alt=False, obs = [(17,24),(24,40),(14,21),(16,23)]: best smooth = [30, 30, 100, 100, 1000, 1000]
+    results for 3-fold with alt=True, obs = [(17,24),(24,40),(14,21),(16,23)]: best smooth = [60, 60, 60, 60, 6000, 6000]
     """
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True)
-    l1 = ue.solver(graph1, update=False)
-    l2 = ue.solver(graph2, update=False)
-    l3 = ue.solver(graph3, update=False)
-    obs = [graph1.indlinks[id] for id in indlinks_obs]
+    g1, g2, g3, g4, l1, l2, l3, l4 = get_graphs_linkflows(theta_true)
+    obs = [g1.indlinks[id] for id in indlinks_obs]
     min_error = np.inf
-    for i in [30.0, 60.0, 100.0]:
-        for j in [600.0, 1000.0, 3000.0]:
-            smooth = np.hstack((i*np.ones(degree/2), j*np.ones(degree/2)))
-            if fvalue:
-                theta, f1, f2 = invopt.solver_mis([graph1, graph2, graph3], [l1[obs], l2[obs], l3[obs]], 
-                                  indlinks_obs, degree, smooth, 1000.0, max_iter, fvalue=True)
-            else:
-                theta = invopt.solver_mis([graph1, graph2, graph3], [l1[obs], l2[obs], l3[obs]], 
-                                  indlinks_obs, degree, smooth, 1000.0, max_iter, alt=True)
-            g1, g2, g3 = los_angeles(theta, 'Polynomial', True)
-            x1 = ue.solver(g1, update=False)
-            x2 = ue.solver(g2, update=False) 
-            x3 = ue.solver(g3, update=False)
-            e = np.linalg.norm(matrix([l1[obs],l2[obs],l3[obs]])-matrix([x1[obs],x2[obs],x3[obs]]))
-            if e < min_error:
-                best_smooth, min_error, best_theta = (i,j), e, theta
-                y1, y2, y3 = x1, x2, x3
-                if fvalue: obj1, obj2 = f1, f2
-                
+    for i in [60.0]:
+        for j in [60.0]:
+            for k in [6000.0]:
+                smooth = np.hstack((i*np.ones(degree/3), j*np.ones(degree/3), k*np.ones(degree/3)))
+                theta = invopt.solver_mis([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], 
+                                  indlinks_obs, degree, smooth, 1000.0, max_iter, alt=alt)
+                g1, g2, g3, g4, x1, x2, x3, x4 = get_graphs_linkflows(theta)
+                e = np.linalg.norm(matrix([l1[obs],l2[obs],l3[obs],l4[obs]])-matrix([x1[obs],x2[obs],x3[obs],x4[obs]]))
+                if e < min_error:
+                    best_smooth, min_error, best_theta = (i,j,k), e, theta
+                    y1, y2, y3, y4 = x1, x2, x3, x4        
     print best_smooth, min_error
-    print 'Estimated parameters'
-    print best_theta
-    if fvalue: print obj1, obj2
-    error = np.linalg.norm(matrix([l1, l2, l3])-matrix([y1, y2, y3]))
-    xdata = np.linspace(0.0, 2.5, num=100)
-    vals = [1+(best_theta.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
-    true_vals = [1+(theta_true.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
-    plt.plot(xdata, vals, 'r', label='estimate')
-    plt.plot( xdata, true_vals, 'b', label='true')
-    plt.xlabel('Link flow')
-    plt.ylabel('Delay')
-    plt.title(r'Estimated delay function. l2-norm error: {:.3f}'.format(error))
-    plt.legend()
-    plt.show()
+    display_results([l1, l2, l3, l4], [y1, y2, y3, y4], theta_true, best_theta)
     
     
-def test7(indlinks_obs, max_iter, fvalue=False):
-    """2-fold test to find smooth that minimizes the distance between x^obs_true (exact)
-    and x^obs generated by each candidate function in NOISY case
-    results for 2-fold with all obs: best smooth = [30.0, 30.0, 30.0, 1000.0, 1000.0, 1000.0]
-    results for 2-fold with obs = [(17,24),(24,40),(14,21),(16,23)]: best smooth = [30.0, 30.0, 30.0, 1000.0, 1000.0, 1000.0]
-    results for 2-fold with obs = [(10,9),(19,18),(4,5),(29,21)]: best smooth = [10.0, 10.0, 10.0, 3000.0, 3000.0, 3000.0]
+def test4(indlinks_obs, max_iter, alt=False):
+    """3-fold test to find smooth that minimizes the distance between x^obs_true
+    and x^obs generated by each candidate function in NOISY case with PARTIAL observation
+    results for 3-fold with alt=False, obs = [(17,24),(24,40),(14,21),(16,23)]: best smooth = [30, 30, 600, 600, 600, 600]
+    results for 3-fold with alt=True, obs = [(17,24),(24,40),(14,21),(16,23)]: best smooth = [100, 100, 100, 100, 1000, 1000]
     """
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True)
-    l1 = ue.solver(graph1, update=False)
-    l2 = ue.solver(graph2, update=False)
-    l3 = ue.solver(graph3, update=False)
-    obs = [graph1.indlinks[id] for id in indlinks_obs]
-    
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True, True)
-    z1, z2, z3 = l1, l2, l3
+    g1, g2, g3, g4, l1, l2, l3, l4 = get_graphs_linkflows(theta_true)
+    obs = [g1.indlinks[id] for id in indlinks_obs]
+    z1, z2, z3, z4 = l1, l2, l3, l4
     np.random.seed(21)
-    l1, l2, l3 = matrix(np.random.normal(l1, l1/30.0)), matrix(np.random.normal(l2, l2/30.0)), matrix(np.random.normal(l3, l3/30.0))
-    
+    l1, l2, l3, l4 = matrix(normal(l1, l1/30.0)), matrix(normal(l2, l2/30.0)), matrix(normal(l3, l3/30.0)), matrix(normal(l4, l4/30.0))
+    g1, g2, g3, g4 = los_angeles(theta_true, 'Polynomial', True)
     min_error = np.inf
-    for i in [30.0, 60.0, 100.0]:
-        for j in [600.0, 1000.0, 3000.0, 6000.0]:
-            smooth = np.hstack((i*np.ones(degree/2), j*np.ones(degree/2)))
-            if fvalue:
-                theta, f1, f2 = invopt.solver_mis([graph1, graph2, graph3], [l1[obs], l2[obs], l3[obs]], 
-                                  indlinks_obs, degree, smooth, 1000.0, max_iter, fvalue=True)
-            else:
-                theta = invopt.solver_mis([graph1, graph2, graph3], [l1[obs], l2[obs], l3[obs]], 
-                                  indlinks_obs, degree, smooth, 1000.0, max_iter, alt=True)
-            g1, g2, g3 = los_angeles(theta, 'Polynomial', True, True)
-            x1 = ue.solver(g1, update=False)
-            x2 = ue.solver(g2, update=False) 
-            x3 = ue.solver(g3, update=False)
-            e = np.linalg.norm(matrix([l1[obs],l2[obs],l3[obs]])-matrix([x1[obs],x2[obs],x3[obs]]))
-            if e < min_error:
-                best_smooth, min_error, best_theta = (i,j), e, theta
-                y1, y2, y3 = x1, x2, x3
-                if fvalue: obj1, obj2 = f1, f2
-                
+    for i in [30.0]:
+        for j in [600.0]:
+            for k in [600.0]:
+                smooth = np.hstack((i*np.ones(degree/3), j*np.ones(degree/3), k*np.ones(degree/3)))
+                theta = invopt.solver_mis([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], 
+                                  indlinks_obs, degree, smooth, 1000.0, max_iter, alt=alt)
+                g1, g2, g3, g4, x1, x2, x3, x4 = get_graphs_linkflows(theta, True)
+                e = np.linalg.norm(matrix([l1[obs],l2[obs],l3[obs],l4[obs]])-matrix([x1[obs],x2[obs],x3[obs],x4[obs]]))
+                if e < min_error:
+                    best_smooth, min_error, best_theta = (i,j,k), e, theta
+                    y1, y2, y3, y4 = x1, x2, x3, x4         
     print best_smooth, min_error
-    print 'Estimated parameters'
-    print best_theta
-    if fvalue: print obj1, obj2
-    l1, l2, l3 = z1, z2, z3
-    error = np.linalg.norm(matrix([l1, l2, l3])-matrix([y1, y2, y3]))
-    xdata = np.linspace(0.0, 2.5, num=100)
-    vals = [1+(best_theta.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
-    true_vals = [1+(theta_true.T * matrix(np.power(x,range(1,degree+1))))[0] for x in xdata]
-    plt.plot(xdata, vals, 'r', label='estimate')
-    plt.plot( xdata, true_vals, 'b', label='true')
-    plt.xlabel('Link flow')
-    plt.ylabel('Delay')
-    plt.title(r'Estimated delay function. l2-norm error: {:.3f}'.format(error))
-    plt.legend()
-    plt.show()
+    l1, l2, l3, l4 = z1, z2, z3, z4
+    display_results([l1, l2, l3, l4], [y1, y2, y3, y4], theta_true, best_theta)
     
     
-def test8(max_iter):
+def test5(max_iter):
     """Cross validation to find a sensor that has been attacked
     results when obs = [(17,24),(24,40),(14,21),(16,23)] and (24,40) has been attacked
     """
     indlinks_obs = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', multiple=True)
-    l1 = ue.solver(graph1, update=False)
-    l2 = ue.solver(graph2, update=False)
-    l3 = ue.solver(graph3, update=False)
+    g1, g2, g3, g4, l1, l2, l3, l4 = get_graphs_linkflows(theta_true)
     faulty_id = graph1.indlinks[(24,40,1)]
     l1[faulty_id] = 0.7*l1[faulty_id]
     l2[faulty_id] = 0.7*l2[faulty_id]
@@ -376,13 +180,13 @@ def test8(max_iter):
     print min_error
         
     
-def test9(max_iter):
+def test6(max_iter):
     """Cross validation to find a sensor that has been attacked
     results when obs = [(17,24),(24,40),(14,21),(16,23)] and (24,40) has been attacked
     in the NOISY case
     """
     indlinks_obs = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', multiple=True)
+    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial')
     l1 = ue.solver(graph1, update=False)
     l2 = ue.solver(graph2, update=False)
     l3 = ue.solver(graph3, update=False)
@@ -392,7 +196,7 @@ def test9(max_iter):
     l1[faulty_id] = 0.3*l1[faulty_id]
     l2[faulty_id] = 0.3*l2[faulty_id]
     l3[faulty_id] = 0.3*l3[faulty_id]
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', multiple=True, noisy=True)
+    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True)
     min_error = []
     for k in range(4):
         indlinks = list(indlinks_obs)
@@ -404,7 +208,7 @@ def test9(max_iter):
                 smooth = np.hstack((i*np.ones(degree/2), j*np.ones(degree/2)))
                 theta = invopt.solver_mis([graph1, graph2, graph3], [l1[obs], l2[obs], l3[obs]], 
                                   indlinks, degree, smooth, 1000.0, max_iter)
-                g1, g2, g3 = los_angeles(theta, 'Polynomial', multiple=True, noisy=True)
+                g1, g2, g3 = los_angeles(theta, 'Polynomial', True)
                 x1 = ue.solver(g1, update=False)
                 x2 = ue.solver(g2, update=False) 
                 x3 = ue.solver(g3, update=False)
@@ -425,14 +229,13 @@ def main():
     
     #smooth = 500.0*np.ones(degree)
     #smooth = np.hstack((100.0*np.ones(degree/2), 3000.0*np.ones(degree/2)))
-    #smooth = np.hstack((30.0*np.ones(degree/3), 60.0*np.ones(degree/3), 3000.0*np.ones(degree/3)))
+    smooth = np.hstack((30.0*np.ones(degree/3), 60.0*np.ones(degree/3), 3000.0*np.ones(degree/3)))
     
-    #test3(True, 10, smooth, indlinks_obs, 0.0)
-    #test4(True)
-    #test5()
-    test6(indlinks_obs, 10, True)
-    #test7(indlinks_obs, 10, False)
-    #test9(10)
+    #test1()
+    #test2()
+    #test3(indlinks_obs, 10, True)
+    test4(indlinks_obs, 10, False)
+    #test5(10)
     
 if __name__ == '__main__':
     main()

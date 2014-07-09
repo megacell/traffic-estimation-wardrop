@@ -101,18 +101,16 @@ def small_grid(od_flows, delaytype='Affine', theta=None):
     return grid
 
 
-def los_angeles(theta=None, delaytype='None', multiple=False, noisy=False):
+def los_angeles(theta=None, delaytype='None', noisy=False):
     
     data = sio.loadmat('los_angeles_data.mat')
-    
-    ODs = data['ODs']
-    
+        
     if not noisy:
         links = data['links']
-        ODs1, ODs2, ODs3 = data['ODs1'], data['ODs2'], data['ODs3']
+        ODs1, ODs2, ODs3, ODs4 = data['ODs1'], data['ODs2'], data['ODs3'], data['ODs4']
     else:
         links = data['links_noisy']
-        ODs1, ODs2, ODs3 = data['ODs1_noisy'], data['ODs2_noisy'], data['ODs3_noisy']
+        ODs1, ODs2, ODs3, ODs4 = data['ODs1_noisy'], data['ODs2_noisy'], data['ODs3_noisy'], data['ODs4_noisy']
         
     nodes = data['nodes']
         
@@ -124,13 +122,11 @@ def los_angeles(theta=None, delaytype='None', multiple=False, noisy=False):
             coef = [ffdelay*a*b for a,b in zip(theta, np.power(slope, range(1,degree+1)))]
             links.append((startnode, endnode, route, ffdelay, (ffdelay, slope, coef)))
     
-    if multiple:
-        graph1 = g.create_graph_from_list(nodes, links, delaytype, ODs1, 'Map of L.A.')
-        graph2 = g.create_graph_from_list(nodes, links, delaytype, ODs2, 'Map of L.A.')
-        graph3 = g.create_graph_from_list(nodes, links, delaytype, ODs3, 'Map of L.A.')
-        return graph1, graph2, graph3
-    else:
-        return g.create_graph_from_list(nodes, links, delaytype, ODs, 'Map of L.A.')
+    g1 = g.create_graph_from_list(nodes, links, delaytype, ODs1, 'Map of L.A.')
+    g2 = g.create_graph_from_list(nodes, links, delaytype, ODs2, 'Map of L.A.')
+    g3 = g.create_graph_from_list(nodes, links, delaytype, ODs3, 'Map of L.A.')
+    g4 = g.create_graph_from_list(nodes, links, delaytype, ODs4, 'Map of L.A.')
+    return g1, g2, g3, g4
 
 
 def main():
