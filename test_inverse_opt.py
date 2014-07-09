@@ -430,8 +430,8 @@ def main():
     #test3(True, 10, smooth, indlinks_obs, 0.0)
     #test4(True)
     #test5()
-    #test6(indlinks_obs, 10, False)
-    test7(indlinks_obs, 10, False)
+    test6(indlinks_obs, 10, True)
+    #test7(indlinks_obs, 10, False)
     #test9(10)
     
 if __name__ == '__main__':
