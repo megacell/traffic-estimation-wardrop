@@ -250,3 +250,65 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, so
             
     if fvalue: return theta, f1, f2
     return theta
+
+
+def direct_solver(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, soft=None):
+    """Solves the inverse optimization problem with missing values
+    
+    Parameters
+    ----------
+    list_graphs: list of graphs with same geometry, different OD demands
+                 delay functions of links must contain ffdelays and slopes 
+    list_linkflows_obs: list of partially-observed link flow vectors in equilibrium
+    indlinks_obs: indices of observed links
+    degree: degree of the polynomial function to estimate
+    smooth: regularization parameter on theta
+    soft: regularization parameter for soft constraints
+    """
+    N, graph = len(list_graphs), list_graphs[0]
+    n = graph.numlinks
+    obs = [graph.indlinks[id] for id in indlinks_obs]
+    #theta_init = matrix(np.ones(degree))/float(degree)
+    theta_init = matrix(np.zeros(degree))
+    theta_init[0] = 1.0
+    beqs = []
+    for j in range(N):
+        tmp1, tmp2 = ue.constraints(list_graphs[j], list_linkflows_obs[j], indlinks_obs, soft)
+        if j<1: Aeq = tmp1 # same node-link incidence matrix
+        beqs.append(tmp2) # different demands
+    
+    m = Aeq.size[0]
+    if soft is None: m -= len(indlinks_obs)
+    
+    slopes, ffdelays = matrix(0.0, (n,1)), matrix(0.0, (n,1))
+    for id,link in graph.links.items():
+        i = graph.indlinks[id]
+        slopes[i] = link.delayfunc.slope
+        ffdelays[i] = link.delayfunc.ffdelay # same slopes
+        
+    if type == 'Affine':
+        print 'Not implemented yet'
+        return
+    
+    if type == 'Polynomial':
+        degree = graph.links.values()[0].delayfunc.degree
+        x0 = matrix([matrix(1.0, (N*n, 1)), theta_init, matrix(0.0, (N*m, 1))])
+        
+        def F(x=None, z=None):
+            if x is None: return N*n, x0
+            delays = matrix(0.0, (N*n, 1))
+            f, Df = matrix(0.0, (N*n+1, 1)), matrix(0.0, (N*n+1, N*n+degree+N*m))
+            for j in range(N):
+                Df[0, j*n:(j+1)*n] = ffdelays.T
+                for id,link in graph.links.items():
+                    i = graph.indlinks[id]
+                    tmp1 = matrix(np.power(slopes[i]*x[j*n+i], range(1,degree+1)))
+                    delays[j*n+i] = ffdelays[i]*(1 + tmp1.T*x[N*n:N*n+degree])
+                    Df[0, j*n+i] += ffdelays[i]*(tmp1.T*range(2,degree+2))
+                f[0] += delays[j*n:j*(n+1)].T*x[j*n:j*(n+1)] - beqs[j].T*x[N*n+degree+j*m:N*n+degree+(j+1)*m]
+                f[j*n+1:(j+1)*n+1] = Aeq[:m,:n].T*x[N*n+degree+j*m:N*n+degree+j*(m+1)] - delays[j*n:(j+1)*n]
+                
+        
+        theta = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x'][N*n:N*n+degree]
+    
+    return theta
