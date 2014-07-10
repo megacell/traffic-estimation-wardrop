@@ -132,9 +132,9 @@ def test4(indlinks_obs, max_iter, alt=False):
     l1, l2, l3, l4 = matrix(normal(l1, l1/30.0)), matrix(normal(l2, l2/30.0)), matrix(normal(l3, l3/30.0)), matrix(normal(l4, l4/30.0))
     g1, g2, g3, g4 = los_angeles(theta_true, 'Polynomial', True)
     min_error = np.inf
-    for i in [30.0]:
-        for j in [600.0]:
-            for k in [600.0]:
+    for i in [100.0]:
+        for j in [100.0]:
+            for k in [1000.0]:
                 smooth = np.hstack((i*np.ones(degree/3), j*np.ones(degree/3), k*np.ones(degree/3)))
                 theta = invopt.solver_mis([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], 
                                   indlinks_obs, degree, smooth, 1000.0, max_iter, alt=alt)
@@ -148,94 +148,48 @@ def test4(indlinks_obs, max_iter, alt=False):
     display_results([l1, l2, l3, l4], [y1, y2, y3, y4], theta_true, best_theta)
     
     
-def test5(max_iter):
+def test5(max_iter, alt=False, noisy=False):
     """Cross validation to find a sensor that has been attacked
     results when obs = [(17,24),(24,40),(14,21),(16,23)] and (24,40) has been attacked
     """
     indlinks_obs = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
     g1, g2, g3, g4, l1, l2, l3, l4 = get_graphs_linkflows(theta_true)
-    faulty_id = graph1.indlinks[(24,40,1)]
-    l1[faulty_id] = 0.7*l1[faulty_id]
-    l2[faulty_id] = 0.7*l2[faulty_id]
-    l3[faulty_id] = 0.7*l3[faulty_id]
-    
+    if noisy:
+        g1, g2, g3, g4 = los_angeles(theta_true, 'Polynomial', True)
+        l1, l2, l3, l4 = matrix(normal(l1, l1/30.0)), matrix(normal(l2, l2/30.0)), matrix(normal(l3, l3/30.0)), matrix(normal(l4, l4/30.0))
+    faulty_id = g1.indlinks[(24,40,1)]
+    l1[faulty_id], l2[faulty_id], l3[faulty_id], l4[faulty_id] = 0.7*l1[faulty_id], 0.7*l2[faulty_id], 0.7*l3[faulty_id], 0.7*l4[faulty_id]
     min_error = []
     for k in range(4):
         indlinks = list(indlinks_obs)
         del indlinks[k]
-        obs = [graph1.indlinks[id] for id in indlinks]
+        obs = [g1.indlinks[id] for id in indlinks]
         min_e = np.inf
-        for i in [10.0, 30.0, 60.0]:
-            for j in [600.0, 1000.0, 3000.0]:
-                smooth = np.hstack((i*np.ones(degree/2), j*np.ones(degree/2)))
-                theta = invopt.solver_mis([graph1, graph2, graph3], [l1[obs], l2[obs], l3[obs]], 
-                                  indlinks, degree, smooth, None, max_iter)
-                g1, g2, g3 = los_angeles(theta, 'Polynomial', True)
-                x1 = ue.solver(g1, update=False)
-                x2 = ue.solver(g2, update=False) 
-                x3 = ue.solver(g3, update=False)
-                e = np.linalg.norm(matrix([l1[obs],l2[obs],l3[obs]])-matrix([x1[obs],x2[obs],x3[obs]]))
-                if e < min_e: min_e = e
-        min_error.append(min_e)
-    print min_error
-        
-    
-def test6(max_iter):
-    """Cross validation to find a sensor that has been attacked
-    results when obs = [(17,24),(24,40),(14,21),(16,23)] and (24,40) has been attacked
-    in the NOISY case
-    """
-    indlinks_obs = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial')
-    l1 = ue.solver(graph1, update=False)
-    l2 = ue.solver(graph2, update=False)
-    l3 = ue.solver(graph3, update=False)
-    np.random.seed(21)
-    l1, l2, l3 = matrix(np.random.normal(l1, l1/30.0)), matrix(np.random.normal(l2, l2/30.0)), matrix(np.random.normal(l3, l3/30.0))
-    faulty_id = graph1.indlinks[(24,40,1)]
-    l1[faulty_id] = 0.3*l1[faulty_id]
-    l2[faulty_id] = 0.3*l2[faulty_id]
-    l3[faulty_id] = 0.3*l3[faulty_id]
-    graph1, graph2, graph3 = los_angeles(theta_true, 'Polynomial', True)
-    min_error = []
-    for k in range(4):
-        indlinks = list(indlinks_obs)
-        del indlinks[k]
-        obs = [graph1.indlinks[id] for id in indlinks]
-        min_e = np.inf
-        for i in [10.0, 30.0, 60.0]:
-            for j in [600.0, 1000.0, 3000.0]:
-                smooth = np.hstack((i*np.ones(degree/2), j*np.ones(degree/2)))
-                theta = invopt.solver_mis([graph1, graph2, graph3], [l1[obs], l2[obs], l3[obs]], 
-                                  indlinks, degree, smooth, 1000.0, max_iter)
-                g1, g2, g3 = los_angeles(theta, 'Polynomial', True)
-                x1 = ue.solver(g1, update=False)
-                x2 = ue.solver(g2, update=False) 
-                x3 = ue.solver(g3, update=False)
-                e = np.linalg.norm(matrix([l1[obs],l2[obs],l3[obs]])-matrix([x1[obs],x2[obs],x3[obs]]))
-                if e < min_e: min_e = e
+        for i in [30.0, 60.0, 100.0]:
+            for j in [30.0, 60.0, 100.0]:
+                for k in [3000.0, 6000.0, 10000.0]:
+                    smooth = np.hstack((i*np.ones(degree/3), j*np.ones(degree/3), k*np.ones(degree/3)))
+                    theta = invopt.solver_mis([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], 
+                                  indlinks, degree, smooth, 1000.0, max_iter, alt=alt)
+                    g1, g2, g3, g4, x1, x2, x3, x4 = get_graphs_linkflows(theta, noisy)
+                    e = np.linalg.norm(matrix([l1[obs],l2[obs],l3[obs],l4[obs]])-matrix([x1[obs],x2[obs],x3[obs],x4[obs]]))
+                    if e < min_e: min_e = e
         min_error.append(min_e)
     print min_error
     
 
 def main():
     
-    #indlinks_obs = [(8,17,1), (17,24,1), (24,40,1), (14,21,1), (16,23,1), (23,28,1), (12,34,1), (13,14,1)]
     indlinks_obs = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
-    #graph = los_angeles(theta_true, 'Polynomial')
     #indlinks_obs = graph.indlinks.keys()
     #indlinks_obs = []
     #indlinks_obs = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
     
-    #smooth = 500.0*np.ones(degree)
-    #smooth = np.hstack((100.0*np.ones(degree/2), 3000.0*np.ones(degree/2)))
-    smooth = np.hstack((30.0*np.ones(degree/3), 60.0*np.ones(degree/3), 3000.0*np.ones(degree/3)))
-    
     #test1()
     #test2()
     #test3(indlinks_obs, 10, True)
-    test4(indlinks_obs, 10, False)
-    #test5(10)
+    #test4(indlinks_obs, 10, True)
+    test5(10, True)
     
 if __name__ == '__main__':
     main()
