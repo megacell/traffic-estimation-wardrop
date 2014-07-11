@@ -104,12 +104,13 @@ def test3(indlinks_obs, max_iter, alt=False):
     g1, g2, g3, g4, l1, l2, l3, l4 = get_graphs_linkflows(theta_true)
     obs = [g1.indlinks[id] for id in indlinks_obs]
     min_error = np.inf
-    for i in [60.0]:
-        for j in [60.0]:
-            for k in [6000.0]:
+    for i in [30.0, 60.0, 100.0]:
+        for j in [30.0, 60.0, 100.0]:
+            for k in [1000.0, 3000.0, 6000.0]:
                 smooth = np.hstack((i*np.ones(degree/3), j*np.ones(degree/3), k*np.ones(degree/3)))
-                theta = invopt.solver_mis([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], 
-                                  indlinks_obs, degree, smooth, 1000.0, max_iter, alt=alt)
+                #theta = invopt.solver_mis([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], 
+                #                  indlinks_obs, degree, smooth, 1000.0, max_iter, alt=alt)
+                theta = invopt.direct_solver([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], indlinks_obs, degree, smooth, 1000.0)
                 g1, g2, g3, g4, x1, x2, x3, x4 = get_graphs_linkflows(theta)
                 e = np.linalg.norm(matrix([l1[obs],l2[obs],l3[obs],l4[obs]])-matrix([x1[obs],x2[obs],x3[obs],x4[obs]]))
                 if e < min_error:
@@ -187,9 +188,9 @@ def main():
     
     #test1()
     #test2()
-    #test3(indlinks_obs, 10, True)
+    test3(indlinks_obs, 10, True)
     #test4(indlinks_obs, 10, True)
-    test5(10, True, True)
+    #test5(10, True, True)
     
 if __name__ == '__main__':
     main()
