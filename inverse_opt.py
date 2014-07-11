@@ -132,7 +132,7 @@ def x_solver(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft=None):
     A, b = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1))
     type = graph.links.values()[0].delayfunc.type
     
-    if type == 'Affine':
+    if type != 'Polynomial':
         print 'Not implemented yet'
         return
     
@@ -268,7 +268,6 @@ def direct_solver(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth,
     N, graph = len(list_graphs), list_graphs[0]
     n = graph.numlinks
     obs = [graph.indlinks[id] for id in indlinks_obs]
-    #theta_init = matrix(np.ones(degree))/float(degree)
     theta_init = matrix(np.zeros(degree))
     theta_init[0] = 1.0
     beqs = []
@@ -279,14 +278,15 @@ def direct_solver(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth,
     
     m = Aeq.size[0]
     if soft is None: m -= len(indlinks_obs)
+    C = Aeq[:m,:n]
     
-    slopes, ffdelays = matrix(0.0, (n,1)), matrix(0.0, (n,1))
+    slopes, ffdelays = matrix(0.0, (n,1)), matrix(0.0, (n,1)) # get ff delays and slopes
     for id,link in graph.links.items():
         i = graph.indlinks[id]
         slopes[i] = link.delayfunc.slope
         ffdelays[i] = link.delayfunc.ffdelay # same slopes
         
-    if type == 'Affine':
+    if type != 'Polynomial':
         print 'Not implemented yet'
         return
     
@@ -296,18 +296,42 @@ def direct_solver(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth,
         
         def F(x=None, z=None):
             if x is None: return N*n, x0
-            delays = matrix(0.0, (N*n, 1))
+            delays, delays1 = matrix(0.0, (N*n, 1)), matrix(0.0, (N*n, 1))
             f, Df = matrix(0.0, (N*n+1, 1)), matrix(0.0, (N*n+1, N*n+degree+N*m))
+            theta = x[N*n:N*n+degree]
+            xs = [x[j*n:(j+1)*n] for j in range(N)]
+            ys = [x[N*n+degree+j*m:N*n+degree+j*(m+1)] for j in range(N)]
+            tmp2 = matrix(np.multiply(theta, range(1,degree+1)))
+            tmp3 = matrix(np.multiply)
+            
             for j in range(N):
-                Df[0, j*n:(j+1)*n] = ffdelays.T
                 for id,link in graph.links.items():
                     i = graph.indlinks[id]
-                    tmp1 = matrix(np.power(slopes[i]*x[j*n+i], range(1,degree+1)))
-                    delays[j*n+i] = ffdelays[i]*(1 + tmp1.T*x[N*n:N*n+degree])
-                    Df[0, j*n+i] += ffdelays[i]*(tmp1.T*range(2,degree+2))
-                f[0] += delays[j*n:j*(n+1)].T*x[j*n:j*(n+1)] - beqs[j].T*x[N*n+degree+j*m:N*n+degree+(j+1)*m]
-                f[j*n+1:(j+1)*n+1] = Aeq[:m,:n].T*x[N*n+degree+j*m:N*n+degree+j*(m+1)] - delays[j*n:(j+1)*n]
+                    tmp1 = matrix(np.power(slopes[i]*xs[j][i], range(degree+1)))
+                    delays[j*n+i] = ffdelays[i]*(1.0 + tmp1[1:].T*theta)
+                    delays1[j*n+i] = slopes[i]*(tmp1[:-1].T*tmp2)
+                    Df[0, j*n+i] += ffdelays[i]*(tmp1[1:].T*range(2,degree+2))
+                Df[0, j*n:(j+1)*n] = ffdelays.T
+                f[0] += delays[j*n:j*(n+1)].T*xs[j] - beqs[j].T*ys[j]
+                f[j*n+1:(j+1)*n+1] = C.T*ys[j] - delays[j*n:(j+1)*n]
+                Df[0, N*n+degree+j*m:N*n+degree+j*(m+1)] = -beqs[j]
+                Df[j*n+1:(j+1)*n+1, j*n:(j+1)*n] = -spmatrix(delays1[j*n:(j+1)*n], range(n), range(n))
+                Df[j*n+1:(j+1)*n+1, N*n+degree+j*m:N*n+degree+j*(m+1)] = C.T
                 
+            P = spmatrix(smooth, range(degree), range(degree))
+            f[0] += 0.5*(theta.T*P*theta)
+            Df[0, N*n:N*n+degree] = matrix(np.multiply(smooth,theta))
+            
+            if soft is not None:
+                num_obs = len(obs)
+                for j in range(N):
+                    linkflows_obs = list_linkflows_obs[j]
+                    f += 0.5*soft*np.power(np.linalg.norm(xs[j][obs]-linkflows_obs),2)
+                    I, J = [0]*num_obs, obs
+                    Df[0,:] += soft*(spmatrix(xs[j][obs],I,J, (1,n)) - spmatrix(linkflows_obs,I,J, (1,n)))
+        
+            if z is None: return f, Df
+            return f, Df, spdiag(H*z)
         
         theta = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x'][N*n:N*n+degree]
     
