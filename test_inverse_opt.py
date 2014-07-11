@@ -10,15 +10,11 @@ import inverse_opt as invopt
 from test_graph import los_angeles
 import matplotlib.pyplot as plt
 from cvxopt import matrix
-import draw_graph as d
 from numpy.random import normal
 
 od_flows1 = [3.0, 3.0, 1.0, 1.0];
 od_flows2 = [1.0, 1.0, 1.0, 4.0];
-theta_true = matrix([0.0, 0.0, 0.0, 1.0, 0.0, 0.0])
-theta_true /= np.sum(theta_true)
-
-theta_true *= 0.15
+theta_true = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
 degree = len(theta_true)
     
     
@@ -49,7 +45,7 @@ def get_graphs_linkflows(theta, noisy=False):
     """Given parameters theta, get L.A. graphs and associated UE linkflows for polynomial delay functions
     """
     g1, g2, g3, g4 = los_angeles(theta, 'Polynomial', noisy)
-    l1, l2, l3, l4 = ue.solver(g1, update=False), ue.solver(g2, update=False), ue.solver(g3, update=False), ue.solver(g4, update=False)
+    l1, l2, l3, l4 = ue.solver(g1), ue.solver(g2), ue.solver(g3), ue.solver(g4)
     return g1, g2, g3, g4, l1, l2, l3, l4
     
     
@@ -108,9 +104,8 @@ def test3(indlinks_obs, max_iter, alt=False):
         for j in [30.0, 60.0, 100.0]:
             for k in [1000.0, 3000.0, 6000.0]:
                 smooth = np.hstack((i*np.ones(degree/3), j*np.ones(degree/3), k*np.ones(degree/3)))
-                #theta = invopt.solver_mis([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], 
-                #                  indlinks_obs, degree, smooth, 1000.0, max_iter, alt=alt)
-                theta = invopt.direct_solver([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], indlinks_obs, degree, smooth, 1000.0)
+                theta = invopt.solver_mis([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], 
+                                  indlinks_obs, degree, smooth, 1000.0, max_iter, alt=alt)
                 g1, g2, g3, g4, x1, x2, x3, x4 = get_graphs_linkflows(theta)
                 e = np.linalg.norm(matrix([l1[obs],l2[obs],l3[obs],l4[obs]])-matrix([x1[obs],x2[obs],x3[obs],x4[obs]]))
                 if e < min_error:

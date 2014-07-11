@@ -248,21 +248,11 @@ class OD:
         self.flow = flow
         self.paths = paths # set of all paths for the OD pair
         self.numpaths = numpaths
-        
-        
-class AffineDelay:
-    """Affine Delay function"""
-    def __init__(self, ffdelay, slope):
-        self.ffdelay = ffdelay
-        self.slope = slope # this can be seen as inverse capacities
-        self.type = 'Affine'
-        
-    def compute_delay(self, flow):
-        return self.ffdelay + self.slope*flow
        
        
 class PolyDelay:
-    """Polynomial Delay function"""
+    """Polynomial Delay function
+    delay(x) = ffdelay + sum_k coef[k]*(slope*x)^k"""
     def __init__(self, ffdelay, slope, coef):
         self.ffdelay = ffdelay
         self.slope = slope # this can be seen as inverse capacities
@@ -271,13 +261,13 @@ class PolyDelay:
         self.type = 'Polynomial'
         
     def compute_delay(self, flow):
+        """Compute delay"""
         return self.ffdelay + np.dot(self.coef, np.power(flow, range(1,self.degree+1)))
         
 
 def create_delayfunc(type, parameters=None):
     """Create a Delay function of a specific type"""
     if type == 'None': return None
-    if type == 'Affine': return AffineDelay(parameters[0], parameters[1])
     if type == 'Polynomial': return PolyDelay(parameters[0], parameters[1], parameters[2])
     if type == 'Other': return Other(parameters[0], parameters[1], parameters[2])
 
@@ -290,57 +280,3 @@ def create_graph_from_list(list_nodes, list_links, delaytype, list_ods=None, des
     graph.add_links_from_list(list_links, delaytype)
     if list_ods is not None: graph.add_ods_from_list(list_ods)
     return graph
-
-        
-def create_grid(m, n, inright=None, indown=None, outright=None, outdown=None, 
-         inrdelay=None, inddelay=None, outrdelay=None, outddelay=None, delaytype=None):
-    """construct a grid with m rows and n columns
-                                        1 - 2 - 3 - 4
-       for a m=2 X n=4 grid, nodes are: |   |   |   |
-                                        5 - 6 - 7 - 8
-                                              
-    Parameters
-    ----------
-    
-    inright: list [k1, k2, k3, k4, k5, ...]: creates ki in-links of node i connected to the right neighbor of i
-    indown: list [k1, k2, k3, k4, k5, ...]: creates ki in-links of node i connected to the down neighbor of i
-    outright: list [k1, k2, k3, k4, k5, ...]: creates ki out-links of node i connected to the right neighbor of i
-    outdown: list [k1, k2, k3, k4, k5, ...]: creates ki out-links of node i connected to the down neighbor of i
-    inrdelay: list [[args11, args12, ...], [args21, args22, ,...], ...]: add delay function with parameters ij to link (right neighbor, i, route j)
-    ...
-    
-    """
-    grid = Graph('Grid of size {}X{}'.format(m,n), {},{},{},{},0,0,0,0,{},{},{},{})
-    [grid.add_node((j, m-i-1)) for i in range(m) for j in range(n)]
-    
-    if not inright is None:
-        if inrdelay is None:
-            [grid.add_link(i*n+j+2, i*n+j+1, k+1) for i in range(m) for j in range(n-1) for k in range(inright[i*n+j])]
-        else:                
-            [grid.add_link(i*n+j+2, i*n+j+1, k+1, delayfunc=create_delayfunc(delaytype, inrdelay[i*n+j][k])) 
-             for i in range(m) for j in range(n-1) for k in range(inright[i*n+j])]
-            
-    if not indown is None:
-        if inddelay is None:
-            [grid.add_link((i+1)*n+j+1, i*n+j+1, k+1) for i in range(m-1) for j in range(n) for k in range(indown[i*n+j])]
-        else:
-            [grid.add_link((i+1)*n+j+1, i*n+j+1, k+1, delayfunc=create_delayfunc(delaytype, inddelay[i*n+j][k])) 
-             for i in range(m-1) for j in range(n) for k in range(indown[i*n+j])]
-        
-    if not outright is None:
-        if outrdelay is None:
-            [grid.add_link(i*n+j+1, i*n+j+2, k+1) for i in range(m) for j in range(n-1) for k in range(outright[i*n+j])]
-        else:
-            [grid.add_link(i*n+j+1, i*n+j+2, k+1, delayfunc=create_delayfunc(delaytype, outrdelay[i*n+j][k]))
-             for i in range(m) for j in range(n-1) for k in range(outright[i*n+j])]
-        
-    if not outdown is None:
-        if outddelay is None:
-            [grid.add_link(i*n+j+1, (i+1)*n+j+1, k+1) for i in range(m-1) for j in range(n) for k in range(outdown[i*n+j])]
-        else:
-            [grid.add_link(i*n+j+1, (i+1)*n+j+1, k+1, delayfunc=create_delayfunc(delaytype, outddelay[i*n+j][k])) 
-             for i in range(m-1) for j in range(n) for k in range(outdown[i*n+j])]
-        
-    return grid
-
-

@@ -50,7 +50,7 @@ def constraints(graph, linkflows_obs=None, indlinks_obs=None, soft=None):
     return Aeq[ind,:], beq[ind]
 
 
-def solver(graph, update=True, Aeq=None, beq=None, linkflows_obs=None, indlinks_obs=None, soft=None):
+def solver(graph, update=False, Aeq=None, beq=None, linkflows_obs=None, indlinks_obs=None, soft=None):
     """Find the UE link flow
     
     Parameters
@@ -68,22 +68,6 @@ def solver(graph, update=True, Aeq=None, beq=None, linkflows_obs=None, indlinks_
     n = graph.numlinks
     A, b = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1))
     type = graph.links.values()[0].delayfunc.type    
-    
-    if type == 'Affine':
-        entries, I, q = [], [], matrix(0.0, (graph.numlinks,1))
-        for id,link in graph.links.items():
-            entries.append(link.delayfunc.slope); I.append(graph.indlinks[id]); q[graph.indlinks[id]] = link.delayfunc.ffdelay
-        P, c = spmatrix(entries,I,I), matrix(q)
-        if linkflows_obs is not None and indlinks_obs is not None and soft is not None:
-            print 'Include observed link flows as soft constraints'
-            num_obs = len(indlinks_obs)
-            entries, I = [soft]*num_obs, []
-            for k, id in list(enumerate(indlinks_obs)):
-                i = graph.indlinks[id]
-                I.append(i)
-                c[i] += -soft*linkflows_obs[k]
-            P += spmatrix(entries,I,I, (n,n))
-        linkflows = solvers.qp(P, c, A, b, Aeq, beq)['x']
         
     if type == 'Polynomial':
         degree = graph.links.values()[0].delayfunc.degree
@@ -123,10 +107,9 @@ def solver(graph, update=True, Aeq=None, beq=None, linkflows_obs=None, indlinks_
         if linkflows_obs is not None and indlinks_obs is not None and soft is not None:
             print 'Include observed link flows as soft constraints'
         linkflows = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
-        
-                
-    if type == 'Other':
-        pass
+    else:
+        print 'Not implemented yet for non-polynomial delay functions'
+        return
     
     if update:
         print 'Update link flows and link delays in Graph object.'; graph.update_linkflows_linkdlays(linkflows)
@@ -135,21 +118,11 @@ def solver(graph, update=True, Aeq=None, beq=None, linkflows_obs=None, indlinks_
     return linkflows
 
 
-def unused_paths(graph, tol=1e-3):
-    """Find unused paths given UE link delays in graph"""
-    pathids = []
-    for od in graph.ODs.values():
-        mindelay = min([path.delay for path in od.paths.values()])
-        [pathids.append((path.o, path.d, path.route)) for path in od.paths.values() if path.delay > mindelay*(1 + tol)]
-    return pathids
-
-
 def save_mat(filepath, name, graph):
     """Save sparse matrices for the UE problem in solve_ue_data.mat file
     solve_ue_data.mat contains:
     C: incidence matrix node-link
     d: in-out-OD flows in each node
-    If type_delayfunc = Affine:
     p: slopes of the delay function for each node
     q: constant coefficient
     """
@@ -161,10 +134,6 @@ def save_mat(filepath, name, graph):
             beq[id1-1] = sum([od.flow for od in node.endODs.values()]) - sum([od.flow for od in node.startODs.values()])
     Aeq = sps.coo_matrix((entries,(I,J)))
             
-    if type == 'Affine':
-        p, q = np.zeros((graph.numlinks, 1)), np.zeros((graph.numlinks, 1))
-        for id,link in graph.links.items(): p[graph.indlinks[id]], q[graph.indlinks[id]] = link.delayfunc.slope, link.delayfunc.ffdelay
-        sio.savemat(filepath + name + '.mat', mdict={'C': Aeq, 'd': beq, 'p': p, 'q': q})
-        
-    if type == 'Other':
-        pass
+    p, q = np.zeros((graph.numlinks, 1)), np.zeros((graph.numlinks, 1))
+    for id,link in graph.links.items(): p[graph.indlinks[id]], q[graph.indlinks[id]] = link.delayfunc.slope, link.delayfunc.ffdelay
+    sio.savemat(filepath + name + '.mat', mdict={'C': Aeq, 'd': beq, 'p': p, 'q': q})
