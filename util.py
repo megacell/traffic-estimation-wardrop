@@ -4,7 +4,9 @@ Created on Apr 23, 2014
 @author: jeromethai
 '''
 import scipy.linalg as sla
-
+import scipy.io as sio
+import numpy as np
+from cvxopt import matrix
 
 def place_zeros(M, atol=1e-13):
     """Replace entries in M less than atol by 0.0"""
@@ -36,8 +38,19 @@ def bisection(F, f, left, right, tol=1e-8):
     return (l+r)/2.0
 
 
+def save_mat(Ms, names, filename):
+    """Save matrices in matlab format
+    
+    Parameters
+    __________
+    Ms: list of matrices
+    names: list of names of the matrices in matlab format
+    """
+    dict = {names[k] : np.array(matrix(Ms[k])) for k in range(len(Ms))}
+    sio.savemat(filename + '.mat', mdict=dict)
+
+
 if __name__ == '__main__':
-    def F(x):
-        return x**2
-    print bisection(F, 9.0, 0.0, 5.0)
+    pass
+    
     

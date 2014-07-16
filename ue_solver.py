@@ -50,6 +50,47 @@ def constraints(graph, linkflows_obs=None, indlinks_obs=None, soft=None):
     return Aeq[ind,:], beq[ind]
 
 
+def get_nodelink_incidence(graph):
+    """
+    get node-link incidence matrix
+    
+    Parameters
+    ----------
+    graph: graph object
+    
+    Return value
+    ------------
+    C: matrix of incidence node-link
+    ind: indices of a basis formed by the rows of C
+    """
+    m, n = graph.numnodes, graph.numlinks
+    entries, I, J = [], [], []
+    for id1,node in graph.nodes.items():
+        for id2,link in node.inlinks.items(): entries.append(1.0); I.append(id1-1); J.append(graph.indlinks[id2])
+        for id2,link in node.outlinks.items(): entries.append(-1.0); I.append(id1-1); J.append(graph.indlinks[id2])
+    C = spmatrix(entries, I, J, (m,n))
+    M = matrix(C); r = rank(M)
+    if r < m: print 'Remove {} redundant constraint(s)'.format(m-r); ind = find_basis(M.trans())
+    return C, ind
+
+
+def get_demands(graph, ind, node_id):
+    """
+    get demands for all OD pairs sharing the same destination
+    
+    Parameters
+    ----------
+    graph: graph object
+    ind: indices of a basis formed by the rows of C
+    node_id: id of the destination node
+    """
+    d = matrix(0.0, (graph.numnodes,1))
+    for OD in graph.nodes[node_id].endODs.values():
+        d[node_id-1] += OD.flow
+        d[OD.o-1] = -OD.flow
+    return d[ind]
+
+
 def solver(graph, update=False, Aeq=None, beq=None, linkflows_obs=None, indlinks_obs=None, soft=None):
     """Find the UE link flow
     
@@ -114,24 +155,3 @@ def solver(graph, update=False, Aeq=None, beq=None, linkflows_obs=None, indlinks
         print 'Update path delays in Graph object.'; graph.update_pathdelays()
         
     return linkflows
-
-
-def save_mat(filepath, name, graph):
-    """Save sparse matrices for the UE problem in solve_ue_data.mat file
-    solve_ue_data.mat contains:
-    C: incidence matrix node-link
-    d: in-out-OD flows in each node
-    p: slopes of the delay function for each node
-    q: constant coefficient
-    """
-    type = graph.links.values()[0].delayfunc.type
-    entries, I, J, beq = [], [], [], np.zeros((graph.numnodes, 1)) 
-    for id1,node in graph.nodes.items():
-            for id2,link in node.inlinks.items(): entries.append(1.0); I.append(id1-1); J.append(graph.indlinks[id2])
-            for id2,link in node.outlinks.items(): entries.append(-1.0); I.append(id1-1); J.append(graph.indlinks[id2])
-            beq[id1-1] = sum([od.flow for od in node.endODs.values()]) - sum([od.flow for od in node.startODs.values()])
-    Aeq = sps.coo_matrix((entries,(I,J)))
-            
-    p, q = np.zeros((graph.numlinks, 1)), np.zeros((graph.numlinks, 1))
-    for id,link in graph.links.items(): p[graph.indlinks[id]], q[graph.indlinks[id]] = link.delayfunc.slope, link.delayfunc.ffdelay
-    sio.savemat(filepath + name + '.mat', mdict={'C': Aeq, 'd': beq, 'p': p, 'q': q})

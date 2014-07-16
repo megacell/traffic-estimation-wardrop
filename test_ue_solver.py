@@ -9,7 +9,7 @@ import ue_solver as ue
 import draw_graph as d
 from test_graph import small_example, los_angeles
 from cvxopt import matrix
-import scipy.io as sio
+
 
 def test1():
     graph = small_example()
@@ -18,6 +18,14 @@ def test1():
     print 'UE flow: '
     print linkflows
 
+def test2():
+    theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
+    graph = los_angeles(theta, 'Polynomial')[0]
+    C,ind = ue.get_nodelink_incidence(graph)
+    print C
+    d = ue.get_demands(graph, ind, 22)
+    print d
+    
     
 def los_angeles_ue():
     theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
@@ -37,7 +45,8 @@ def los_angeles_ue():
 
 def main():
     #test1()
-    los_angeles_ue()
+    test2()
+    #los_angeles_ue()
     
 
 if __name__ == '__main__':
