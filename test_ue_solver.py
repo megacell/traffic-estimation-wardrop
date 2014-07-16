@@ -9,6 +9,7 @@ import ue_solver as ue
 import draw_graph as d
 from test_graph import small_example, los_angeles
 from cvxopt import matrix
+import scipy.io as sio
 
 def test1():
     graph = small_example()
@@ -25,11 +26,14 @@ def los_angeles_ue():
     l2 = ue.solver(g2, update=True)
     l3 = ue.solver(g3, update=True)
     l4 = ue.solver(g4, update=True)
-    d.draw_delays(g1)
-    d.draw_delays(g2)
-    d.draw_delays(g3)
-    d.draw_delays(g4)
-    
+    #d.draw_delays(g1)
+    #d.draw_delays(g2)
+    #d.draw_delays(g3)
+    #d.draw_delays(g4)
+    #x1, x2, x3, x4 = np.zeros((g1.numlinks, 1)), np.zeros((g1.numlinks, 1)), np.zeros((g1.numlinks, 1)), np.zeros((g1.numlinks, 1))
+    #for i in range(g1.numlinks): x1[i], x2[i], x3[i], x4[i] = l1[i], l2[i], l3[i], l4[i]
+    #sio.savemat('linkflows.mat', mdict={'x1': x1, 'x2': x2, 'x3': x3, 'x4': x4})
+
 
 def main():
     #test1()
