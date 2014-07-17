@@ -39,7 +39,7 @@ def small_example():
 
 def los_angeles(theta=None, delaytype='None', noisy=False):
     
-    data = sio.loadmat('los_angeles_data_2.mat')
+    data = sio.loadmat('los_angeles_data.mat')
         
     if not noisy:
         links = data['links']

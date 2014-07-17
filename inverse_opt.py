@@ -110,7 +110,7 @@ def solver(list_graphs, list_linkflows, degree, smooth, data=None, fvalue=False,
     return x
 
 
-def x_solver(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft=None):
+def x_solver(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft):
     """Solves the single-level optimization problem in 'x'
     
     Parameters
@@ -156,19 +156,16 @@ def x_solver(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft=None):
                 f += ffdelays[i]*x[i] + coefs[i,:] * tmp1[range(2,degree+2)]
                 Df[i] = ffdelays[i] + coefs1[i,:] * tmp1[range(1,degree+1)]
                 tmp2[i] = coefs2[i,:] * tmp1[range(degree)]
-            if soft is not None:
-                obs = [graph.indlinks[id] for id in indlinks_obs]
-                num_obs = len(obs)
-                f += 0.5*soft*np.power(np.linalg.norm(x[obs]-linkflows_obs),2)
-                I, J = [0]*num_obs, obs
-                Df += soft*(spmatrix(x[obs],I,J, (1,n)) - spmatrix(linkflows_obs,I,J, (1,n)))
-                tmp2 += spmatrix([soft]*num_obs,J,I, (n,1))
+            obs = [graph.indlinks[id] for id in indlinks_obs]
+            num_obs = len(obs)
+            f += 0.5*soft*np.power(np.linalg.norm(x[obs]-linkflows_obs),2)
+            I, J = [0]*num_obs, obs
+            Df += soft*(spmatrix(x[obs],I,J, (1,n)) - spmatrix(linkflows_obs,I,J, (1,n)))
+            tmp2 += spmatrix([soft]*num_obs,J,I, (n,1))
             if z is None: return f, Df
             H = spdiag(z[0] * tmp2)
             return f, Df, H
         
-        #print Aeq.size, y.size
-        #print m,n
         tmp3 = Aeq[:m,:n].T*y
         for id,link in graph.links.items():
             i = graph.indlinks[id]
@@ -181,7 +178,89 @@ def x_solver(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft=None):
     return linkflows
 
 
-def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, soft=None, max_iter=2, fvalue=False, alt=False):
+def x_solver_2(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft):
+    """Solves the single-level optimization problem in 'x'
+    
+    Parameters
+    ----------
+    graph: graph object
+    y: dual variables
+    Aeq, beq: constraints of the ue_solver
+    linkflows_obs: vector of observed link flows (must be in the same order)
+    indlinks_obs: list of indices of observed link flows (must be in the same order)
+    soft: reconcile x^obs
+    """
+    n = graph.numlinks
+    p = Aeq.size[1]/n
+    m = Aeq.size[0]/p
+    C = Aeq[:m, :n]
+    A1, b1, b2 = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1)), matrix(0.0, (n,1))
+    type = graph.links.values()[0].delayfunc.type
+    
+    ffdelays = matrix(0.0, (n,1))
+    for id,link in graph.links.items(): ffdelays[graph.indlinks[id]] = link.delayfunc.ffdelay
+    
+    A2 = matrix([[spmatrix(-1.0, range(n), range(n))]]*p)
+    #A = matrix([A1,A2])
+    A = A2
+    
+    if type != 'Polynomial':
+        print 'Not implemented yet'
+        return
+    
+    if type == 'Polynomial':
+        degree = graph.links.values()[0].delayfunc.degree
+        coefs, coefs1, coefs2 = matrix(0.0, (n, degree)), matrix(0.0, (n, degree)), matrix(0.0, (n, degree))
+        for id,link in graph.links.items():
+            i = graph.indlinks[id]
+            for j in range(degree):
+                coef = link.delayfunc.coef[j]
+                coefs[i,j], coefs1[i,j], coefs2[i,j] = coef, coef*(j+2), coef*(j+2)*(j+1)
+        
+        tmp = matrix(0.0, (n,p))
+        for k in range(p): tmp[:,k] = C.T*y[k*m:(k+1)*m]
+        for id,link in graph.links.items():
+            i = graph.indlinks[id]
+            tmp4 = max(tmp[i,:])
+            if tmp4 > ffdelays[i]:
+                def G(x): return np.dot(coef[i,:], np.power(x, range(1,degree+1)))
+                b2[i] = -bisection(G, tmp4-ffdelays[i], 0.0, 5.0/link.delayfunc.slope)
+        
+        #b = matrix([b1,b2])
+        b = b2
+        
+        def F(x=None, z=None):
+            if x is None: return 0, matrix(1.0/p, (p*n,1))
+            l = matrix(0.0, (n,1))
+            for k in range(p): l += x[k*n:(k+1)*n]
+            f, Df = 0.0, matrix(0.0, (1,n))
+            tmp2 = matrix(0.0, (n,1))
+            for id,link in graph.links.items():
+                i = graph.indlinks[id]
+                tmp1 = matrix(np.power(l[i],range(degree+2)))
+                f += ffdelays[i]*l[i] + coefs[i,:] * tmp1[range(2,degree+2)]
+                Df[i] = ffdelays[i] + coefs1[i,:] * tmp1[range(1,degree+1)]
+                tmp2[i] = coefs2[i,:] * tmp1[range(degree)]
+                
+            obs = [graph.indlinks[id] for id in indlinks_obs]
+            num_obs = len(obs)
+            f += 0.5*soft*np.power(np.linalg.norm(l[obs]-linkflows_obs),2)
+            I, J = [0]*num_obs, obs
+            Df += soft*(spmatrix(l[obs],I,J, (1,n)) - spmatrix(linkflows_obs,I,J, (1,n)))
+            tmp2 += spmatrix([soft]*num_obs,J,I, (n,1))
+            Df = matrix([[Df]]*p)
+            if z is None: return f, Df
+            H = spdiag(z[0] * tmp2)
+            return f, Df, matrix([[H]*p]*p)
+        
+        x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
+        linkflows = matrix(0.0, (n,1))
+        for k in range(p): linkflows += x[k*n:(k+1)*n]
+        
+    return linkflows
+
+
+def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, soft=1000.0, max_iter=10, fvalue=False):
     """Solves the inverse optimization problem with missing values
     (only available for polynomial delays)
     
@@ -200,25 +279,25 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, so
     N, graph = len(list_graphs), list_graphs[0]
     n = graph.numlinks
     obs = [graph.indlinks[id] for id in indlinks_obs]
-    #theta_init = matrix(np.ones(degree))/float(degree)
     theta_init = matrix(np.zeros(degree))
     theta_init[0] = 1.0
     beqs = []
     for j in range(N):
-        tmp1, tmp2 = ue.constraints(list_graphs[j], list_linkflows_obs[j], indlinks_obs, soft)
+        tmp1, tmp2 = ue.constraints(list_graphs[j])
         if j<1: Aeq = tmp1 # same node-link incidence matrix
         beqs.append(tmp2) # different demands
     
-    m = Aeq.size[0]
-    if soft is None: m -= len(indlinks_obs)
+    p = Aeq.size[1]/n
+    m = Aeq.size[0]/p
     
     slopes, ffdelays = matrix(0.0, (n,1)), matrix(0.0, (n,1))
     for id,link in graph.links.items():
-        slopes[graph.indlinks[id]] = link.delayfunc.slope
-        ffdelays[graph.indlinks[id]] = link.delayfunc.ffdelay # same slopes
+        i = graph.indlinks[id]
+        slopes[i] = link.delayfunc.slope
+        ffdelays[i] = link.delayfunc.ffdelay # same slopes
     
     theta, f1, f2 = theta_init, [], []
-    ys = [matrix(0.0, (m,1)) for j in range(N)]
+    ys = [matrix(0.0, (m*p,1)) for j in range(N)]
     
     for k in range(max_iter):
         
@@ -226,16 +305,12 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, so
             for id, link in graph.links.items():
                 i = graph.indlinks[id]
                 link.delayfunc.coef = [ffdelays[i]*a*b for a,b in zip(theta, np.power(slopes[i], range(1,degree+1)))]
-            if alt:
-                list_linkflows = [x_solver(graph, ys[j], Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs, soft) for j in range(N)]
-            else:
-                list_linkflows = [ue.solver(graph, False, Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs, soft) for j in range(N)]
+            list_linkflows = [x_solver(graph, ys[j], Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs, soft) for j in range(N)]
+         
             if fvalue:
-                error = 0
                 for i in range(N):
                     e = list_linkflows[i][obs] - list_linkflows_obs[i]
-                    error += e.T*e
-                    f1.append(error[0])
+                    f1.append((e.T*e)[0])
         else:
             if fvalue:
                 x, f = solver(list_graphs, list_linkflows, degree, smooth, fvalue=True, full=True)
@@ -243,7 +318,7 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, so
             else:
                 x = solver(list_graphs, list_linkflows, degree, smooth, fvalue=False, full=True)
             theta = x[range(degree)]
-            ys = [x[degree+j*m:degree+(j+1)*m] for j in range(N)]
+            ys = [x[degree+j*m*p:degree+(j+1)*m*p] for j in range(N)]
             
     if fvalue: return theta, f1, f2
     return theta

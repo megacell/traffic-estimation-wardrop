@@ -18,6 +18,7 @@ def test1():
     print 'UE flow: '
     print linkflows
 
+
 def test2():
     theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
     graph = los_angeles(theta, 'Polynomial')[0]

@@ -10,8 +10,8 @@ from cvxopt import matrix, spmatrix
 
 def test1():
     def F(x):
-        return x**2
-    print bisection(F, 9.0, 0.0, 5.0)
+        return 1 + 0.15*(x**4)
+    print bisection(F, 4.0, 0.0, 5.0)
 
 
 def test2():
@@ -21,8 +21,8 @@ def test2():
 
 
 def main():
-    #test1()
-    test2()
+    test1()
+    #test2()
 
 
 if __name__ == '__main__':
