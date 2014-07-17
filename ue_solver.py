@@ -12,42 +12,24 @@ from rank_nullspace import rank
 from util import find_basis
 
 
-def constraints(graph, linkflows_obs=None, indlinks_obs=None, soft=None):
+def constraints(graph):
     """Construct constraints for the UE link flow
     
     Parameters
     ----------
     graph: graph object
-    linkflows_obs: vector of observed link flows (must be in the same order)
-    indlinks_obs: list of indices of observed link flows (must be in the same order)
-    soft: if provided, constraints to reconcile x^obs are switched to soft constraints
     
     Return value
     ------------
-    Aeq: matrix of incidence nodes-links
-    beq: matrix of OD flows at each node
+    Aeq, beq: equality constraints Aeq*x = beq
     """
-    m, n = graph.numnodes, graph.numlinks
-    entries, I, J, beq = [], [], [], matrix(0.0, (m,1))
-    
-    for id1,node in graph.nodes.items():
-        for id2,link in node.inlinks.items(): entries.append(1.0); I.append(id1-1); J.append(graph.indlinks[id2])
-        for id2,link in node.outlinks.items(): entries.append(-1.0); I.append(id1-1); J.append(graph.indlinks[id2])
-        beq[id1-1] = sum([od.flow for od in node.endODs.values()]) - sum([od.flow for od in node.startODs.values()])
-    Aeq = spmatrix(entries, I, J, (m,n))
-    
-    num_obs = 0
-    if linkflows_obs is not None and indlinks_obs is not None and soft is None:
-        print 'Include observed link flows as hard constraints'
-        num_obs = len(indlinks_obs)
-        entries, I, J = np.ones(num_obs), range(num_obs), []
-        for id in indlinks_obs: J.append(graph.indlinks[id])
-        Aeq = sparse([Aeq, spmatrix(entries, I, J, (num_obs,n))])
-        beq = matrix([beq, matrix(linkflows_obs)])
-        
-    M = matrix(Aeq); r = rank(M)
-    if r < m+num_obs: print 'Remove {} redundant constraint(s)'.format(m+num_obs-r); ind = find_basis(M.trans())
-    return Aeq[ind,:], beq[ind]
+    C, ind = get_nodelink_incidence(graph)
+    ds = [get_demands(graph, ind, id) for id,node in graph.nodes.items() if len(node.endODs) > 0]
+    p = len(ds)
+    m,n = C.size
+    Aeq, beq = spmatrix([], [], [], (p*m,p*n)), matrix(ds)
+    for k in range(p): Aeq[k*m:(k+1)*m, k*n:(k+1)*n] = C
+    return Aeq, beq
 
 
 def get_nodelink_incidence(graph):
@@ -71,7 +53,7 @@ def get_nodelink_incidence(graph):
     C = spmatrix(entries, I, J, (m,n))
     M = matrix(C); r = rank(M)
     if r < m: print 'Remove {} redundant constraint(s)'.format(m-r); ind = find_basis(M.trans())
-    return C, ind
+    return C[ind,:], ind
 
 
 def get_demands(graph, ind, node_id):
@@ -105,9 +87,10 @@ def solver(graph, update=False, Aeq=None, beq=None, linkflows_obs=None, indlinks
     soft: if provided, constraints to reconcile x^obs are switched to soft constraints
     """
     
-    if Aeq is None or beq is None: Aeq, beq = constraints(graph, linkflows_obs, indlinks_obs, soft)
+    if Aeq is None or beq is None: Aeq, beq = constraints(graph)
     n = graph.numlinks
-    A, b = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1))
+    p = Aeq.size[1]/n
+    A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
     type = graph.links.values()[0].delayfunc.type    
         
     if type == 'Polynomial':
@@ -122,26 +105,29 @@ def solver(graph, update=False, Aeq=None, beq=None, linkflows_obs=None, indlinks
                 coefs[i,j], coefs_i[i,j], coefs_d[i,j] = coef, coef/(j+2), coef*(j+1)
                         
         def F(x=None, z=None):
-            if x is None: return 0, matrix(1.0, (n,1))
-            #if min(x) <= 0.0: return None #implicit constraints
+            
+            if x is None: return 0, matrix(1.0/p, (p*n,1))
+            y = matrix(0.0, (n,1))
+            for k in range(p): y += x[k*n:(k+1)*n]
             f, Df = 0.0, matrix(0.0, (1,n))
             tmp2 = matrix(0.0, (n,1))
             for id,link in graph.links.items():
                 i = graph.indlinks[id]
-                tmp1 = matrix(np.power(x[i],range(degree+2)))
-                f += ffdelays[i]*x[i] + coefs_i[i,:] * tmp1[2:degree+2]
+                tmp1 = matrix(np.power(y[i],range(degree+2)))
+                f += ffdelays[i]*y[i] + coefs_i[i,:] * tmp1[2:degree+2]
                 Df[i] = ffdelays[i] + coefs[i,:] * tmp1[1:degree+1]
                 tmp2[i] = coefs_d[i,:] * tmp1[:degree]
             if linkflows_obs is not None and indlinks_obs is not None and soft is not None:
                 obs = [graph.indlinks[id] for id in indlinks_obs]
                 num_obs = len(obs)
-                f += 0.5*soft*np.power(np.linalg.norm(x[obs]-linkflows_obs),2)
+                f += 0.5*soft*np.power(np.linalg.norm(y[obs]-linkflows_obs),2)
                 I, J = [0]*num_obs, obs
-                Df += soft*(spmatrix(x[obs],I,J, (1,n)) - spmatrix(linkflows_obs,I,J, (1,n)))
+                Df += soft*(spmatrix(y[obs],I,J, (1,n)) - spmatrix(linkflows_obs,I,J, (1,n)))
                 tmp2 += spmatrix([soft]*num_obs,J,I, (n,1))
+            Df = matrix([[Df]]*p)
             if z is None: return f, Df
             H = spdiag(z[0] * tmp2)
-            return f, Df, H
+            return f, Df, matrix([[H]*p]*p)
         
         if linkflows_obs is not None and indlinks_obs is not None and soft is not None:
             print 'Include observed link flows as soft constraints'

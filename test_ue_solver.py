@@ -25,6 +25,9 @@ def test2():
     print C
     d = ue.get_demands(graph, ind, 22)
     print d
+    Aeq, beq = ue.constraints(graph)
+    print Aeq.size
+    print beq.size
     
     
 def los_angeles_ue():
@@ -34,6 +37,10 @@ def los_angeles_ue():
     l2 = ue.solver(g2, update=True)
     l3 = ue.solver(g3, update=True)
     l4 = ue.solver(g4, update=True)
+    print l1
+    print l2
+    print l3
+    print l4
     #d.draw_delays(g1)
     #d.draw_delays(g2)
     #d.draw_delays(g3)
@@ -45,8 +52,8 @@ def los_angeles_ue():
 
 def main():
     #test1()
-    test2()
-    #los_angeles_ue()
+    #test2()
+    los_angeles_ue()
     
 
 if __name__ == '__main__':
