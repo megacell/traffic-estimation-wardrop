@@ -32,23 +32,18 @@ def test2():
     
 def los_angeles_ue():
     theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
-    g1, g2, g3, g4 = los_angeles(theta, 'Polynomial')
-    n = g1.numlinks
-    l1, x1 = ue.solver(g1, update=True, full=True)
-    l2, x2 = ue.solver(g2, update=True, full=True)
-    l3, x3 = ue.solver(g3, update=True, full=True)
+    g4 = los_angeles(theta, 'Polynomial')[3]
+    n = g4.numlinks
+    g4.add_path([(29,21,1), (21,14,1), (14,34,1), (34,12,1), (12,5,1)])
+    g4.add_path([(29,21,1), (21,14,1), (14,13,1), (13,12,1), (12,5,1)])
+    g4.add_path([(30,28,1), (28,22,1), (22,15,1), (15,13,1), (13,12,1), (12,5,1)])
+    g4.add_path([(30,28,1), (28,23,1), (23,16,1), (16,15,1), (15,13,1), (13,12,1), (12,5,1)])
     l4, x4 = ue.solver(g4, update=True, full=True)
-    d.draw_delays(g1, x1[:n])
-    d.draw_delays(g1, x1[n:])
-    d.draw_delays(g2, x2[:n])
-    d.draw_delays(g2, x2[n:])
-    d.draw_delays(g3, x3[:n])
-    d.draw_delays(g3, x3[n:])
     d.draw_delays(g4, x4[:n])
-    d.draw_delays(g4, x4[n:])
-    #print l4[g1.indlinks[(12,5,1)]]
-    #print l4[g1.indlinks[(6,5,1)]]
-
+    d.draw_delays(g4, x4[n:2*n])
+    d.draw_delays(g4, x4[2*n:])
+    g4.visualize(paths=True)
+    
 
 def main():
     #test1()

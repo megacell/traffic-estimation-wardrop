@@ -28,20 +28,18 @@ def constraints(list_graphs, list_linkflows, degree):
     c, A, b: such that 
         min c'*x + r(x)
         s.t. A*x <= b
-    """
-    
-    if len(list_graphs) != len(list_linkflows): print 'ERROR: Lists not same length'; return
-    
+    """    
     graph = list_graphs[0]
-    type = graph.links.values()[0].delayfunc.type 
+    type, n = graph.links.values()[0].delayfunc.type, graph.numlinks 
     
     if type != 'Polynomial':
         print 'Inverse Optimization only available for polynomial delay functions'
         return
     
     N = len(list_graphs)
-    C, beq = ue.constraints(graph)
-    m, n = C.size
+    Aeq, beq = ue.constraints(graph)
+    p = Aeq.size[1]/n
+    m = Aeq.size[0]/p
     
     ffdelays, slopes = matrix(0.0, (n,1)), matrix(0.0, (n,1))
     for id,link in graph.links.items():
@@ -50,11 +48,11 @@ def constraints(list_graphs, list_linkflows, degree):
     
     if type == 'Polynomial':
         
-        b = matrix(0.0, (n*N, 1))
-        tmp1, tmp2 = matrix(0.0, (degree,1)), matrix(0.0, (N*n, degree))
-        tmp3, tmp4 = matrix(0.0, (n*N, m*N)), matrix(0.0, (m*N,1))
-        ind_start1, ind_end1 = [j*m for j in range(N)], [(j+1)*m for j in range(N)]
-        ind_start2, ind_end2 = [j*n for j in range(N)], [(j+1)*n for j in range(N)]
+        b = matrix([ffdelays]*p*N)
+        tmp1, tmp2 = matrix(0.0, (degree, 1)), matrix(0.0, (p*N*n, degree))
+        tmp3, tmp4 = matrix(0.0, (p*n*N, m*N*p)), matrix(0.0, (p*m*N, 1))
+        ind_start1, ind_end1 = [j*m*p for j in range(N)], [(j+1)*m*p for j in range(N)]
+        ind_start2, ind_end2 = [j*n*p for j in range(N)], [(j+1)*n*p for j in range(N)]
         
         for j, graph, linkflows in zip(range(N), list_graphs, list_linkflows): 
             
@@ -62,15 +60,14 @@ def constraints(list_graphs, list_linkflows, degree):
             for deg in range(degree):
                 tmp6 = mul(tmp5**(deg+1), ffdelays)
                 tmp1[deg] += (linkflows.T) * tmp6
-                tmp2[ind_start2[j]:ind_end2[j], deg] = spmatrix(-ffdelays,range(n),range(n))*tmp6
+                tmp2[ind_start2[j]:ind_end2[j], deg] = -matrix([tmp6]*p)
                 
-            if j>0: C, beq = ue.constraints(graph)
-            tmp3[ind_start2[j]:ind_end2[j], ind_start1[j]:ind_end1[j]] = C.T
+            if j>0: Aeq, beq = ue.constraints(graph)
+            tmp3[ind_start2[j]:ind_end2[j], ind_start1[j]:ind_end1[j]] = Aeq.T
             tmp4[ind_start1[j]:ind_end1[j], 0] = -beq
-            
-            b[ind_start2[j]:ind_end2[j]] = ffdelays
-            
-        scale = (sum(abs(tmp4)) * float(len(tmp1))) / (sum(abs(tmp1)) * float(len(tmp4)))
+                        
+        #scale = (sum(abs(tmp4)) * float(len(tmp1))) / (sum(abs(tmp1)) * float(len(tmp4)))
+        scale = 1.0
         c, A = matrix([scale*tmp1, tmp4]), matrix([[scale*tmp2], [tmp3]])
     
         #for deg in range(degree): A[deg, deg] = -1.0

@@ -39,7 +39,7 @@ def draw(graph, link_ids=None, G=None, width=7, alpha=0.5, edge_color='r'):
     plt.show()
     
     
-def draw_delays(graph, linkflows=None, G=None, width=7, alpha=0.5, levels=[1.5, 2.0, 3.0], tol=1e-8):
+def draw_delays(graph, linkflows=None, G=None, width=7, alpha=0.5, levels=[1.5, 2.0, 3.0], tol=1e-4):
     """Draw graph with delays
     
     Parameters
@@ -63,13 +63,14 @@ def draw_delays(graph, linkflows=None, G=None, width=7, alpha=0.5, levels=[1.5, 
     else:
         linkflows = [np.inf]*graph.numlinks
     for f in levels: l.append(f)
-    
+    #max = 0.0
     for id,link in graph.links.items():
         if linkflows[graph.indlinks[id]] > tol:
             delay, ffdelay, startnode, endnode = link.delay, link.ffdelay, link.startnode, link.endnode
+            #if delay/ffdelay > max: max, s, e = delay/ffdelay, startnode, endnode 
             for i in range(4):
                 if ffdelay * l[i] <= delay < ffdelay * u[i]: edgelists[i].append((startnode,endnode))
-    
+    #print max, s, e
     for i in range(4):          
         nx.draw_networkx_edges(G, pos, edgelist=edgelists[i],
                                width=width, alpha=alpha, edge_color=colors[i],arrows=False)

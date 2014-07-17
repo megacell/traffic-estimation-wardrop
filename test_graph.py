@@ -67,9 +67,7 @@ def los_angeles(theta=None, delaytype='None', noisy=False):
 
 def main():
     #graph = small_example()
-    theta = matrix([0.0, 0.0, 0.0, 1.0])
-    theta /= np.sum(theta)
-    theta *= 0.15
+    theta = matrix([0.0, 0.0, 0.0, 0.15])
     graph = los_angeles(theta, 'Polynomial')[0]
     graph.visualize(True, True, True, True, True)
 
