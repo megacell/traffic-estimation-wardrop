@@ -187,7 +187,7 @@ class Graph:
         return linkflows
     
     
-    def update_linkflows_linkdlays(self, linkflows):
+    def update_linkflows_linkdelays(self, linkflows):
         """Update link flows and link delays in Graph object"""
         for id,link in self.links.items(): flow = linkflows[self.indlinks[id]]; link.flow, link.delay = flow, link.delayfunc.compute_delay(flow)
         

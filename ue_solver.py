@@ -73,7 +73,7 @@ def get_demands(graph, ind, node_id):
     return d[ind]
 
 
-def solver(graph, update=False, Aeq=None, beq=None, linkflows_obs=None, indlinks_obs=None, soft=None):
+def solver(graph, update=False, Aeq=None, beq=None, linkflows_obs=None, indlinks_obs=None, soft=None, full=False):
     """Find the UE link flow
     
     Parameters
@@ -85,6 +85,7 @@ def solver(graph, update=False, Aeq=None, beq=None, linkflows_obs=None, indlinks
     linkflows_obs: vector of observed link flows (must be in the same order)
     indlinks_obs: list of indices of observed link flows (must be in the same order)
     soft: if provided, constraints to reconcile x^obs are switched to soft constraints
+    full: if full=True, also return x (link flows per OD pair)
     """
     
     if Aeq is None or beq is None: Aeq, beq = constraints(graph)
@@ -131,13 +132,19 @@ def solver(graph, update=False, Aeq=None, beq=None, linkflows_obs=None, indlinks
         
         if linkflows_obs is not None and indlinks_obs is not None and soft is not None:
             print 'Include observed link flows as soft constraints'
-        linkflows = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
+    
+        x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
+        linkflows = matrix(0.0, (n,1))
+        for k in range(p): linkflows += x[k*n:(k+1)*n]
+        
     else:
+        
         print 'Not implemented yet for non-polynomial delay functions'
         return
     
     if update:
-        print 'Update link flows and link delays in Graph object.'; graph.update_linkflows_linkdlays(linkflows)
+        print 'Update link flows and link delays in Graph object.'; graph.update_linkflows_linkdelays(linkflows)
         print 'Update path delays in Graph object.'; graph.update_pathdelays()
-        
+    
+    if full: return linkflows, x    
     return linkflows

@@ -33,21 +33,21 @@ def test2():
 def los_angeles_ue():
     theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
     g1, g2, g3, g4 = los_angeles(theta, 'Polynomial')
-    l1 = ue.solver(g1, update=True)
-    l2 = ue.solver(g2, update=True)
-    l3 = ue.solver(g3, update=True)
-    l4 = ue.solver(g4, update=True)
-    print l1
-    print l2
-    print l3
-    print l4
-    #d.draw_delays(g1)
-    #d.draw_delays(g2)
-    #d.draw_delays(g3)
-    #d.draw_delays(g4)
-    #x1, x2, x3, x4 = np.zeros((g1.numlinks, 1)), np.zeros((g1.numlinks, 1)), np.zeros((g1.numlinks, 1)), np.zeros((g1.numlinks, 1))
-    #for i in range(g1.numlinks): x1[i], x2[i], x3[i], x4[i] = l1[i], l2[i], l3[i], l4[i]
-    #sio.savemat('linkflows.mat', mdict={'x1': x1, 'x2': x2, 'x3': x3, 'x4': x4})
+    n = g1.numlinks
+    l1, x1 = ue.solver(g1, update=True, full=True)
+    l2, x2 = ue.solver(g2, update=True, full=True)
+    l3, x3 = ue.solver(g3, update=True, full=True)
+    l4, x4 = ue.solver(g4, update=True, full=True)
+    d.draw_delays(g1, x1[:n])
+    d.draw_delays(g1, x1[n:])
+    d.draw_delays(g2, x2[:n])
+    d.draw_delays(g2, x2[n:])
+    d.draw_delays(g3, x3[:n])
+    d.draw_delays(g3, x3[n:])
+    d.draw_delays(g4, x4[:n])
+    d.draw_delays(g4, x4[n:])
+    #print l4[g1.indlinks[(12,5,1)]]
+    #print l4[g1.indlinks[(6,5,1)]]
 
 
 def main():
