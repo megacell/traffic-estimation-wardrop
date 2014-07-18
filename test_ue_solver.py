@@ -31,7 +31,7 @@ def test2():
     print beq.size
     
     
-def los_angeles_ue():
+def test3():
     theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
     g4 = los_angeles(theta, 'Polynomial')[3]
     n = g4.numlinks
@@ -49,7 +49,7 @@ def los_angeles_ue():
 def main():
     #test1()
     #test2()
-    los_angeles_ue()
+    test3()
     
 
 if __name__ == '__main__':

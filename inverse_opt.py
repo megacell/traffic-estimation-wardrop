@@ -12,8 +12,7 @@ from util import bisection
 
 def constraints(list_graphs, list_linkflows, degree):
     """Construct constraints for the Inverse Optimization
-    (only available for polynomial delays)
-    delay at link i is D_i(x) = ffdelays[i] + sum^{degree}_{k=1} theta[k-1]*(slope[i]*x)^k
+    delay at link i is D_i(x) = ffdelays[i]*(1 + sum^d_k=1 theta[k-1]*(slope[i]*x)^k)
     estimate the coefficients theta
     
     Parameters
@@ -25,53 +24,38 @@ def constraints(list_graphs, list_linkflows, degree):
         
     Return value
     ------------
-    c, A, b: such that 
-        min c'*x + r(x)
-        s.t. A*x <= b
+    c, A, b: such that min c'*x + r(x) s.t. A*x <= b
     """    
     graph = list_graphs[0]
     type, n = graph.links.values()[0].delayfunc.type, graph.numlinks 
-    
-    if type != 'Polynomial':
-        print 'Inverse Optimization only available for polynomial delay functions'
-        return
-    
+    if type != 'Polynomial': print 'Delay functions must be polynomial'; return
     N = len(list_graphs)
     Aeq, beq = ue.constraints(graph)
     p = Aeq.size[1]/n
     m = Aeq.size[0]/p
-    
     ffdelays, slopes = matrix(0.0, (n,1)), matrix(0.0, (n,1))
     for id,link in graph.links.items():
         i = graph.indlinks[id]
         ffdelays[i], slopes[i] = link.delayfunc.ffdelay, link.delayfunc.slope
-    
-    if type == 'Polynomial':
         
-        b = matrix([ffdelays]*p*N)
-        tmp1, tmp2 = matrix(0.0, (degree, 1)), matrix(0.0, (p*N*n, degree))
-        tmp3, tmp4 = matrix(0.0, (p*n*N, m*N*p)), matrix(0.0, (p*m*N, 1))
-        ind_start1, ind_end1 = [j*m*p for j in range(N)], [(j+1)*m*p for j in range(N)]
-        ind_start2, ind_end2 = [j*n*p for j in range(N)], [(j+1)*n*p for j in range(N)]
-        
-        for j, graph, linkflows in zip(range(N), list_graphs, list_linkflows): 
-            
-            tmp5 = mul(slopes, linkflows)
-            for deg in range(degree):
-                tmp6 = mul(tmp5**(deg+1), ffdelays)
-                tmp1[deg] += (linkflows.T) * tmp6
-                tmp2[ind_start2[j]:ind_end2[j], deg] = -matrix([tmp6]*p)
-                
-            if j>0: Aeq, beq = ue.constraints(graph)
-            tmp3[ind_start2[j]:ind_end2[j], ind_start1[j]:ind_end1[j]] = Aeq.T
-            tmp4[ind_start1[j]:ind_end1[j], 0] = -beq
-                        
-        #scale = (sum(abs(tmp4)) * float(len(tmp1))) / (sum(abs(tmp1)) * float(len(tmp4)))
-        scale = 1.0
-        c, A = matrix([scale*tmp1, tmp4]), matrix([[scale*tmp2], [tmp3]])
+    b = matrix([ffdelays]*p*N)
+    tmp1, tmp2 = matrix(0.0, (degree, 1)), matrix(0.0, (p*N*n, degree))
+    tmp3, tmp4 = matrix(0.0, (p*n*N, m*N*p)), matrix(0.0, (p*m*N, 1))
+    ind_start1, ind_end1 = [j*m*p for j in range(N)], [(j+1)*m*p for j in range(N)]
+    ind_start2, ind_end2 = [j*n*p for j in range(N)], [(j+1)*n*p for j in range(N)]
     
-        #for deg in range(degree): A[deg, deg] = -1.0
-        return c, A, scale*b
+    for j, graph, linkflows in zip(range(N), list_graphs, list_linkflows): 
+        tmp5 = mul(slopes, linkflows)
+        for deg in range(degree):
+            tmp6 = mul(tmp5**(deg+1), ffdelays)
+            tmp1[deg] += (linkflows.T) * tmp6
+            tmp2[ind_start2[j]:ind_end2[j], deg] = -matrix([tmp6]*p)
+        if j>0: Aeq, beq = ue.constraints(graph)
+        tmp3[ind_start2[j]:ind_end2[j], ind_start1[j]:ind_end1[j]] = Aeq.T
+        tmp4[ind_start1[j]:ind_end1[j], 0] = -beq
+                    
+    c, A = matrix([tmp1, tmp4]), matrix([[tmp2], [tmp3]])
+    return c, A, b
 
 
 def solver(list_graphs, list_linkflows, degree, smooth, data=None, fvalue=False, full=False):
@@ -90,23 +74,16 @@ def solver(list_graphs, list_linkflows, degree, smooth, data=None, fvalue=False,
     full: if True, returns the full x
     """
     type = list_graphs[0].links.values()[0].delayfunc.type
-    N = len(list_graphs)
-    
-    if type != 'Polynomial':
-        print 'Inverse Optimization only available for polynomial delay functions'
-        return
-    
-    if type == 'Polynomial':
-        if data is None: data = constraints(list_graphs, list_linkflows, degree)
-        c, A, b = data
-        P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
-        sol = solvers.qp(P, c, G=A, h=b)
-        theta = sol['x'][range(degree)]
-        x = theta
-        if full: x = sol['x']
-        if fvalue:
-            return x, sol['primal objective'] + (b.T*matrix(list_linkflows))[0] - 0.5*(theta.T*P[:degree,:degree]*theta)[0]
-        
+    if type != 'Polynomial': print 'Delay functions must be polynomial'; return
+    N = len(list_graphs)    
+    if data is None: data = constraints(list_graphs, list_linkflows, degree)
+    c, A, b = data
+    P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
+    sol = solvers.qp(P, c, G=A, h=b)
+    theta = sol['x'][range(degree)]
+    x = theta
+    if full: x = sol['x']
+    if fvalue: return x, sol['primal objective'] + (b.T*matrix(list_linkflows))[0] - 0.5*(theta.T*P[:degree,:degree]*theta)[0]
     return x
 
 
@@ -284,6 +261,8 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, so
     beqs = []
     for j in range(N):
         tmp1, tmp2 = ue.constraints(list_graphs[j])
+        print tmp1.size
+        print tmp2.size
         if j<1: Aeq = tmp1 # same node-link incidence matrix
         beqs.append(tmp2) # different demands
     
@@ -305,7 +284,9 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, so
             for id, link in graph.links.items():
                 i = graph.indlinks[id]
                 link.delayfunc.coef = [ffdelays[i]*a*b for a,b in zip(theta, np.power(slopes[i], range(1,degree+1)))]
-            list_linkflows = [x_solver(graph, ys[j], Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs, soft) for j in range(N)]
+            #list_linkflows = [ue.solver(graph, ys[j], Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs, soft) for j in range(N)]
+            list_linkflows = [ue.solver(graph, False, Aeq, beqs[j], list_linkflows_obs[j], indlinks_obs, soft) for j in range(N)]
+
          
             if fvalue:
                 for i in range(N):

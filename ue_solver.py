@@ -73,7 +73,7 @@ def get_demands(graph, ind, node_id):
     return d[ind]
 
 
-def solver(graph, update=False, Aeq=None, beq=None, linkflows_obs=None, indlinks_obs=None, soft=None, full=False):
+def solver(graph, update=False, Aeq=None, beq=None, full=False):
     """Find the UE link flow
     
     Parameters
@@ -82,65 +82,45 @@ def solver(graph, update=False, Aeq=None, beq=None, linkflows_obs=None, indlinks
     update: if update==True: update link flows and link,path delays in graph
     Aeq: matrix of incidence nodes-links
     beq: matrix of OD flows at each node
-    linkflows_obs: vector of observed link flows (must be in the same order)
-    indlinks_obs: list of indices of observed link flows (must be in the same order)
-    soft: if provided, constraints to reconcile x^obs are switched to soft constraints
     full: if full=True, also return x (link flows per OD pair)
     """
-    
     if Aeq is None or beq is None: Aeq, beq = constraints(graph)
     n = graph.numlinks
     p = Aeq.size[1]/n
     A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
-    type = graph.links.values()[0].delayfunc.type    
-        
-    if type == 'Polynomial':
-        degree = graph.links.values()[0].delayfunc.degree
-        coefs, coefs_i, coefs_d = matrix(0.0, (n, degree)), matrix(0.0, (n, degree)), matrix(0.0, (n, degree))
-        ffdelays = matrix(0.0, (n,1))
+    type = graph.links.values()[0].delayfunc.type
+    if type != 'Polynomial': print 'Delay functions must be polynomial'; return
+    
+    degree = graph.links.values()[0].delayfunc.degree
+    coefs, coefs_i, coefs_d = matrix(0.0, (n, degree)), matrix(0.0, (n, degree)), matrix(0.0, (n, degree))
+    ffdelays = matrix(0.0, (n,1))
+    for id,link in graph.links.items():
+        i = graph.indlinks[id]
+        ffdelays[i] = link.delayfunc.ffdelay
+        for j in range(degree):
+            coef = link.delayfunc.coef[j]
+            coefs[i,j], coefs_i[i,j], coefs_d[i,j] = coef, coef/(j+2), coef*(j+1)
+                    
+    def F(x=None, z=None):
+        if x is None: return 0, matrix(1.0/p, (p*n,1))
+        y = matrix(0.0, (n,1))
+        for k in range(p): y += x[k*n:(k+1)*n]
+        f, Df = 0.0, matrix(0.0, (1,n))
+        tmp2 = matrix(0.0, (n,1))
         for id,link in graph.links.items():
             i = graph.indlinks[id]
-            ffdelays[i] = link.delayfunc.ffdelay
-            for j in range(degree):
-                coef = link.delayfunc.coef[j]
-                coefs[i,j], coefs_i[i,j], coefs_d[i,j] = coef, coef/(j+2), coef*(j+1)
-                        
-        def F(x=None, z=None):
-            
-            if x is None: return 0, matrix(1.0/p, (p*n,1))
-            y = matrix(0.0, (n,1))
-            for k in range(p): y += x[k*n:(k+1)*n]
-            f, Df = 0.0, matrix(0.0, (1,n))
-            tmp2 = matrix(0.0, (n,1))
-            for id,link in graph.links.items():
-                i = graph.indlinks[id]
-                tmp1 = matrix(np.power(y[i],range(degree+2)))
-                f += ffdelays[i]*y[i] + coefs_i[i,:] * tmp1[2:degree+2]
-                Df[i] = ffdelays[i] + coefs[i,:] * tmp1[1:degree+1]
-                tmp2[i] = coefs_d[i,:] * tmp1[:degree]
-            if linkflows_obs is not None and indlinks_obs is not None and soft is not None:
-                obs = [graph.indlinks[id] for id in indlinks_obs]
-                num_obs = len(obs)
-                f += 0.5*soft*np.power(np.linalg.norm(y[obs]-linkflows_obs),2)
-                I, J = [0]*num_obs, obs
-                Df += soft*(spmatrix(y[obs],I,J, (1,n)) - spmatrix(linkflows_obs,I,J, (1,n)))
-                tmp2 += spmatrix([soft]*num_obs,J,I, (n,1))
-            Df = matrix([[Df]]*p)
-            if z is None: return f, Df
-            H = spdiag(z[0] * tmp2)
-            return f, Df, matrix([[H]*p]*p)
-        
-        if linkflows_obs is not None and indlinks_obs is not None and soft is not None:
-            print 'Include observed link flows as soft constraints'
+            tmp1 = matrix(np.power(y[i],range(degree+2)))
+            f += ffdelays[i]*y[i] + coefs_i[i,:] * tmp1[2:degree+2]
+            Df[i] = ffdelays[i] + coefs[i,:] * tmp1[1:degree+1]
+            tmp2[i] = coefs_d[i,:] * tmp1[:degree]
+        Df = matrix([[Df]]*p)
+        if z is None: return f, Df
+        H = spdiag(z[0] * tmp2)
+        return f, Df, matrix([[H]*p]*p)
     
-        x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
-        linkflows = matrix(0.0, (n,1))
-        for k in range(p): linkflows += x[k*n:(k+1)*n]
-        
-    else:
-        
-        print 'Not implemented yet for non-polynomial delay functions'
-        return
+    x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
+    linkflows = matrix(0.0, (n,1))
+    for k in range(p): linkflows += x[k*n:(k+1)*n]
     
     if update:
         print 'Update link flows and link delays in Graph object.'; graph.update_linkflows_linkdelays(linkflows)

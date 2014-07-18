@@ -172,9 +172,9 @@ def main():
     #indlinks_obs = []
     #indlinks_obs = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
     
-    #test1()
+    test1()
     #test2()
-    test3(indlinks_obs)
+    #test3(indlinks_obs)
     #test4(indlinks_obs)
     #test5(True)
     
