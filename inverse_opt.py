@@ -3,7 +3,6 @@ Created on Jun 6, 2014
 
 @author: jeromethai
 '''
-
 import ue_solver as ue
 import numpy as np
 from cvxopt import matrix, spmatrix, solvers, spdiag, mul
@@ -33,32 +32,25 @@ def constraints(list_graphs, list_linkflows, degree):
     Aeq, beq = ue.constraints(graph)
     p = Aeq.size[1]/n
     m = Aeq.size[0]/p
-    ffdelays, slopes = matrix(0.0, (n,1)), matrix(0.0, (n,1))
-    for id,link in graph.links.items():
-        i = graph.indlinks[id]
-        ffdelays[i], slopes[i] = link.delayfunc.ffdelay, link.delayfunc.slope
-        
+    ffdelays, slopes = graph.get_ffdelays(), graph.get_slopes()     
     b = matrix([ffdelays]*p*N)
     tmp1, tmp2 = matrix(0.0, (degree, 1)), matrix(0.0, (p*N*n, degree))
     tmp3, tmp4 = matrix(0.0, (p*n*N, m*N*p)), matrix(0.0, (p*m*N, 1))
-    ind_start1, ind_end1 = [j*m*p for j in range(N)], [(j+1)*m*p for j in range(N)]
-    ind_start2, ind_end2 = [j*n*p for j in range(N)], [(j+1)*n*p for j in range(N)]
-    
     for j, graph, linkflows in zip(range(N), list_graphs, list_linkflows): 
         tmp5 = mul(slopes, linkflows)
         for deg in range(degree):
             tmp6 = mul(tmp5**(deg+1), ffdelays)
             tmp1[deg] += (linkflows.T) * tmp6
-            tmp2[ind_start2[j]:ind_end2[j], deg] = -matrix([tmp6]*p)
+            tmp2[j*n*p:(j+1)*n*p, deg] = -matrix([tmp6]*p)
         if j>0: Aeq, beq = ue.constraints(graph)
-        tmp3[ind_start2[j]:ind_end2[j], ind_start1[j]:ind_end1[j]] = Aeq.T
-        tmp4[ind_start1[j]:ind_end1[j], 0] = -beq
+        tmp3[j*n*p:(j+1)*n*p, j*m*p:(j+1)*m*p] = Aeq.T
+        tmp4[j*m*p:(j+1)*m*p, 0] = -beq
                     
     c, A = matrix([tmp1, tmp4]), matrix([[tmp2], [tmp3]])
     return c, A, b
 
 
-def solver(list_graphs, list_linkflows, degree, smooth, data=None, fvalue=False, full=False):
+def solver(list_graphs, list_linkflows, degree, smooth, data=None, full=False):
     """Solves the inverse optimization problem
     (only available for polynomial delays)
     
@@ -70,21 +62,16 @@ def solver(list_graphs, list_linkflows, degree, smooth, data=None, fvalue=False,
     degree: degree of the polynomial function to estimate
     smooth: regularization parameters on theta
     data: constraints and objective for the optimization problem
-    fvalue: if True, returns value of the objective without regularization
     full: if True, returns the full x
     """
     type = list_graphs[0].links.values()[0].delayfunc.type
     if type != 'Polynomial': print 'Delay functions must be polynomial'; return
-    N = len(list_graphs)    
     if data is None: data = constraints(list_graphs, list_linkflows, degree)
     c, A, b = data
     P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
     sol = solvers.qp(P, c, G=A, h=b)
-    theta = sol['x'][range(degree)]
-    x = theta
-    if full: x = sol['x']
-    if fvalue: return x, sol['primal objective'] + (b.T*matrix(list_linkflows))[0] - 0.5*(theta.T*P[:degree,:degree]*theta)[0]
-    return x
+    if full: return sol['x']
+    return sol['x'][range(degree)]
 
 
 def x_solver(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft):
@@ -237,6 +224,9 @@ def x_solver_2(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft):
     return linkflows
 
 
+
+
+
 def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, soft=1000.0, max_iter=10, fvalue=False):
     """Solves the inverse optimization problem with missing values
     (only available for polynomial delays)
@@ -261,8 +251,6 @@ def solver_mis(list_graphs, list_linkflows_obs, indlinks_obs, degree, smooth, so
     beqs = []
     for j in range(N):
         tmp1, tmp2 = ue.constraints(list_graphs[j])
-        print tmp1.size
-        print tmp2.size
         if j<1: Aeq = tmp1 # same node-link incidence matrix
         beqs.append(tmp2) # different demands
     

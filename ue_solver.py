@@ -5,9 +5,7 @@ Created on Apr 20, 2014
 '''
 
 import numpy as np
-import scipy.sparse as sps
-import scipy.io as sio
-from cvxopt import matrix, spmatrix, solvers, spdiag, sparse
+from cvxopt import matrix, spmatrix, solvers, spdiag, mul
 from rank_nullspace import rank
 from util import find_basis
 
@@ -73,6 +71,24 @@ def get_demands(graph, ind, node_id):
     return d[ind]
 
 
+def objective(x, z, coefs, p):
+    """Objective function of UE program
+    """
+    n, d = coefs.size
+    if x is None: return 0, matrix(1.0/p, (p*n,1))
+    y = matrix(0.0, (n,1))
+    for k in range(p): y += x[k*n:(k+1)*n]
+    f, Df, H = 0.0, matrix(0.0, (1,n)), matrix(0.0, (n,1))
+    for i in range(n):
+        tmp = matrix(np.power(y[i],range(d+1)))
+        f += coefs[i,:] * tmp[1:]
+        Df[i] = coefs[i,:] * mul(tmp[:-1], matrix(range(1,d+1)))
+        H[i] = coefs[i,1:] * mul(tmp[:-2], matrix(range(2,d+1)), matrix(range(1,d)))
+    Df = matrix([[Df]]*p)
+    if z is None: return f, Df
+    return f, Df, matrix([[spdiag(z[0] * H)]*p]*p)
+
+
 def solver(graph, update=False, Aeq=None, beq=None, full=False):
     """Find the UE link flow
     
@@ -90,41 +106,16 @@ def solver(graph, update=False, Aeq=None, beq=None, full=False):
     A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
     type = graph.links.values()[0].delayfunc.type
     if type != 'Polynomial': print 'Delay functions must be polynomial'; return
-    
-    degree = graph.links.values()[0].delayfunc.degree
-    coefs, coefs_i, coefs_d = matrix(0.0, (n, degree)), matrix(0.0, (n, degree)), matrix(0.0, (n, degree))
-    ffdelays = matrix(0.0, (n,1))
-    for id,link in graph.links.items():
-        i = graph.indlinks[id]
-        ffdelays[i] = link.delayfunc.ffdelay
-        for j in range(degree):
-            coef = link.delayfunc.coef[j]
-            coefs[i,j], coefs_i[i,j], coefs_d[i,j] = coef, coef/(j+2), coef*(j+1)
-                    
-    def F(x=None, z=None):
-        if x is None: return 0, matrix(1.0/p, (p*n,1))
-        y = matrix(0.0, (n,1))
-        for k in range(p): y += x[k*n:(k+1)*n]
-        f, Df = 0.0, matrix(0.0, (1,n))
-        tmp2 = matrix(0.0, (n,1))
-        for id,link in graph.links.items():
-            i = graph.indlinks[id]
-            tmp1 = matrix(np.power(y[i],range(degree+2)))
-            f += ffdelays[i]*y[i] + coefs_i[i,:] * tmp1[2:degree+2]
-            Df[i] = ffdelays[i] + coefs[i,:] * tmp1[1:degree+1]
-            tmp2[i] = coefs_d[i,:] * tmp1[:degree]
-        Df = matrix([[Df]]*p)
-        if z is None: return f, Df
-        H = spdiag(z[0] * tmp2)
-        return f, Df, matrix([[H]*p]*p)
-    
+    ffdelays, coefs = graph.get_ffdelays(), graph.get_coefs()
+    coefs_i = coefs * spdiag([1.0/(j+2) for j in range(coefs.size[1])])
+    def F(x=None, z=None): return objective(x, z, matrix([[ffdelays], [coefs_i]]), p)
     x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
     linkflows = matrix(0.0, (n,1))
     for k in range(p): linkflows += x[k*n:(k+1)*n]
     
     if update:
-        print 'Update link flows and link delays in Graph object.'; graph.update_linkflows_linkdelays(linkflows)
-        print 'Update path delays in Graph object.'; graph.update_pathdelays()
+        print 'Update link flows, delays in Graph.'; graph.update_linkflows_linkdelays(linkflows)
+        print 'Update path delays in Graph.'; graph.update_pathdelays()
     
     if full: return linkflows, x    
     return linkflows

@@ -181,10 +181,36 @@ class Graph:
         
         
     def get_linkflows(self):
-        """Get link flows in a matrix of dimension numlinks X 1"""
+        """Get link flows in a column cvxopt matrix"""
         linkflows = matrix(0.0, (self.numlinks, 1))
         for id,link in self.links.items(): linkflows[self.indlinks[id]] = link.flow
         return linkflows
+    
+    
+    def get_ffdelays(self):
+        """Get ffdelays in a column cvxopt matrix"""
+        ffdelays = matrix(0.0, (self.numlinks, 1))
+        for id,link in self.links.items(): ffdelays[self.indlinks[id]] = link.delayfunc.ffdelay
+        return ffdelays
+    
+    
+    def get_slopes(self):
+        """Get slopes in a column cvxopt matrix"""
+        slopes = matrix(0.0, (self.numlinks, 1))
+        for id,link in self.links.items(): slopes[self.indlinks[id]] = link.delayfunc.slope
+        return slopes
+    
+    
+    def get_coefs(self):
+        """Get coefficients of the polynomial delay functions in cvx"""
+        type = self.links.values()[0].delayfunc.type
+        if type != 'Polynomial': print 'Delay functions must be polynomial'; return
+        n, degree = self.numlinks, self.links.values()[0].delayfunc.degree
+        coefs = matrix(0.0, (n, degree))
+        for id,link in self.links.items():
+            i = self.indlinks[id]
+            for j in range(degree): coefs[i,j] = link.delayfunc.coef[j]
+        return coefs
     
     
     def update_linkflows_linkdelays(self, linkflows):
