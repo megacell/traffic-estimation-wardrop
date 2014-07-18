@@ -50,7 +50,7 @@ def constraints(list_graphs, list_linkflows, degree):
     return c, A, b
 
 
-def solver(list_graphs, list_linkflows, degree, smooth, data=None, full=False):
+def solver(list_graphs, list_linkflows, degree, smooth, full=False):
     """Solves the inverse optimization problem
     (only available for polynomial delays)
     
@@ -61,20 +61,41 @@ def solver(list_graphs, list_linkflows, degree, smooth, data=None, full=False):
     list_linkflows: list of link flow vectors in equilibrium
     degree: degree of the polynomial function to estimate
     smooth: regularization parameters on theta
-    data: constraints and objective for the optimization problem
     full: if True, returns the full x
     """
     type = list_graphs[0].links.values()[0].delayfunc.type
     if type != 'Polynomial': print 'Delay functions must be polynomial'; return
-    if data is None: data = constraints(list_graphs, list_linkflows, degree)
-    c, A, b = data
+    c, A, b = constraints(list_graphs, list_linkflows, degree)
     P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
     sol = solvers.qp(P, c, G=A, h=b)
     if full: return sol['x']
     return sol['x'][range(degree)]
 
 
-def x_solver(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft):
+def x_solver(graph, Aeq, beq, soft, obs, l_obs):
+    """
+    optimization w.r.t. x_block
+    
+    Parameters
+    ---------
+    graph: graph object
+    Aeq, beq: equality constraints of the ue program
+    soft: parameter
+    obs: indices of the observed links
+    l_obs: observations
+    """
+    n = graph.numlinks
+    p = Aeq.size[1]/n
+    A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
+    ffdelays, coefs = graph.get_ffdelays(), graph.get_coefs()
+    def F(x=None, z=None): return ue.objective(x, z, matrix([[ffdelays], [coefs]]), p)
+    x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
+    linkflows = matrix(0.0, (n,1))
+    for k in range(p): linkflows += x[k*n:(k+1)*n]
+    return linkflows
+
+
+def x_solver_2(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft):
     """Solves the single-level optimization problem in 'x'
     
     Parameters
@@ -142,7 +163,7 @@ def x_solver(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft):
     return linkflows
 
 
-def x_solver_2(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft):
+def x_solver_3(graph, y, Aeq, beq, linkflows_obs, indlinks_obs, soft):
     """Solves the single-level optimization problem in 'x'
     
     Parameters
