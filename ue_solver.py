@@ -96,7 +96,6 @@ def objective(x, z, coefs, p, soft=0.0, obs=None, l_obs=None):
         f += coefs[i,:] * tmp[1:]
         Df[i] = coefs[i,:] * mul(tmp[:-1], matrix(range(1,d+1)))
         H[i] = coefs[i,1:] * mul(tmp[:-2], matrix(range(2,d+1)), matrix(range(1,d)))
-    Df = matrix([[Df]]*p)
     
     if soft != 0.0:
         num_obs, e = len(obs), l[obs]-l_obs
@@ -104,6 +103,7 @@ def objective(x, z, coefs, p, soft=0.0, obs=None, l_obs=None):
         Df += soft*spmatrix(e, [0]*num_obs, obs, (1,n))
         H += spmatrix([soft]*num_obs, obs, [0]*num_obs, (n,1))
     
+    Df = matrix([[Df]]*p)
     if z is None: return f, Df
     return f, Df, matrix([[spdiag(z[0] * H)]*p]*p)
 
