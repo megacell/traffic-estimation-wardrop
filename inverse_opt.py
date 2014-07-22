@@ -123,7 +123,7 @@ def x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, lower):
     p = Aeq.size[1]/n    
     A1, A2 = spmatrix(-1.0, range(p*n), range(p*n)), matrix([[spmatrix(-1.0, range(n), range(n))]]*p)
     A, b = matrix([A1, A2]), matrix([matrix(0.0, (p*n,1)), -lower])
-    def F(x=None, z=None): return ue.objective(x, z, matrix([[ffdelays], [coefs]]), p, 1000.0, obs, l_obs)
+    def F(x=None, z=None): return ue.objective(x, z, matrix([[ffdelays], [coefs]]), p, soft, obs, l_obs)
     x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
     linkflows = matrix(0.0, (n,1))
     for k in range(p): linkflows += x[k*n:(k+1)*n]
@@ -147,7 +147,7 @@ def compute_coefs(ffdelays, slopes, theta):
     return coefs
 
 
-def solver_mis(graphs, flow_obs_vectors, indlinks_obs, degree, smooth, soft=100.0, max_iter=3):
+def solver_mis(graphs, flow_obs_vectors, indlinks_obs, degree, smooth, soft=1000.0, max_iter=3):
     """Solves the inverse optimization problem with missing values
     
     Parameters
