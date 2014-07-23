@@ -35,15 +35,16 @@ def test3():
     theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
     g4 = los_angeles(theta, 'Polynomial')[3]
     n = g4.numlinks
-    g4.add_path([(29,21,1), (21,14,1), (14,34,1), (34,12,1), (12,5,1)])
-    g4.add_path([(29,21,1), (21,14,1), (14,13,1), (13,12,1), (12,5,1)])
-    g4.add_path([(30,28,1), (28,22,1), (22,15,1), (15,13,1), (13,12,1), (12,5,1)])
-    g4.add_path([(30,28,1), (28,23,1), (23,16,1), (16,15,1), (15,13,1), (13,12,1), (12,5,1)])
+    g4.add_path_from_nodes([29,21,14,34,12,5])
+    g4.add_path_from_nodes([29,21,14,13,12,5])
+    g4.add_path_from_nodes([30,28,22,15,13,12,5])
+    g4.add_path_from_nodes([30,28,23,16,15,13,12,5])
     l4, x4 = ue.solver(g4, update=True, full=True)
     #d.draw_delays(g4, x4[:n])
     #d.draw_delays(g4, x4[n:2*n])
     #d.draw_delays(g4, x4[2*n:])
     print l4
+    g4.visualize(paths=True)
     
 
 def main():

@@ -7,6 +7,8 @@ import scipy.linalg as sla
 import scipy.io as sio
 import numpy as np
 from cvxopt import matrix
+from numpy.random import normal
+
 
 def place_zeros(M, atol=1e-13):
     """Replace entries in M less than atol by 0.0"""
@@ -48,6 +50,17 @@ def save_mat(Ms, names, filename):
     """
     dict = {names[k] : np.array(matrix(Ms[k])) for k in range(len(Ms))}
     sio.savemat(filename + '.mat', mdict=dict)
+
+
+def add_noise(A, a, tol=0.1):
+    """add gaussian noise to entries of A that are > tol"""
+    m,n = A.size
+    M = matrix(0.0, (m,n))
+    for i in range(m):
+        for j in range(n):
+            M[i,j] = A[i,j]
+            if M[i,j] > tol: M[i,j] = normal(A[i,j], a*A[i,j])
+    return M
 
 
 if __name__ == '__main__':

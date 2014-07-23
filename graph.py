@@ -95,7 +95,7 @@ class Graph:
    
    
     def add_path(self, link_ids):
-        """Add a path"""
+        """Add a path with link_ids a list of link ids"""
         origin = link_ids[0][0]
         destination = link_ids[len(link_ids)-1][1]
         if not (origin, destination) in self.ODs: print 'ERROR: OD ({},{}) doesn\'t exist.'.format(origin, destination); return
@@ -121,6 +121,12 @@ class Graph:
             self.links[(link.startnode, link.endnode, link.route)].numpaths += 1
             self.links[(link.startnode, link.endnode, link.route)].paths[(origin, destination, route)] = path   
         
+    
+    def add_path_from_nodes(self, node_ids):
+        """Add a path from a list of nodes"""
+        link_ids = [(node_ids[k], node_ids[k+1], 1) for k in range(len(node_ids)-1)]
+        self.add_path(link_ids)
+    
         
     def visualize(self, general=False, nodes=False, links=False, ODs=False, paths=False, only_pos_flows=False, tol=1e-3):
         """Visualize graph"""
