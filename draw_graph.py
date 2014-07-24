@@ -7,15 +7,7 @@ Created on Apr 27, 2014
 import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
-
-
-def create_networkx_graph(graph):
-    G=nx.DiGraph(indedges={})
-    G.add_nodes_from(range(1,graph.numnodes))
-    G.add_edges_from([(key[0],key[1]) for key in graph.links.keys()])
-    i = 0
-    for edge in G.edges(): G.graph['indedges'][edge] = i; i+=1
-    return G
+from util import create_networkx_graph
 
 
 def draw(graph, link_ids=None, G=None, width=7, alpha=0.5, edge_color='r'):

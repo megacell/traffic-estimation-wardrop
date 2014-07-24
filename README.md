@@ -10,6 +10,9 @@ Python dependencies (once only):
     pip install cvxopt
     pip install networkx
 
+Installing GDAL on a Mac: http://www.gis.usu.edu/~chrisg/python/2009/docs/gdal_mac.pdf
+Mac OS X frameworks for GDAL: http://www.kyngchaos.com/software:frameworks
+
 Running
 -----
 python test_ue_solver.py

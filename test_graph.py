@@ -4,7 +4,6 @@ Created on Apr 18, 2014
 @author: jeromethai
 '''
 
-import Graph
 import Graph as g
 import numpy as np
 import scipy.io as sio

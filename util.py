@@ -8,6 +8,9 @@ import scipy.io as sio
 import numpy as np
 from cvxopt import matrix
 from numpy.random import normal
+import networkx as nx
+import Graph as g
+import gdal
 
 
 def place_zeros(M, tol=1e-13):
@@ -61,6 +64,27 @@ def add_noise(A, a, tol=0.1):
             M[i,j] = A[i,j]
             if M[i,j] > tol: M[i,j] = normal(A[i,j], a*A[i,j])
     return M
+
+
+def create_networkx_graph(graph):
+    """Create networkx.DiGraph graph from graph object"""
+    G=nx.DiGraph(indedges={})
+    G.add_nodes_from(range(1,graph.numnodes))
+    G.add_edges_from([(key[0],key[1]) for key in graph.links.keys()])
+    i = 0
+    for edge in G.edges(): G.graph['indedges'][edge] = i; i+=1
+    return G
+
+
+def read_shapefile(path, delaytype='None', description=None):
+    """Read networkx.DiGraph and return graph.object uses networks.read_shp"""
+    G = nx.read_shp(path)
+    nodes, edges = G.nodes(), G.edges()
+    dict = {key:i+1 for i,key in enumerate(nodes)}
+    if delaytype == 'Polynomial':
+        links = [(dict[e[0]], dict[e[1]], 1, 1.0, (1.0, 1.0, [0.0, 0.0, 0.0, 0.15])) for e in edges]
+    graph = g.create_graph_from_list(nodes, links, delaytype, description=description)
+    return graph, G
 
 
 if __name__ == '__main__':

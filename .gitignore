@@ -1,3 +1,5 @@
+*.shp
+*.shx
 *.pyc
 .project
 .pydevproject
