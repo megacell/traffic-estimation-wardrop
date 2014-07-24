@@ -13,8 +13,6 @@ from cvxopt import matrix
 from util import add_noise
 
 
-od_flows1 = [3.0, 3.0, 1.0, 1.0];
-od_flows2 = [1.0, 1.0, 1.0, 4.0];
 theta_true = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
 degree = len(theta_true)
 graph = los_angeles(theta_true, 'Polynomial')[0]

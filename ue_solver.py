@@ -7,7 +7,7 @@ Created on Apr 20, 2014
 import numpy as np
 from cvxopt import matrix, spmatrix, solvers, spdiag, mul
 from rank_nullspace import rank
-from util import find_basis
+from util import find_basis, place_zeros
 
 
 def constraints(graph):
@@ -21,7 +21,7 @@ def constraints(graph):
     ------------
     Aeq, beq: equality constraints Aeq*x = beq
     """
-    C, ind = get_nodelink_incidence(graph)
+    C, ind = nodelink_incidence(graph)
     ds = [get_demands(graph, ind, id) for id,node in graph.nodes.items() if len(node.endODs) > 0]
     p = len(ds)
     m,n = C.size
@@ -30,7 +30,7 @@ def constraints(graph):
     return Aeq, beq
 
 
-def get_nodelink_incidence(graph):
+def nodelink_incidence(graph):
     """
     get node-link incidence matrix
     
@@ -119,12 +119,12 @@ def solver(graph, update=False, Aeq=None, beq=None, full=False):
     beq: matrix of OD flows at each node
     full: if full=True, also return x (link flows per OD pair)
     """
+    type = graph.links.values()[0].delayfunc.type
+    if type != 'Polynomial': print 'Delay functions must be polynomial'; return
     if Aeq is None or beq is None: Aeq, beq = constraints(graph)
     n = graph.numlinks
     p = Aeq.size[1]/n
     A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
-    type = graph.links.values()[0].delayfunc.type
-    if type != 'Polynomial': print 'Delay functions must be polynomial'; return
     ffdelays, coefs = graph.get_ffdelays(), graph.get_coefs()
     coefs_i = coefs * spdiag([1.0/(j+2) for j in range(coefs.size[1])])
     def F(x=None, z=None): return objective(x, z, matrix([[ffdelays], [coefs_i]]), p)

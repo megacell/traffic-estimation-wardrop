@@ -40,9 +40,9 @@ def test3():
     g4.add_path_from_nodes([30,28,22,15,13,12,5])
     g4.add_path_from_nodes([30,28,23,16,15,13,12,5])
     l4, x4 = ue.solver(g4, update=True, full=True)
-    #d.draw_delays(g4, x4[:n])
-    #d.draw_delays(g4, x4[n:2*n])
-    #d.draw_delays(g4, x4[2*n:])
+    d.draw_delays(g4, x4[:n])
+    d.draw_delays(g4, x4[n:2*n])
+    d.draw_delays(g4, x4[2*n:])
     print l4
     g4.visualize(paths=True)
     

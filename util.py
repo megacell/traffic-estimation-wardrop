@@ -10,11 +10,11 @@ from cvxopt import matrix
 from numpy.random import normal
 
 
-def place_zeros(M, atol=1e-13):
-    """Replace entries in M less than atol by 0.0"""
-    for i in range(M.shape[0]):
-        for j in range(M.shape[1]):
-            if abs(M[i][j]) < atol: M[i][j] = 0.0
+def place_zeros(M, tol=1e-13):
+    """Replace entries in M less than tol by 0.0"""
+    for i in range(M.size[0]):
+        for j in range(M.size[1]):
+            if M[i,j] < tol: M[i,j] = 0.0
     return M
 
 
