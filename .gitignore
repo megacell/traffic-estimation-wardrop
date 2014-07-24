@@ -5,3 +5,6 @@
 .pydevproject
 *.mat
 *.m~
+*.dbf
+*.prj
+*.csv

@@ -76,15 +76,37 @@ def create_networkx_graph(graph):
     return G
 
 
-def read_shapefile(path, delaytype='None', description=None):
-    """Read networkx.DiGraph and return graph.object uses networks.read_shp"""
+def read_shapefile(path, delaytype='None', data=None, description=None):
+    """Read networkx.DiGraph and return graph.object uses networkx.read_shp
+    
+    Parameters
+    ----------
+    path: File, directory, or filename to read by networkx.read_shp
+    delaytype: 'None' or 'Polynomial'
+    data: if polynomial then data=Theta
+    description: description of the graph object
+    
+    Return value
+    ------------
+    graph: graph object
+    G: networkx.DiGraph object
+    IDs: {MATSim link IDs : link ID}
+    """
     G = nx.read_shp(path)
-    nodes, edges = G.nodes(), G.edges()
-    dict = {key:i+1 for i,key in enumerate(nodes)}
+    nodes, edges = G.nodes(), G.edges(data=True)
+    d = {key:i+1 for i,key in enumerate(nodes)}
+    IDs = {int(e[2]['ID']): (d[e[0]], d[e[1]],1) for e in edges}
+    if delaytype == 'None':
+        links = [(d[e[0]], d[e[1]], 1, (e[2]['length']/e[2]['freespeed'])/60.0, None) for e in edges]
     if delaytype == 'Polynomial':
-        links = [(dict[e[0]], dict[e[1]], 1, 1.0, (1.0, 1.0, [0.0, 0.0, 0.0, 0.15])) for e in edges]
+        links, degree = [], len(data)
+        for e in edges:
+            ffdelay = (e[2]['length'] / e[2]['freespeed'])/60.0 # in minutes
+            slope = 1/(e[2]['capacity']/2000.0)
+            coef = [ffdelay*a*b for a,b in zip(data, np.power(slope, range(1,degree+1)))]
+            links.append((d[e[0]], d[e[1]], 1, ffdelay, (ffdelay, slope, coef)))
     graph = g.create_graph_from_list(nodes, links, delaytype, description=description)
-    return graph, G
+    return graph, G, IDs
 
 
 if __name__ == '__main__':
