@@ -125,7 +125,7 @@ def x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, lower):
     p = Aeq.size[1]/n    
     A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
     #A = matrix([A, matrix([[spmatrix(-1.0, range(n), range(n))]]*p)]), matrix([b, -lower])
-    def F(x=None, z=None): return ue.objective(x, z, matrix([[ffdelays], [coefs]]), p, soft, obs, l_obs)
+    def F(x=None, z=None): return ue.objective_poly(x, z, matrix([[ffdelays], [coefs]]), p, soft, obs, l_obs)
     x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
     linkflows = matrix(0.0, (n,1))
     for k in range(p): linkflows += x[k*n:(k+1)*n]

@@ -5,7 +5,7 @@ Created on Apr 20, 2014
 '''
 
 import numpy as np
-from cvxopt import matrix, spmatrix, solvers, spdiag, mul
+from cvxopt import matrix, spmatrix, solvers, spdiag, mul, div
 from rank_nullspace import rank
 from util import find_basis, place_zeros
 
@@ -71,8 +71,8 @@ def get_demands(graph, ind, node_id):
     return d[ind]
 
 
-def objective(x, z, coefs, p, soft=0.0, obs=None, l_obs=None):
-    """Objective function of UE program
+def objective_poly(x, z, coefs, p, soft=0.0, obs=None, l_obs=None):
+    """Objective function of UE program with polynomial delay functions
     f(x) = sum_i f_i(l_i) (+ 0.5*soft*||l[obs]-l_obs||^2)
     f_i(u) = sum_{k=1}^degree coefs[i,k] u^k
     with l = sum_w x_w
@@ -108,6 +108,31 @@ def objective(x, z, coefs, p, soft=0.0, obs=None, l_obs=None):
     return f, Df, matrix([[spdiag(z[0] * H)]*p]*p)
 
 
+def objective_hyper(x, z, ks, p):
+    """Objective function of UE program with hyperbolic delay functions
+    f(x) = sum_i f_i(l_i) with l = sum_w x_w
+    f_i(u) = ks[i,0]*u - ks[i,1]*log(ks[i,2]-u)
+    
+    Parameters
+    ----------
+    x,z: variables for the F(x,z) function for cvxopt.solvers.cp
+    ks: matrix of size (n,3) 
+    p: number of w's
+    """
+    n = ks.size[0]
+    if x is None: return 0, matrix(1.0/p, (p*n,1))
+    l = matrix(0.0, (n,1))
+    for k in range(p): l += x[k*n:(k+1)*n]
+    f, Df, H = 0.0, matrix(0.0, (1,n)), matrix(0.0, (n,1))
+    for i in range(n):
+        f += ks[i,0]*l[i] - ks[i,1]*np.log(ks[i,2]-l[i])
+        Df[i] = ks[i,0] + ks[i,1]/(ks[i,2]-l[i])
+        H[i] = ks[i,1]/(ks[i,2]-l[i])**2
+    Df = matrix([[Df]]*p)
+    if z is None: return f, Df
+    return f, Df, matrix([[spdiag(z[0] * H)]*p]*p)
+
+
 def solver(graph, update=False, Aeq=None, beq=None, full=False):
     """Find the UE link flow
     
@@ -120,14 +145,18 @@ def solver(graph, update=False, Aeq=None, beq=None, full=False):
     full: if full=True, also return x (link flows per OD pair)
     """
     type = graph.links.values()[0].delayfunc.type
-    if type != 'Polynomial': print 'Delay functions must be polynomial'; return
     if Aeq is None or beq is None: Aeq, beq = constraints(graph)
     n = graph.numlinks
     p = Aeq.size[1]/n
     A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
-    ffdelays, coefs = graph.get_ffdelays(), graph.get_coefs()
-    coefs_i = coefs * spdiag([1.0/(j+2) for j in range(coefs.size[1])])
-    def F(x=None, z=None): return objective(x, z, matrix([[ffdelays], [coefs_i]]), p)
+    ffdelays = graph.get_ffdelays()
+    if type == 'Polynomial':
+        coefs = graph.get_coefs()
+        coefs_i = coefs * spdiag([1.0/(j+2) for j in range(coefs.size[1])])
+        def F(x=None, z=None): return objective_poly(x, z, matrix([[ffdelays], [coefs_i]]), p)
+    if type == 'Hyperbolic':
+        ks = graph.get_ks()
+        def F(x=None, z=None): return objective_hyper(x, z, matrix([[ffdelays-div(ks[:,0],ks[:,1])], [ks]]), p)
     x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
     linkflows = matrix(0.0, (n,1))
     for k in range(p): linkflows += x[k*n:(k+1)*n]

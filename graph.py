@@ -208,16 +208,36 @@ class Graph:
     
     
     def get_coefs(self):
-        """Get coefficients of the polynomial delay functions in cvx"""
+        """Get coefficients of the polynomial delay functions in cvxopt.matrix
+        
+        Return value
+        ------------
+        coefs[i,j] = coef[j] for link i
+        """
         type = self.links.values()[0].delayfunc.type
         if type != 'Polynomial': print 'Delay functions must be polynomial'; return
         n, degree = self.numlinks, self.links.values()[0].delayfunc.degree
         coefs = matrix(0.0, (n, degree))
         for id,link in self.links.items():
-            i = self.indlinks[id]
-            for j in range(degree): coefs[i,j] = link.delayfunc.coef[j]
+            for j in range(degree): coefs[self.indlinks[id],j] = link.delayfunc.coef[j]
         return coefs
     
+    
+    def get_ks(self):
+        """Get parameters k1, k2 of the hyperbolic delay function in cvxopt.matrix
+        
+        Return value
+        ------------
+        k[i,j] = kj for link i with j=1,2
+        """
+        type = self.links.values()[0].delayfunc.type
+        if type != 'Hyperbolic': print 'Delay functions must be hyperbolic'; return
+        ks = matrix(0.0, (self.numlinks,2))
+        for id,link in self.links.items():
+            i = self.indlinks[id]
+            ks[i,0], ks[i,1] = link.delayfunc.k1, link.delayfunc.k2
+        return ks
+        
     
     def update_linkflows_linkdelays(self, linkflows):
         """Update link flows and link delays in Graph object"""
@@ -287,7 +307,8 @@ class OD:
        
 class PolyDelay:
     """Polynomial Delay function
-    delay(x) = ffdelay + sum_k coef[k]*(slope*x)^k"""
+    delay(x) = ffdelay + sum_{k>=1} coef[k]*(x)^k
+    example: coef[k]=ffdelay*theta[k]*slope^k w/ theta type = [0.0, 0.0, 0.0, 0.15]"""
     def __init__(self, ffdelay, slope, coef):
         self.ffdelay = ffdelay
         self.slope = slope # this can be seen as inverse capacities
@@ -298,12 +319,31 @@ class PolyDelay:
     def compute_delay(self, flow):
         """Compute delay"""
         return self.ffdelay + np.dot(self.coef, np.power(flow, range(1,self.degree+1)))
+    
+    
+class HyperDelay:
+    """Hyperbolic Delay function
+    delay(x) = ffdelay - k1/k2 + k1/(k2-x)
+    k2 is the max capacity on link (1000/veh/lane)
+    example: k1=a*ffdelay/slope, k2=b/slope w/ (a,b) type = (3.5, 3)"""
+    def __init__(self, ffdelay, slope, k1, k2):
+        self.ffdelay = ffdelay
+        self.slope = slope
+        self.k1 = k1
+        self.k2 = k2
+        self.type = 'Hyperbolic'
+        
+    def compute_delay(self, flow):
+        """Compute delay"""
+        k1, k2, ffdelay = self.k1, self.k2, self.ffdelay
+        return ffdelay - k1/k2 + k1/(k2-flow)
         
 
 def create_delayfunc(type, parameters=None):
     """Create a Delay function of a specific type"""
     if type == 'None': return None
     if type == 'Polynomial': return PolyDelay(parameters[0], parameters[1], parameters[2])
+    if type == 'Hyperbolic': return HyperDelay(parameters[0], parameters[1], parameters[2], parameters[3])
     if type == 'Other': return Other(parameters[0], parameters[1], parameters[2])
 
 

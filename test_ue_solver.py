@@ -19,38 +19,28 @@ def test1():
     print linkflows
 
 
-def test2():
+def test2(delaytype):
     theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
-    graph = los_angeles(theta, 'Polynomial')[0]
-    C,ind = ue.get_nodelink_incidence(graph)
-    print C
-    d = ue.get_demands(graph, ind, 22)
-    print d
-    Aeq, beq = ue.constraints(graph)
-    print Aeq.size
-    print beq.size
-    
-    
-def test3():
-    theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
-    g4 = los_angeles(theta, 'Polynomial')[3]
-    n = g4.numlinks
-    g4.add_path_from_nodes([29,21,14,34,12,5])
-    g4.add_path_from_nodes([29,21,14,13,12,5])
-    g4.add_path_from_nodes([30,28,22,15,13,12,5])
-    g4.add_path_from_nodes([30,28,23,16,15,13,12,5])
-    l4, x4 = ue.solver(g4, update=True, full=True)
-    #d.draw_delays(g4, x4[:n])
-    #d.draw_delays(g4, x4[n:2*n])
-    #d.draw_delays(g4, x4[2*n:])
-    print l4
-    #g4.visualize(paths=True)
-    
+    a, b = 3.5, 3.0
+    if delaytype == 'Polynomial': g = los_angeles(theta, delaytype)[3]
+    if delaytype == 'Hyperbolic': g = los_angeles((a,b), delaytype)[3]
+    n = g.numlinks
+    g.add_path_from_nodes([29,21,14,34,12,5])
+    g.add_path_from_nodes([29,21,14,13,12,5])
+    g.add_path_from_nodes([30,28,22,15,13,12,5])
+    g.add_path_from_nodes([30,28,23,16,15,13,12,5])
+    l, x = ue.solver(g, update=True, full=True)
+    #d.draw_delays(g, x[:n])
+    #d.draw_delays(g, x[n:2*n])
+    #d.draw_delays(g, x[2*n:])
+    print l
+    #g.visualize(paths=True)
+
 
 def main():
     #test1()
-    #test2()
-    test3()
+    test2('Polynomial')
+    #test2('Hyperbolic')
     
 
 if __name__ == '__main__':
