@@ -159,7 +159,7 @@ def main():
     #test1()
     #test2()
     #test3(indlinks_obs)
-    test4(indlinks_obs, True)
+    test4(indlinks_obs, False)
     #test5(indlinks_obs, (24,40,1), False)
     
 if __name__ == '__main__':

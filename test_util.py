@@ -25,15 +25,14 @@ def test2():
 def test3():
     """Read LA_shps_V2"""
     theta = matrix([0.0, 0.0, 0.0, 0.15])
-    graph, G, Ids = util.read_shapefile('LA_shps_V2', 'Polynomial', theta, 'LA OSM network')
+    graph, G, IDs = util.read_shapefile('LA_shps_V2', 'Polynomial', theta, 'LA OSM network')
     print G.number_of_nodes() #return the number of nodes in the graph
     print G.number_of_edges() #return the number of edges b/w two nodes
     print G.size() #return the number of edges
     print G.number_of_selfloops() #return a list of nodes with selfloops
     print graph.numnodes
     print graph.numlinks
-    linkIds = [11558, 11425, 20415, 19225, 19529, 5603]
-    for id in linkIds: print Ids[id]
+    print util.extract_ODs('ODs/OD.csv', IDs)
 
 
 def main():

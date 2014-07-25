@@ -11,6 +11,7 @@ from numpy.random import normal
 import networkx as nx
 import Graph as g
 import gdal
+import csv
 
 
 def place_zeros(M, tol=1e-13):
@@ -90,7 +91,7 @@ def read_shapefile(path, delaytype='None', data=None, description=None):
     ------------
     graph: graph object
     G: networkx.DiGraph object
-    IDs: {MATSim link IDs : link ID}
+    IDs: {MATSim link ID : graph link ID}
     """
     G = nx.read_shp(path)
     nodes, edges = G.nodes(), G.edges(data=True)
@@ -107,6 +108,13 @@ def read_shapefile(path, delaytype='None', data=None, description=None):
             links.append((d[e[0]], d[e[1]], 1, ffdelay, (ffdelay, slope, coef)))
     graph = g.create_graph_from_list(nodes, links, delaytype, description=description)
     return graph, G, IDs
+
+
+def extract_ODs(path, IDs):
+    with open(path, 'rb') as f:
+        reader = csv.reader(f)
+        ODs = [(IDs[int(row[4].partition(' ')[0])][0], IDs[int(row[4].rpartition(' ')[-1])][1]) for row in reader]
+    return ODs
 
 
 if __name__ == '__main__':
