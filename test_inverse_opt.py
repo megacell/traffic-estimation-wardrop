@@ -121,7 +121,8 @@ def test4(indlinks_obs, noisy, delaytype):
         l1, l2, l3, l4 = add_noise(l1, 1/30.0), add_noise(l2, 1/30.0), add_noise(l3, 1/30.0), add_noise(l4, 1/30.0)
         g1, g2, g3, g4 = los_angeles(true_theta, 'Polynomial', True)
     min_error = np.inf
-    for i in [10.0, 100.0, 1000.0, 10000.0]:
+    #for i in [10.0, 100.0, 1000.0, 10000.0]:
+    for i in [0.001, 0.1, 10.0]:
         theta = invopt.solver_mis([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], 
                           indlinks_obs, degree, i*np.ones(degree))
         g1, g2, g3, g4, x1, x2, x3, x4 = get_graphs_linkflows(theta, noisy)

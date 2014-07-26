@@ -107,7 +107,7 @@ def compute_lower(C, y, ffdelays, slopes, coefs):
     return lower
 
 
-def x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, lower):
+def x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, lower=None):
     """
     optimization w.r.t. x_block
     
@@ -124,7 +124,7 @@ def x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, lower):
     n = len(ffdelays)
     p = Aeq.size[1]/n    
     A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
-    #A, b = matrix([A, matrix([[spmatrix(-1.0, range(n), range(n))]]*p)]), matrix([b, -lower])
+    if lower is not None: A, b = matrix([A, matrix([[spmatrix(-1.0, range(n), range(n))]]*p)]), matrix([b, -lower])
     def F(x=None, z=None): return ue.objective_poly(x, z, matrix([[ffdelays], [coefs]]), p, soft, obs, l_obs)
     x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
     linkflows = matrix(0.0, (n,1))
@@ -132,16 +132,42 @@ def x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, lower):
     return linkflows
 
 
-def xy_solver():
+def xy_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, current):
     """
-    optimization w.r.t. xy_block
+    optimization w.r.t. (x,y) block
     
     Parameters
     ----------
-    
+    ffdelays: matrix of freeflow delays from graph.get_ffdelays()
+    coefs: matrix of coefficients from graph.get_coefs()
+    Aeq, beq: equality constraints of the ue program
+    soft: parameter
+    obs: indices of the observed links
+    l_obs: observations
+    current: current linkflow estimate
     """
+    n = len(ffdelays)
+    p = Aeq.size[1]/n
+    m = Aeq.size[0]/p
+    A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
+    A = matrix([[A], [matrix(0.0, (p*n,p*m))]])
+    parameters = matrix([[ffdelays], [coefs]])
     def F(x=None, z=None):
-        pass
+        if x is None: return 0, matrix([matrix(1.0/p, (p*n,1)), matrix(0.0, (p*m,1))])
+        if z is None:
+            f, Df = ue.objective_poly(x[:p*n], z, parameters, p, soft, obs, l_obs)
+            return f + beq.T*x[p*n:], matrix([[Df], [beq.T]])
+        f, Df, H = ue.objective_poly(x[:p*n], z, parameters, p, soft, obs, l_obs)
+        return f + beq.T*x[p*n:], matrix([[Df], [beq.T]]), spdiag([H, matrix(0.0, (p*m,p*m))])
+    coefs_i = coefs * spdiag([1.0/(j+2) for j in range(coefs.size[1])])  
+    f0, Df0, H0 = ue.objective_poly(current, [1.0], matrix([[ffdelays], [coefs_i]]), 1)
+    A0, b0 = matrix([[matrix([[-H0]*p]*p)], [Aeq.T]]), matrix([Df0.T - H0*current]*p)
+    A, b = matrix([A, A0]), matrix([b, b0])
+    Aeq = matrix([[Aeq], [matrix(0.0, (p*m,p*m))]])
+    x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
+    linkflows = matrix(0.0, (n,1))
+    for k in range(p): linkflows += x[k*n:(k+1)*n]
+    return linkflows
     
 
 def compute_coefs(ffdelays, slopes, theta):
@@ -161,13 +187,13 @@ def compute_coefs(ffdelays, slopes, theta):
     return coefs
 
 
-def solver_mis(graphs, flow_obs_vectors, indlinks_obs, degree, smooth, soft=1000.0, max_iter=3):
+def solver_mis(graphs, ls_obs, indlinks_obs, degree, smooth, soft=1000.0, max_iter=3):
     """Solves the inverse optimization problem with missing values
     
     Parameters
     ----------
     graphs: list of graphs with same geometry, different OD demands
-    flow_obs_vectors: list of partially-observed link flow vectors in equilibrium
+    ls_obs: list of partially-observed link flow vectors in equilibrium
     indlinks_obs: indices of observed links
     degree: degree of the polynomial function to estimate
     smooth: regularization parameter on theta
@@ -182,16 +208,20 @@ def solver_mis(graphs, flow_obs_vectors, indlinks_obs, degree, smooth, soft=1000
     C = Aeq[:m,:n]
     obs = [graphs[0].indlinks[id] for id in indlinks_obs]
     theta = matrix(np.zeros(degree)); theta[0] = 1.0
-    ys, lower = [matrix(0.0, (m*p,1)) for j in range(N)], matrix(0.0, (n,1))
+    #ys, lower = [matrix(0.0, (m*p,1)) for j in range(N)], matrix(0.0, (n,1))
+    ls = [matrix(0.0, (n,1))]*N
     
     for k in range(max_iter):
         coefs = compute_coefs(ffdelays, slopes, theta)
-        flow_vectors = []
+        ls_old = ls
+        ls = []
         for j in range(N):
-            beq, l_obs, y = beqs[j], flow_obs_vectors[j], ys[j]
+            #y = ys[j]
             #lower = compute_lower(C, y, ffdelays, slopes, coefs)
-            flow_vectors.append(x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, lower))
-        x = solver(graphs, flow_vectors, degree, smooth, data, True)
+            #ls.append(x_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j], lower))
+            #ls.append(x_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j]))
+            ls.append(xy_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j], ls_old[j]))
+        x = solver(graphs, ls, degree, smooth, data, True)
         theta, ys = x[range(degree)], [x[degree+j*m*p:degree+(j+1)*m*p] for j in range(N)]
             
     return theta
