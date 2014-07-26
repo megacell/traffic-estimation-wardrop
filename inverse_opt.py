@@ -162,6 +162,7 @@ def xy_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, current):
     coefs_i = coefs * spdiag([1.0/(j+2) for j in range(coefs.size[1])])  
     f0, Df0, H0 = ue.objective_poly(current, [1.0], matrix([[ffdelays], [coefs_i]]), 1)
     A0, b0 = matrix([[matrix([[-H0]*p]*p)], [Aeq.T]]), matrix([Df0.T - H0*current]*p)
+    #A0, b0 = matrix([[matrix(0.0, (p*n,p*n))], [Aeq.T]]), matrix([Df0.T]*p)
     A, b = matrix([A, A0]), matrix([b, b0])
     Aeq = matrix([[Aeq], [matrix(0.0, (p*m,p*m))]])
     x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
@@ -207,7 +208,7 @@ def solver_mis(graphs, ls_obs, indlinks_obs, degree, smooth, soft=1000.0, max_it
     m = Aeq.size[0]/p
     C = Aeq[:m,:n]
     obs = [graphs[0].indlinks[id] for id in indlinks_obs]
-    theta = matrix(np.zeros(degree)); theta[0] = 1.0
+    theta = matrix(np.zeros(degree)); theta[4] = 1.0
     #ys, lower = [matrix(0.0, (m*p,1)) for j in range(N)], matrix(0.0, (n,1))
     ls = [matrix(0.0, (n,1))]*N
     
@@ -220,7 +221,10 @@ def solver_mis(graphs, ls_obs, indlinks_obs, degree, smooth, soft=1000.0, max_it
             #lower = compute_lower(C, y, ffdelays, slopes, coefs)
             #ls.append(x_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j], lower))
             #ls.append(x_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j]))
-            ls.append(xy_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j], ls_old[j]))
+            #ls.append(xy_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j], ls_old[j]))
+            l = ls_old[j]
+            for k in range(3): l = xy_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j], l)
+            ls.append(l)
         x = solver(graphs, ls, degree, smooth, data, True)
         theta, ys = x[range(degree)], [x[degree+j*m*p:degree+(j+1)*m*p] for j in range(N)]
             
