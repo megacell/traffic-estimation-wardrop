@@ -5,7 +5,7 @@ Created on Jun 6, 2014
 '''
 import ue_solver as ue
 import numpy as np
-from cvxopt import matrix, spmatrix, solvers, mul
+from cvxopt import matrix, spmatrix, solvers, mul, spdiag
 
 
 def get_data(graphs):
@@ -95,12 +95,47 @@ def x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs):
     soft: parameter
     obs: indices of the observed links
     l_obs: observations
-    lower: lower bound on linkflows, l[i]>=lower[i]
     """
     n = len(ffdelays)
     p = Aeq.size[1]/n    
     A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
     def F(x=None, z=None): return ue.objective_poly(x, z, matrix([[ffdelays], [coefs]]), p, soft, obs, l_obs)
+    x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
+    linkflows = matrix(0.0, (n,1))
+    for k in range(p): linkflows += x[k*n:(k+1)*n]
+    return linkflows
+
+
+def xy_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, a):
+    """
+    optimization w.r.t. (x,y) block
+    
+    Parameters
+    ----------
+    ffdelays: matrix of freeflow delays from graph.get_ffdelays()
+    coefs: matrix of coefficients from graph.get_coefs()
+    Aeq, beq: equality constraints of the ue program
+    soft: parameter
+    obs: indices of the observed links
+    l_obs: observations
+    a: (nX1)-matrix s.t. D_i(u) ~ ffdelay[i] + a[i]*u for link i
+    """
+    n = len(ffdelays)
+    p = Aeq.size[1]/n
+    m = Aeq.size[0]/p
+    A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
+    A = matrix([[A], [matrix(0.0, (p*n,p*m))]])
+    parameters = matrix([[ffdelays], [coefs]])
+    def F(x=None, z=None):
+        if x is None: return 0, matrix([matrix(1.0/p, (p*n,1)), matrix(0.0, (p*m,1))])
+        if z is None:
+            f, Df = ue.objective_poly(x[:p*n], z, parameters, p, soft, obs, l_obs)
+            return f + beq.T*x[p*n:], matrix([[Df], [beq.T]])
+        f, Df, H = ue.objective_poly(x[:p*n], z, parameters, p, soft, obs, l_obs)
+        return f + beq.T*x[p*n:], matrix([[Df], [beq.T]]), spdiag([H, matrix(0.0, (p*m,p*m))])
+    A0, b0 = matrix([[matrix([[spdiag(-a)]*p]*p)], [Aeq.T]]), matrix([ffdelays]*p)
+    A, b = matrix([A, A0]), matrix([b, b0])
+    Aeq = matrix([[Aeq], [matrix(0.0, (p*m,p*m))]])
     x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
     linkflows = matrix(0.0, (n,1))
     for k in range(p): linkflows += x[k*n:(k+1)*n]
@@ -148,3 +183,17 @@ def solver_mis(graphs, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3):
         ls = [x_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j]) for j in range(N)]
         theta = solver(graphs, ls, degree, smooth, data)
     return theta
+
+"""
+alternative 1:
+a = mul((theta.T*matrix(np.power(0.85, range(1,degree+1)))/0.85)*slopes, ffdelays)
+ls = [xy_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j], a) for j in range(N)]
+
+alternative 2:
+ls_old = ls; ls = []
+for j in range(N):
+    a = matrix(0.0, (n,1))
+    for i in range(n):
+        a[i] = coefs[i,:]*matrix(np.power(0.27*ls_old[j][i], range(degree)))
+    ls.append(xy_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j], a))
+"""
