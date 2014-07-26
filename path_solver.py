@@ -5,7 +5,7 @@ Created on Jul 23, 2014
 '''
 
 import ue_solver as ue
-from cvxopt import matrix, spmatrix, spdiag, solvers
+from cvxopt import matrix, spmatrix, spdiag, solvers, div
 
 def linkpath_incidence(graph):
     """Returns matrix of incidence link-path
@@ -64,22 +64,29 @@ def solver(graph, update=False, data=None):
             U,r: simplex constraints 
     """
     type = graph.links.values()[0].delayfunc.type
-    if type != 'Polynomial': print 'Delay functions must be polynomial'; return
     if data is None:
         P = linkpath_incidence(graph)
         U,r = simplex(graph)
     else: (P,U,r) = data
     m = graph.numpaths
     A, b = spmatrix(-1.0, range(m), range(m)), matrix(0.0, (m,1))
-    ffdelays, coefs = graph.get_ffdelays(), graph.get_coefs()
-    coefs_i = coefs * spdiag([1.0/(j+2) for j in range(coefs.size[1])])
+    ffdelays = graph.get_ffdelays()
+    if type == 'Polynomial':
+        coefs = graph.get_coefs()
+        coefs_i = coefs * spdiag([1.0/(j+2) for j in range(coefs.size[1])])
+        parameters = matrix([[ffdelays], [coefs_i]])
+        G = ue.objective_poly
+    if type == 'Hyperbolic':
+        ks = graph.get_ks()
+        parameters = matrix([[ffdelays-div(ks[:,0],ks[:,1])], [ks]])
+        G = ue.objective_hyper
     def F(x=None, z=None):
         if x is None: return 0, solver_init(U,r)
         if z is None:
-            f, Df = ue.objective(P*x, z, matrix([[ffdelays], [coefs_i]]), 1)
+            f, Df = G(P*x, z, parameters, 1)
             return f, Df*P
-        f, Df, H = ue.objective(P*x, z, matrix([[ffdelays], [coefs_i]]), 1)
-        return f, Df*P, P.T*H*P
+        f, Df, H = G(P*x, z, parameters, 1)
+        return f, Df*P, P.T*H*P    
     x = solvers.cp(F, G=A, h=b, A=U, b=r)['x']
     if update:
         print 'Update link flows, delays in Graph.'; graph.update_linkflows_linkdelays(A*x)

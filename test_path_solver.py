@@ -10,10 +10,6 @@ import path_solver as path
 from cvxopt import matrix
 from test_graph import los_angeles
 
-
-theta_true = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
-degree = len(theta_true)
-graph = los_angeles(theta_true, 'Polynomial')[0]
 paths = [[8,35,7,6,5],
              [8,35,7,6,12,5],
              [17,8,35,7,6,5],
@@ -124,8 +120,10 @@ paths = [[8,35,7,6,5],
              [33,25,43,24,37,23,22],
              [33,25,43,24,17,36,16,23,22]]
 
-def test1():
-   
+def test1(delaytype):
+    if delaytype == 'Polynomial': theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
+    if delaytype == 'Hyperbolic': theta = (3.5, 3.0)
+    graph = los_angeles(theta, delaytype)[0]
     for p in paths: graph.add_path_from_nodes(p)
     graph.visualize(general=True, ODs=True, links=True, paths=True)
     P = path.linkpath_incidence(graph)
@@ -141,7 +139,8 @@ def test1():
 
 
 def main():
-    test1()
+    #test1('Hyperbolic')
+    test1('Polynomial')
 
 
 if __name__ == '__main__':

@@ -112,7 +112,7 @@ def x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, lower):
     optimization w.r.t. x_block
     
     Parameters
-    ---------
+    ----------
     ffdelays: matrix of freeflow delays from graph.get_ffdelays()
     coefs: matrix of coefficients from graph.get_coefs()
     Aeq, beq: equality constraints of the ue program
@@ -131,6 +131,18 @@ def x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, lower):
     for k in range(p): linkflows += x[k*n:(k+1)*n]
     return linkflows
 
+
+def xy_solver():
+    """
+    optimization w.r.t. xy_block
+    
+    Parameters
+    ----------
+    
+    """
+    def F(x=None, z=None):
+        pass
+    
 
 def compute_coefs(ffdelays, slopes, theta):
     """Compute the matrix of coefficients
