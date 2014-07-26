@@ -94,14 +94,18 @@ def test2(delaytype):
 def test3(indlinks_obs):
     """Test x_solver, compute_lower, and compute_coefs
     """
-    g1, g2, g3, g4, l1, l2, l3, l4 = get_graphs_linkflows(theta_true)
+    g1, g2, g3, g4, l1, l2, l3, l4 = get_graphs_linkflows(coef)
     obs = [g4.indlinks[id] for id in indlinks_obs]
     ffdelays, slopes, coefs = g4.get_ffdelays(), g4.get_slopes(), g4.get_coefs()
     Aeq, beq = ue.constraints(g4)
-    C = ue.get_nodelink_incidence(g4)[0]
+    C = ue.nodelink_incidence(g4)[0]
     lower = invopt.compute_lower(C, matrix(10.0, (Aeq.size[0],1)), ffdelays, slopes, coefs)
+    print lower
+    data = invopt.get_data([g1,g2,g3,g4])
+    c, A, b = invopt.constraints(data, [l1, l2, l3, l4], degree)
+    print c
     print invopt.x_solver(ffdelays, coefs, Aeq, beq, 1000.0, obs, l4[obs], lower)
-    print invopt.compute_coefs(ffdelays, slopes, theta_true)
+    print invopt.compute_coefs(ffdelays, slopes, coef)
     
     
 def test4(indlinks_obs, noisy, delaytype):
@@ -166,12 +170,12 @@ def main():
     #indlinks_obs = []
     #indlinks_obs = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
     
-    type = 'Hyperbolic'
-    #type = 'Polynomial'
+    #type = 'Hyperbolic'
+    type = 'Polynomial'
     #test1(type)
     #test2(type)
     #test3(indlinks_obs)
-    test4(indlinks_obs, True, type)
+    test4(indlinks_obs, False, type)
     #test5(indlinks_obs, (24,40,1), False)
     
 if __name__ == '__main__':

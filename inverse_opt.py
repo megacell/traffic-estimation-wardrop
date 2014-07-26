@@ -124,7 +124,7 @@ def x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, lower):
     n = len(ffdelays)
     p = Aeq.size[1]/n    
     A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
-    #A = matrix([A, matrix([[spmatrix(-1.0, range(n), range(n))]]*p)]), matrix([b, -lower])
+    #A, b = matrix([A, matrix([[spmatrix(-1.0, range(n), range(n))]]*p)]), matrix([b, -lower])
     def F(x=None, z=None): return ue.objective_poly(x, z, matrix([[ffdelays], [coefs]]), p, soft, obs, l_obs)
     x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
     linkflows = matrix(0.0, (n,1))
@@ -170,14 +170,14 @@ def solver_mis(graphs, flow_obs_vectors, indlinks_obs, degree, smooth, soft=1000
     C = Aeq[:m,:n]
     obs = [graphs[0].indlinks[id] for id in indlinks_obs]
     theta = matrix(np.zeros(degree)); theta[0] = 1.0
-    ys = [matrix(0.0, (m*p,1)) for j in range(N)]
+    ys, lower = [matrix(0.0, (m*p,1)) for j in range(N)], matrix(0.0, (n,1))
     
     for k in range(max_iter):
         coefs = compute_coefs(ffdelays, slopes, theta)
         flow_vectors = []
         for j in range(N):
             beq, l_obs, y = beqs[j], flow_obs_vectors[j], ys[j]
-            lower = compute_lower(C, y, ffdelays, slopes, coefs)
+            #lower = compute_lower(C, y, ffdelays, slopes, coefs)
             flow_vectors.append(x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs, lower))
         x = solver(graphs, flow_vectors, degree, smooth, data, True)
         theta, ys = x[range(degree)], [x[degree+j*m*p:degree+(j+1)*m*p] for j in range(N)]
