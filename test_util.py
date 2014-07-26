@@ -6,6 +6,7 @@ Created on Jul 16, 2014
 
 import util
 from cvxopt import matrix, spmatrix
+import draw_graph as d
 
 
 def test1():
@@ -32,7 +33,8 @@ def test3():
     print G.number_of_selfloops() #return a list of nodes with selfloops
     print graph.numnodes
     print graph.numlinks
-    print util.extract_ODs('ODs/OD.csv', IDs)
+    d.draw(graph, nodes=False)
+    #util.extract_ODs('ODs/OD_500k.csv', 'ODs/ODs.txt', IDs)
 
 
 def main():

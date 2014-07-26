@@ -82,7 +82,7 @@ def read_shapefile(path, delaytype='None', data=None, description=None):
     
     Parameters
     ----------
-    path: File, directory, or filename to read by networkx.read_shp
+    path: File, directory, or filename to be read by networkx.read_shp
     delaytype: 'None' or 'Polynomial'
     data: if polynomial then data=Theta
     description: description of the graph object
@@ -110,12 +110,24 @@ def read_shapefile(path, delaytype='None', data=None, description=None):
     return graph, G, IDs
 
 
-def extract_ODs(path, IDs):
-    with open(path, 'rb') as f:
+def extract_ODs(pathin, pathout, IDs):
+    """Extract ODs from .csv file
+    
+    Parameters
+    ----------
+    in: path to the input file
+    out: path to the output file
+    IDs: {MATSim link ID : graph link ID}
+    """
+    file = open(pathout, "w")
+    with open(pathin, 'rb') as f:
         reader = csv.reader(f)
-        ODs = [(IDs[int(row[4].partition(' ')[0])][0], IDs[int(row[4].rpartition(' ')[-1])][1]) for row in reader]
-    return ODs
-
+        for row in reader:
+            if int(row[1])==0:
+                a,b = IDs[int(row[4].partition(' ')[0])][0], IDs[int(row[4].rpartition(' ')[-1])][1]
+                file.write('{},{}\n'.format(a,b))
+    file.close()
+                
 
 if __name__ == '__main__':
     pass

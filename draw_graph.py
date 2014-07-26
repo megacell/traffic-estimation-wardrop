@@ -10,7 +10,7 @@ import numpy as np
 from util import create_networkx_graph
 
 
-def draw(graph, link_ids=None, G=None, width=7, alpha=0.5, edge_color='r'):
+def draw(graph, link_ids=None, G=None, width=7, alpha=0.5, edge_color='r', nodes=True):
     """Draw graph
     
     Parameters
@@ -24,7 +24,10 @@ def draw(graph, link_ids=None, G=None, width=7, alpha=0.5, edge_color='r'):
     """
     pos=graph.nodes_position
     if G is None: G = create_networkx_graph(graph)
-    nx.draw(G, pos)
+    if nodes: 
+        nx.draw(G, pos)
+    else: 
+        nx.draw_networkx_edges(G, pos, arrows=False)
     if link_ids is not None:
         nx.draw_networkx_edges(G, pos, edgelist=[(id[0],id[1]) for id in link_ids], width=width, 
                                alpha=alpha, edge_color=edge_color, arrows=False)

@@ -22,7 +22,10 @@ def draw_los_angeles():
     link_ids = [(17,24,1),(24,40,1),(14,21,1),(16,23,1)]
     #link_ids = [(10,9,1),(19,18,1),(4,5,1),(29,21,1)]
     #link_ids = graph.links.keys()
+    d.draw(graph)
     d.draw(graph, link_ids)
+    d.draw(graph, nodes=False)
+    d.draw(graph, link_ids, nodes=False)
 
 
 def main():

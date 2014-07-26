@@ -20,10 +20,9 @@ def test1():
 
 
 def test2(delaytype):
-    theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
-    a, b = 3.5, 3.0
-    if delaytype == 'Polynomial': g = los_angeles(theta, delaytype)[3]
-    if delaytype == 'Hyperbolic': g = los_angeles((a,b), delaytype)[3]
+    if delaytype == 'Polynomial': theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
+    if delaytype == 'Hyperbolic': theta = (3.5, 3.0)
+    g = los_angeles(theta, delaytype)[3]
     n = g.numlinks
     g.add_path_from_nodes([29,21,14,34,12,5])
     g.add_path_from_nodes([29,21,14,13,12,5])
@@ -34,6 +33,7 @@ def test2(delaytype):
     #d.draw_delays(g, x[n:2*n])
     #d.draw_delays(g, x[2*n:])
     print l
+    print max(mul(l,g.get_slopes()))
     #g.visualize(paths=True)
 
 

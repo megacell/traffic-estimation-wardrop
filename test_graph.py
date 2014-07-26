@@ -62,6 +62,9 @@ def los_angeles(parameters=None, delaytype='None', noisy=False):
         for startnode, endnode, route, ffdelay, slope in tmp:
             k1, k2 = a*ffdelay/slope, b/slope
             links.append((startnode, endnode, route, ffdelay, (ffdelay, slope, k1, k2)))
+    if delaytype=='None':
+        for startnode, endnode, route, ffdelay, slope in tmp: links.append((startnode, endnode, route, ffdelay, None))
+            
     
     g1 = g.create_graph_from_list(nodes, links, delaytype, ODs1, 'Map of L.A.')
     g2 = g.create_graph_from_list(nodes, links, delaytype, ODs2, 'Map of L.A.')
