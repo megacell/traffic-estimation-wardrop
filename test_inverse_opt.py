@@ -16,7 +16,7 @@ a, b = 3.5, 3.0
 coef = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
 degree = len(coef)
 graph = los_angeles(coef, 'Polynomial')[0]
-
+    
     
 def display_results(true_linkflows, est_linkflows, true_theta, best_theta, delaytype):
     """Display results
@@ -38,7 +38,7 @@ def display_results(true_linkflows, est_linkflows, true_theta, best_theta, delay
         true_vals = [1 - a/b + a/(b-x) for x in xdata]
     plt.plot(xdata, vals, 'r', label='estimate')
     plt.plot( xdata, true_vals, 'b', label='true')
-    plt.xlabel('Link flow')
+    plt.xlabel('Link flow (1000 veh/h)')
     plt.ylabel('Delay')
     plt.title(r'Estimated delay function. l2-norm error: {:.3f}'.format(error))
     plt.legend()
@@ -104,7 +104,7 @@ def test3(indlinks_obs, noisy, delaytype):
         l1, l2, l3, l4 = add_noise(l1, 1/30.0), add_noise(l2, 1/30.0), add_noise(l3, 1/30.0), add_noise(l4, 1/30.0)
         g1, g2, g3, g4 = los_angeles(true_theta, 'Polynomial', True)
     min_error = np.inf
-    for i in [10.0, 100.0, 1000.0]:
+    for i in [1.0]:
         theta = invopt.solver_mis([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], 
                           obs, degree, i*np.ones(degree))
         g1, g2, g3, g4, x1, x2, x3, x4 = get_graphs_linkflows(theta, noisy)
@@ -146,19 +146,18 @@ def test4(indlinks_obs, faulty, noisy=False):
 
 def main():
     
-    indlinks_obs = [(36,37,1), (13,14,1), (17,8,1), (24,17,1), (28,22,1), (14,13,1), (17,24,1), (24,40,1), (14,21,1), (16,23,1)]
+    #indlinks_obs = [(36,37,1), (13,14,1), (17,8,1), (24,17,1), (28,22,1), (14,13,1), (17,24,1), (24,40,1), (14,21,1), (16,23,1)]
     #indlinks_obs = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
-    #indlinks_obs = graph.indlinks.keys()
+    indlinks_obs = graph.indlinks.keys()
     #indlinks_obs = [indlinks_obs[3*i] for i in range(len(indlinks_obs)/3)]
     #indlinks_obs = []
     #indlinks_obs = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
     
-    #type = 'Hyperbolic'
-    type = 'Polynomial'
-    #test1(type)
+    type = 'Hyperbolic'
+    #type = 'Polynomial'
+    test1(type)
     #test2(type)
-    #test2(indlinks_obs)
-    test3(indlinks_obs, False, type)
+    #test3(indlinks_obs, True, type)
     #test4(indlinks_obs, (24,40,1), False)
     
 if __name__ == '__main__':

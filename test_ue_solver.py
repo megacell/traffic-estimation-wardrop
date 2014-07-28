@@ -29,9 +29,9 @@ def test2(delaytype):
     g.add_path_from_nodes([30,28,22,15,13,12,5])
     g.add_path_from_nodes([30,28,23,16,15,13,12,5])
     l, x = ue.solver(g, update=True, full=True)
-    #d.draw_delays(g, x[:n])
-    #d.draw_delays(g, x[n:2*n])
-    #d.draw_delays(g, x[2*n:])
+    d.draw_delays(g, x[:n])
+    d.draw_delays(g, x[n:2*n])
+    d.draw_delays(g, x[2*n:])
     print l
     print max(mul(l,g.get_slopes()))
     #g.visualize(paths=True)

@@ -186,7 +186,7 @@ def solver_mis(graphs, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3):
 
 """
 alternative 1:
-a = mul((theta.T*matrix(np.power(0.85, range(1,degree+1)))/0.85)*slopes, ffdelays)
+a = mul((theta.T*matrix(np.power(0.85, range(degree))))*slopes, ffdelays) #can replace by 1.0
 ls = [xy_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j], a) for j in range(N)]
 
 alternative 2:

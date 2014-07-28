@@ -33,6 +33,21 @@ def draw(graph, link_ids=None, G=None, width=7, alpha=0.5, edge_color='r', nodes
                                alpha=alpha, edge_color=edge_color, arrows=False)
     plt.show()
     
+
+def draw_ODs(graph, dest, G=None):
+    """Draw graph and highlights all the ODs that share the same destination
+    """
+    m=graph.numnodes
+    pos=graph.nodes_position
+    if G is None: G = create_networkx_graph(graph)
+    nx.draw_networkx_edges(G, pos, arrows=False)
+    nx.draw_networkx_nodes(G,pos,nodelist=range(1,m+1),node_color='w',node_size=400)
+    nx.draw_networkx_nodes(G,pos,nodelist=[dest],node_color='r',node_size=400)
+    os = [o for (o,d) in graph.ODs.keys() if d==dest]
+    nx.draw_networkx_nodes(G,pos,nodelist=os,node_color='c',node_size=400)
+    nx.draw_networkx_labels(G,pos,{k:str(k) for k in range(1,m+1)},font_size=14)
+    plt.show()
+
     
 def draw_delays(graph, linkflows=None, G=None, width=7, alpha=0.5, levels=[1.5, 2.0, 3.0], tol=1e-4):
     """Draw graph with delays
