@@ -133,30 +133,34 @@ def objective_hyper(x, z, ks, p):
     return f, Df, matrix([[spdiag(z[0] * H)]*p]*p)
 
 
-def solver(graph, update=False, Aeq=None, beq=None, full=False):
+def get_data(graph):
+    """Get data for the ue solver"""
+    Aeq, beq = constraints(graph)
+    ffdelays = graph.get_ffdelays()
+    parameters, type = graph.get_parameters()
+    return Aeq, beq, ffdelays, parameters, type
+    
+
+def solver(graph=None, update=False, full=False, data=None):
     """Find the UE link flow
     
     Parameters
     ----------
     graph: graph object
     update: if update==True: update link flows and link,path delays in graph
-    Aeq: matrix of incidence nodes-links
-    beq: matrix of OD flows at each node
     full: if full=True, also return x (link flows per OD pair)
+    data: (Aeq, beq, ffdelays, parameters, type) from get_data(graph)
     """
-    type = graph.links.values()[0].delayfunc.type
-    if Aeq is None or beq is None: Aeq, beq = constraints(graph)
-    n = graph.numlinks
+    if data is None: data = get_data(graph)
+    Aeq, beq, ffdelays, pm, type = data
+    n = len(ffdelays)
     p = Aeq.size[1]/n
     A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
-    ffdelays = graph.get_ffdelays()
     if type == 'Polynomial':
-        coefs = graph.get_coefs()
-        coefs_i = coefs * spdiag([1.0/(j+2) for j in range(coefs.size[1])])
+        coefs_i = pm * spdiag([1.0/(j+2) for j in range(pm.size[1])])
         def F(x=None, z=None): return objective_poly(x, z, matrix([[ffdelays], [coefs_i]]), p)
     if type == 'Hyperbolic':
-        ks = graph.get_ks()
-        def F(x=None, z=None): return objective_hyper(x, z, matrix([[ffdelays-div(ks[:,0],ks[:,1])], [ks]]), p)
+        def F(x=None, z=None): return objective_hyper(x, z, matrix([[ffdelays-div(pm[:,0],pm[:,1])], [pm]]), p)
     x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
     linkflows = matrix(0.0, (n,1))
     for k in range(p): linkflows += x[k*n:(k+1)*n]

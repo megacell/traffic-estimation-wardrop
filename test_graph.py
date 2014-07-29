@@ -8,6 +8,8 @@ import Graph as g
 import numpy as np
 import scipy.io as sio
 from cvxopt import matrix
+from numpy.random import normal
+
 
 def small_example():
     
@@ -36,17 +38,19 @@ def small_example():
     return graph
 
 
-def los_angeles(parameters=None, delaytype='None', noisy=False):
+def los_angeles(parameters=None, delaytype='None', noise=0.0):
     
     data = sio.loadmat('los_angeles_data_2.mat')
         
-    if not noisy:
-        links = data['links']
-        ODs1, ODs2, ODs3, ODs4 = data['ODs1'], data['ODs2'], data['ODs3'], data['ODs4']
-    else:
-        links = data['links_noisy']
-        ODs1, ODs2, ODs3, ODs4 = data['ODs1_noisy'], data['ODs2_noisy'], data['ODs3_noisy'], data['ODs4_noisy']
-        
+    links = data['links']
+    ODs1, ODs2, ODs3, ODs4 = data['ODs1'], data['ODs2'], data['ODs3'], data['ODs4']
+    if noise>0.0:
+        ODs1 = [(o, d, normal(f, noise*f)) for o,d,f in ODs1]
+        ODs2 = [(o, d, normal(f, noise*f)) for o,d,f in ODs2]
+        ODs3 = [(o, d, normal(f, noise*f)) for o,d,f in ODs3]
+        ODs4 = [(o, d, normal(f, noise*f)) for o,d,f in ODs4]
+        links = [(s, t, r, normal(d, noise*d), c) for s,t,r,d,c in links]
+      
     nodes = data['nodes']
     tmp = links
     links = []  
@@ -76,7 +80,7 @@ def los_angeles(parameters=None, delaytype='None', noisy=False):
 def main():
     #graph = small_example()
     theta = matrix([0.0, 0.0, 0.0, 0.15])
-    graph = los_angeles(theta, 'Polynomial')[0]
+    graph = los_angeles(theta, 'Polynomial', 1/15.0)[0]
     graph.visualize(True, True, True, True, True)
 
 if __name__ == '__main__':

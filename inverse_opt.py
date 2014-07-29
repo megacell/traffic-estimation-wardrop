@@ -26,7 +26,7 @@ def get_data(graphs):
     return Aeq, beqs, ffdelays, slopes
 
 
-def constraints(data, flow_vectors, degree):
+def constraints(data, ls, degree):
     """Construct constraints for the Inverse Optimization with polynomial delay
     delay at link i is D_i(x) = ffdelays[i]*(1 + sum^d_k=1 theta[k-1]*(slope[i]*x)^k)
     estimate the coefficients theta
@@ -34,7 +34,7 @@ def constraints(data, flow_vectors, degree):
     Parameters
     ----------
     data: data for the inverse optimization problem, given by get_data
-    flow_vectors: list of link flow vectors in equilibrium
+    ls: list of link flow vectors in equilibrium
     degree: degree of the polynomial function to estimate
         
     Return value
@@ -48,7 +48,7 @@ def constraints(data, flow_vectors, degree):
     b = matrix([ffdelays]*p*N)
     tmp1, tmp2 = matrix(0.0, (degree, 1)), matrix(0.0, (p*N*n, degree))
     tmp3, tmp4 = matrix(0.0, (p*n*N, m*N*p)), matrix(0.0, (p*m*N, 1))
-    for j, beq, linkflows in zip(range(N), beqs, flow_vectors): 
+    for j, beq, linkflows in zip(range(N), beqs, ls): 
         tmp5 = mul(slopes, linkflows)
         for deg in range(degree):
             tmp6 = mul(tmp5**(deg+1), ffdelays)
@@ -63,24 +63,19 @@ def constraints(data, flow_vectors, degree):
     return c, A, b
 
 
-def solver(graphs, flow_vectors, degree, smooth, data=None, full=False):
+def solver(data, ls, degree, smooth):
     """Solves the inverse optimization problem
     
     Parameters
     ----------
-    graphs: list of graphs with same geometry, different OD demands
-                 delay functions of links must contain ffdelays and slopes 
-    flow_vectors: list of link flow vectors in equilibrium
+    data: Aeq, beqs, ffdelays, slopes from get_data(graphs)
+    ls: list of link flow vectors in equilibrium
     degree: degree of the polynomial function to estimate
     smooth: regularization parameters on theta
-    full: if True, returns the full x
     """
-    if data is None: data = get_data(graphs)
-    c, A, b = constraints(data, flow_vectors, degree)
+    c, A, b = constraints(data, ls, degree)
     P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
-    sol = solvers.qp(P, c, G=A, h=b)
-    if full: return sol['x']
-    return sol['x'][range(degree)]
+    return solvers.qp(P, c, G=A, h=b)['x'][range(degree)]
 
 
 def x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs):
@@ -159,12 +154,12 @@ def compute_coefs(ffdelays, slopes, theta):
     return coefs
 
 
-def solver_mis(graphs, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3):
+def solver_mis(data, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3):
     """Solves the inverse optimization problem with missing values
     
     Parameters
     ----------
-    graphs: list of graphs with same geometry, different OD demands
+    data: Aeq, beqs, ffdelays, slopes from get_data(graphs)
     ls_obs: list of partially-observed link flow vectors in equilibrium
     obs: indlinks ids of observed links
     degree: degree of the polynomial function to estimate
@@ -172,16 +167,15 @@ def solver_mis(graphs, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3):
     soft: regularization parameter for soft constraints
     max_iter: maximum number of iterations
     """
-    data = get_data(graphs)
     Aeq, beqs, ffdelays, slopes = data
-    N, n = len(graphs), len(ffdelays)
+    N, n = len(beqs), len(ffdelays)
     p = Aeq.size[1]/n
     m = Aeq.size[0]/p
     theta = matrix(np.zeros(degree)); theta[0] = 1.0
     for k in range(max_iter):
         coefs = compute_coefs(ffdelays, slopes, theta)
         ls = [x_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j]) for j in range(N)]
-        theta = solver(graphs, ls, degree, smooth, data)
+        theta = solver(data, ls, degree, smooth)
     return theta
 
 """
@@ -197,3 +191,29 @@ for j in range(N):
         a[i] = coefs[i,:]*matrix(np.power(0.27*ls_old[j][i], range(degree)))
     ls.append(xy_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j], a))
 """
+
+def main_solver(graphs, ls_obs, obs, degree, betas, soft=1000.0, max_iter=3):
+    """Solves solve_mis with the best parameter
+    
+    Parameters
+    ----------
+    graphs: list of graphs
+    ls_obs: list of partially-observed link flow vectors in equilibrium
+    obs: indlinks ids of observed links
+    degree: degree of the polynomial function to estimate
+    betas: list of smoothing parameters 
+    soft: regularization parameter for soft constraints
+    max_iter: maximum number of iterations
+    """
+    data, n_obs = get_data(graphs), len(obs)
+    Aeq, beqs, ffdelays, slopes = data
+    type, N, min_e, n = 'Polynomial', len(beqs), np.inf, len(ffdelays)
+    for i in betas:
+        if n_obs < n: theta = solver_mis(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter)
+        if n_obs == n: theta = solver(data, ls_obs, degree, i*np.ones(degree))
+        coefs = compute_coefs(ffdelays, slopes, theta)
+        xs = [ue.solver(data=(Aeq, beqs[j], ffdelays, coefs, type)) for j in range(N)]
+        e = np.linalg.norm(matrix(ls_obs)-matrix([x[obs] for x in xs]))
+        if e < min_e:
+            best_beta, min_e, best_theta, best_xs = i, e, theta, xs
+    return best_theta, best_xs, best_beta

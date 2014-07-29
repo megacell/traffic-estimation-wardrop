@@ -238,6 +238,13 @@ class Graph:
             ks[i,0], ks[i,1] = link.delayfunc.k1, link.delayfunc.k2
         return ks
         
+        
+    def get_parameters(self):
+        """Get parameters of the graph"""
+        type = self.links.values()[0].delayfunc.type
+        if type == 'Polynomial': return self.get_coefs(), type
+        if type == 'Hyperbolic': return self.get_ks(), type
+        
     
     def update_linkflows_linkdelays(self, linkflows):
         """Update link flows and link delays in Graph object"""
