@@ -216,4 +216,5 @@ def main_solver(graphs, ls_obs, obs, degree, betas, soft=1000.0, max_iter=3):
         e = np.linalg.norm(matrix(ls_obs)-matrix([x[obs] for x in xs]))
         if e < min_e:
             best_beta, min_e, best_theta, best_xs = i, e, theta, xs
+    print best_theta
     return best_theta, best_xs, best_beta
