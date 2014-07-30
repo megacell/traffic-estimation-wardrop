@@ -110,22 +110,53 @@ def read_shapefile(path, delaytype='None', data=None, description=None):
     return graph, G, IDs
 
 
-def extract_ODs(pathin, pathout, IDs):
+def extract_ODs(pathin, pathout, IDs, k):
     """Extract ODs from .csv file
     
     Parameters
     ----------
-    in: path to the input file
-    out: path to the output file
+    pathin: path to the input file
+    pathout: path to the output file
     IDs: {MATSim link ID : graph link ID}
+    k: minimum number of routes in the group
     """
     file = open(pathout, "w")
     with open(pathin, 'rb') as f:
         reader = csv.reader(f)
         for row in reader:
-            if int(row[1])==0:
-                a,b = IDs[int(row[4].partition(' ')[0])][0], IDs[int(row[4].rpartition(' ')[-1])][1]
-                file.write('{},{}\n'.format(a,b))
+            a, b, c = int(row[1][1:-1].partition(', ')[0]), int(row[1][1:-1].rpartition(', ')[-1]), int(row[2])
+            if a!=b and c>=k: file.write('{},{},{}\n'.format(IDs[a][0], IDs[b][1], c))
+    file.close()
+                
+
+def extract_routes(pathin, pathout, IDs, k):
+    """Extract routes from .csv file
+    
+    Parameters
+    ----------
+    pathin: path to the input file
+    pathout: path to the output file
+    IDs: {MATSim link ID: graph link ID}
+    k: minimum number of routes in the group
+    """
+    file = open(pathout, "w")
+    with open(pathin, 'rb') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            a, b, c = int(row[1][1:-1].partition(', ')[0]), int(row[1][1:-1].rpartition(', ')[-1]), int(row[2])
+            if a!=b and c>=k:
+                try:
+                    iter, node_ids = 0, []
+                    for i in row[1][1:-1].split(', '):
+                        id = int(i)
+                        if iter==0: node_ids.append(IDs[id][0]); node_ids.append(IDs[id][1])
+                        if iter>0: node_ids.append(IDs[id][1])
+                        iter += 1
+                    iter = 0
+                    for id in node_ids: file.write('{},'.format(id))
+                    file.write('{}\n'.format(c))
+                except KeyError, e:
+                    print 'Oops!  That was no valid MATSim id. KeyError: {}'.format(e)
     file.close()
                 
 

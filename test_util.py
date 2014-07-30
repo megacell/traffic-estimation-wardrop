@@ -33,14 +33,15 @@ def test3():
     print G.number_of_selfloops() #return a list of nodes with selfloops
     print graph.numnodes
     print graph.numlinks
-    d.draw(graph, nodes=False)
-    #util.extract_ODs('ODs/OD_500k.csv', 'ODs/ODs.txt', IDs)
+    #d.draw(graph, nodes=False)
+    #util.extract_ODs('ODs/grouped_trajectories.csv', 'ODs/grouped_ODs.txt', IDs, 5)
+    util.extract_routes('ODs/grouped_trajectories.csv', 'ODs/grouped_routes.txt', IDs, 5)
 
 
 def main():
-    test1()
+    #test1()
     #test2()
-    #test3()
+    test3()
 
 
 if __name__ == '__main__':

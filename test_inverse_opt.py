@@ -125,7 +125,7 @@ def main():
     ind_obs[2] = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
     ind_obs[3] = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
     noise = 1/30.0
-    betas = [1e-4, 1e-2, 1e0, 1e2, 1e4, 1e6]
+    betas = [1e-2, 1e0, 1e2, 1e4, 1e6]
     for k in range(len(ind_obs)): test1(ind_obs[k], type, betas, noise)
     
 if __name__ == '__main__':
