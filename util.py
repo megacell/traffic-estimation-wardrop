@@ -108,38 +108,19 @@ def read_shapefile(path, delaytype='None', data=None, description=None):
             links.append((d[e[0]], d[e[1]], 1, ffdelay, (ffdelay, slope, coef)))
     graph = g.create_graph_from_list(nodes, links, delaytype, description=description)
     return graph, G, IDs
-
-
-def extract_ODs(pathin, pathout, IDs, k):
-    """Extract ODs from .csv file
-    
-    Parameters
-    ----------
-    pathin: path to the input file
-    pathout: path to the output file
-    IDs: {MATSim link ID : graph link ID}
-    k: minimum number of routes in the group
-    """
-    file = open(pathout, "w")
-    with open(pathin, 'rb') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            a, b, c = int(row[1][1:-1].partition(', ')[0]), int(row[1][1:-1].rpartition(', ')[-1]), int(row[2])
-            if a!=b and c>=k: file.write('{},{},{}\n'.format(IDs[a][0], IDs[b][1], c))
-    file.close()
                 
 
-def extract_routes(pathin, pathout, IDs, k):
+def extract_routes_ODs(pathin, pathout1, pathout2, IDs, k):
     """Extract routes from .csv file
     
     Parameters
     ----------
     pathin: path to the input file
-    pathout: path to the output file
+    pathout1: path to the output file
     IDs: {MATSim link ID: graph link ID}
     k: minimum number of routes in the group
     """
-    file = open(pathout, "w")
+    file = open(pathout1, "w")
     with open(pathin, 'rb') as f:
         reader = csv.reader(f)
         for row in reader:
@@ -152,12 +133,35 @@ def extract_routes(pathin, pathout, IDs, k):
                         if iter==0: node_ids.append(IDs[id][0]); node_ids.append(IDs[id][1])
                         if iter>0: node_ids.append(IDs[id][1])
                         iter += 1
-                    iter = 0
-                    for id in node_ids: file.write('{},'.format(id))
-                    file.write('{}\n'.format(c))
+                    if node_ids[0] != node_ids[-1]:
+                        for id in node_ids: file.write('{},'.format(id))
+                        file.write('{}\n'.format(c))
                 except KeyError, e:
                     print 'Oops!  That was no valid MATSim id. KeyError: {}'.format(e)
-    file.close()
+    
+    file = open(pathout2, "w")
+    with open(pathout1, 'rb') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            file.write('{},{},{}\n'.format(int(row[0]),int(row[-2]),int(row[-1])))
+    
+
+def add_ODs_from_csv(graph, pathin):
+    """Add ODs to graph object"""
+    with open(pathin, 'rb') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            graph.add_od(int(row[0]),int(row[1]),float(row[2]))
+
+
+def add_routes_from_csv(graph, pathin):
+    """Add routes to graph object"""
+    with open(pathin, 'rb') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            node_ids = [int(id) for id in row]
+            node_ids = node_ids[:-1]
+            graph.add_path_from_nodes(node_ids)
                 
 
 if __name__ == '__main__':

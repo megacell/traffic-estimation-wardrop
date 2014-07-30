@@ -132,18 +132,18 @@ class Graph:
         """Visualize graph"""
         if general:
             print 'Description: ', self.description
-            print 'Nodes: ', self.nodes
+            #print 'Nodes: ', self.nodes
             print 'Number of nodes: ', self.numnodes
-            print 'Links: ', self.links
+            #print 'Links: ', self.links
             print 'Number of links: ', self.numlinks
-            print 'OD pairs: ', self.ODs
+            #print 'OD pairs: ', self.ODs
             print 'Number of OD pairs: ', self.numODs
-            print 'Paths: ', self.paths
+            #print 'Paths: ', self.paths
             print 'Number of paths: ', self.numpaths
-            print 'Nodes\' position: ', self.nodes_position
-            print 'Link indexation', self.indlinks
-            print 'OD indexation', self.indods
-            print 'Path indexation', self.indpaths
+            #print 'Nodes\' position: ', self.nodes_position
+            #print 'Link indexation', self.indlinks
+            #print 'OD indexation', self.indods
+            #print 'Path indexation', self.indpaths
             print
   
         if nodes:

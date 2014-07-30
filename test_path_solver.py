@@ -139,8 +139,8 @@ def test1(delaytype):
 
 
 def main():
-    #test1('Hyperbolic')
-    test1('Polynomial')
+    test1('Hyperbolic')
+    #test1('Polynomial')
 
 
 if __name__ == '__main__':

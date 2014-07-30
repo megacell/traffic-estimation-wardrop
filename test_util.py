@@ -34,8 +34,10 @@ def test3():
     print graph.numnodes
     print graph.numlinks
     #d.draw(graph, nodes=False)
-    #util.extract_ODs('ODs/grouped_trajectories.csv', 'ODs/grouped_ODs.txt', IDs, 5)
-    util.extract_routes('ODs/grouped_trajectories.csv', 'ODs/grouped_routes.txt', IDs, 5)
+    #util.extract_routes_ODs('ODs/grouped_trajectories.csv', 'ODs/grouped_routes.csv', 'ODs/grouped_ODs.csv', IDs, 5)
+    util.add_ODs_from_csv(graph, 'ODs/processed_ODs.csv')
+    util.add_routes_from_csv(graph, 'ODs/grouped_routes.csv')
+    graph.visualize(True)
 
 
 def main():
