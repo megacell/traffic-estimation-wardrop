@@ -36,8 +36,8 @@ def display_results(true_linkflows, est_linkflows, true_theta, best_theta, delay
     if delaytype == 'Hyperbolic':
         a,b = true_theta
         true_vals = [1 - a/b + a/(b-x) for x in xdata]
-    plt.plot(xdata, vals, 'r', label='estimate')
-    plt.plot( xdata, true_vals, 'b', label='true')
+    plt.plot(xdata, vals, 'b', label='estimate')
+    plt.plot( xdata, true_vals, 'r', label='true')
     plt.xlabel('Link flow (1000 veh/h)')
     plt.ylabel('Delay')
     plt.title(r'Estimated delay function, error={:.3f}, beta={:.0e}'.format(error, beta))
@@ -62,63 +62,23 @@ def test1(indlinks_obs, delaytype, betas, noise=0.0):
     g1, g2, g3, g4, l1, l2, l3, l4 = get_graphs_linkflows(true_theta, delaytype=delaytype)
     obs = [g1.indlinks[id] for id in indlinks_obs]
     obs = [int(i) for i in list(np.sort(obs))]
+    x1,x2,x3,x4 = l1,l2,l3,l4
     if noise > 0.0:
-        l1, l2, l3, l4 = add_noise(l1,noise), add_noise(l2,noise), add_noise(l3,noise), add_noise(l4,noise)
+        x1, x2, x3, x4 = add_noise(l1,noise), add_noise(l2,noise), add_noise(l3,noise), add_noise(l4,noise)
         g1, g2, g3, g4 = los_angeles(true_theta, 'Polynomial', noise)
-    theta, xs, beta = invopt.main_solver([g1,g2,g3,g4], [l1[obs],l2[obs],l3[obs],l4[obs]], obs, degree, betas)
+    theta, xs, beta = invopt.main_solver([g1,g2,g3,g4], [x1[obs],x2[obs],x3[obs],x4[obs]], obs, degree, betas)
     display_results([l1,l2,l3,l4], xs, true_theta, theta, delaytype, beta)
+
+
+def test4(indlinks_obs, delaytype, betas, noise=0.0, trials):
+    pass
     
 
-def test2(delaytype):
-    """find smooth parameter using cross validation without noise and with all observations
-    avg(smooth) = [27.5]*6 for poly delays, avg(smooth) = [2.7]*6 for hyper delay functions
-    """
-    if delaytype == 'Polynomial': true_theta = coef
-    if delaytype == 'Hyperbolic': true_theta = (a,b)
-    g1, g2, g3, g4, l1, l2, l3, l4 = get_graphs_linkflows(true_theta, delaytype=delaytype)
-    gs, ls = [g1,g2,g3,g4], [l1,l2,l3,l4]
-    best_smooth = [0.0]*4
-    
-    for index in range(4):
-        min_error = np.inf
-        for i in [0.00001, 0.0001, 0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]:
-            theta = invopt.solver(gs[:index]+gs[index+1:], ls[:index]+ls[index+1:], degree, i*np.ones(degree))
-            l = get_graphs_linkflows(theta)[4+index]
-            error = np.linalg.norm(ls[index]-l)
-            if error < min_error: best_smooth[index], min_error = i, error    
-    print best_smooth
-    
-    
-def test3(indlinks_obs, faulty, noisy=False):
-    """Cross validation to find a sensor that has been attacked
-    results when obs = [(17,24),(24,40),(14,21),(16,23)] and (24,40) has been attacked
-    """
-    g1, g2, g3, g4, l1, l2, l3, l4 = get_graphs_linkflows(theta_true)
-    if noisy:
-        g1, g2, g3, g4 = los_angeles(theta_true, 'Polynomial', True)
-        l1, l2, l3, l4 = add_noise(l1, 1/30.0), add_noise(l2, 1/30.0), add_noise(l3, 1/30.0), add_noise(l4, 1/30.0)
-    faulty_id = g1.indlinks[faulty]
-    l1[faulty_id], l2[faulty_id], l3[faulty_id], l4[faulty_id] = 0.5*l1[faulty_id], 0.5*l2[faulty_id], 0.5*l3[faulty_id], 0.5*l4[faulty_id]
-    min_error = []
-    for k in range(len(indlinks_obs)):
-        indlinks = list(indlinks_obs)
-        del indlinks[k]
-        obs = [g1.indlinks[id] for id in indlinks]
-        min_e = np.inf
-        for i in [100.0, 1000.0]:
-            theta = invopt.solver_mis([g1, g2, g3, g4], [l1[obs], l2[obs], l3[obs], l4[obs]], 
-                          indlinks, degree, i*np.ones(degree))
-            g1, g2, g3, g4, x1, x2, x3, x4 = get_graphs_linkflows(theta, noisy)
-            e = np.linalg.norm(matrix([l1[obs],l2[obs],l3[obs],l4[obs]])-matrix([x1[obs],x2[obs],x3[obs],x4[obs]]))
-            if e < min_e: min_e = e
-        min_error.append(min_e)
-    print min_error
-    
 
 def main():
     
     type = 'Polynomial'
-    #type = 'Hyperbolic'
+    type = 'Hyperbolic'
     ind_obs = {}
     ind_obs[0] = graph.indlinks.keys()
     ind_obs[1] = [(36,37,1), (13,14,1), (17,8,1), (24,17,1), (28,22,1), (14,13,1), (17,24,1), (24,40,1), (14,21,1), (16,23,1)]
