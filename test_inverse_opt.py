@@ -123,14 +123,51 @@ def test3(delaytype, noise):
         display_results(mean_error, true_theta, thetas, delaytype, dev_error)
 
 
+def plot_errors():
+    """Display errorbars from results of esperiments"""
+    x = [100.0*i/60.0 for i in range(5)]
+    y1 = [0.002, 4.401, 8.276, 15.655, 21.224]
+    y2 = [0.057, 3.222, 6.901, 10.436, 14.643]
+    y3 = [6.428, 6.825, 8.050, 9.802, 12.071]
+    #y4 = [25.934, ]
+    y5 = [0.239, 4.795, 9.810, 12.713, 18.132]
+    y6 = [6.431, 6.493, 8.232, 11.177, 12.176]
+    y7 = [5.546, 6.223, 7.305, 8.664, 10.949]
+    yerr1 = [0, 1.390, 3.273, 4.183, 7.339]
+    yerr2 = [0, 1.036, 1.982, 3.265, 6.722]
+    yerr3 = [0, 0.736, 1.460, 2.643, 2.804]
+    #yerr4 = []
+    yerr5 = [0, 1.504, 2.814, 3.420, 6.918]
+    yerr6 = [0, 0.899, 1.930, 2.387, 2.150]
+    yerr7 = [0, 0.788, 1.280, 1.421, 1.483]
+    
+    plt.errorbar(x, y1, yerr=yerr1, fmt='-o')
+    plt.errorbar(x, y2, yerr=yerr2, fmt='-o')
+    plt.errorbar(x, y3, yerr=yerr3, fmt='-o')
+    plt.xlabel('Relative amount of standard deviation (%)')
+    plt.ylabel('l2-error')
+    plt.title('Mean error and standard deviation')
+    plt.show()
+    
+    plt.errorbar(x, y5, yerr=yerr5, fmt='-o')
+    plt.errorbar(x, y6, yerr=yerr6, fmt='-o')
+    plt.errorbar(x, y7, yerr=yerr7, fmt='-o')
+    plt.xlabel('Relative amount of standard deviation (%)')
+    plt.ylabel('l2-error')
+    plt.title('Mean error and standard deviation')
+    plt.show()
+
+
 def main():
     
     type = 'Polynomial'
     #type = 'Hyperbolic'
-    noise = 1/20.0
+    noise = 0.0
     #test1(type, noise)
-    test2(type, noise)
+    #test2(type, noise)
     #test3(type, noise)
+    plot_errors()
+    
     
 if __name__ == '__main__':
     main()
