@@ -255,10 +255,7 @@ class Graph:
         
     def update_pathdelays(self):
         """Update path delays in Graph object"""
-        for path in self.paths.values():
-            delay = 0.0
-            for link in path.links: delay += link.delay
-            path.delay = delay
+        for path in self.paths.values(): path.delay = sum([link.delay for link in path.links])
         
         
     def update_pathflows(self, pathflows):

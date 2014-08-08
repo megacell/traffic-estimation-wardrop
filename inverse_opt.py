@@ -244,8 +244,8 @@ def main_solver(graphs, ls_obs, obs, degree, betas, soft=1000.0, max_iter=3):
     Aeq, beqs, ffdelays, slopes = data
     type, N, min_e, n = 'Polynomial', len(beqs), np.inf, len(ffdelays)
     for i in betas:
-        #if n_obs < n: theta = solver_mis(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter)
-        if n_obs < n: theta = solver_mis_multi(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter, 4)
+        if n_obs < n: theta = solver_mis(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter)
+        #if n_obs < n: theta = solver_mis_multi(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter, 4)
         if n_obs == n: theta = solver(data, ls_obs, degree, i*np.ones(degree))
         coefs = compute_coefs(ffdelays, slopes, theta)
         xs = [ue.solver(data=(Aeq, beqs[j], ffdelays, coefs, type)) for j in range(N)]

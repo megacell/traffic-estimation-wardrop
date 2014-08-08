@@ -52,7 +52,7 @@ def solver_init(U,r):
     return x0
 
 
-def solver(graph, update=False, data=None):
+def solver(graph, update=False, data=None, SO=False):
     """Solve for the UE equilibrium using link-path formulation
     
     Parameters
@@ -73,8 +73,8 @@ def solver(graph, update=False, data=None):
     ffdelays = graph.get_ffdelays()
     if type == 'Polynomial':
         coefs = graph.get_coefs()
-        coefs_i = coefs * spdiag([1.0/(j+2) for j in range(coefs.size[1])])
-        parameters = matrix([[ffdelays], [coefs_i]])
+        if not SO: coefs = coefs * spdiag([1.0/(j+2) for j in range(coefs.size[1])])
+        parameters = matrix([[ffdelays], [coefs]])
         G = ue.objective_poly
     if type == 'Hyperbolic':
         ks = graph.get_ks()
@@ -89,7 +89,7 @@ def solver(graph, update=False, data=None):
         return f, Df*P, P.T*H*P    
     x = solvers.cp(F, G=A, h=b, A=U, b=r)['x']
     if update:
-        print 'Update link flows, delays in Graph.'; graph.update_linkflows_linkdelays(A*x)
+        print 'Update link flows, delays in Graph.'; graph.update_linkflows_linkdelays(P*x)
         print 'Update path delays in Graph.'; graph.update_pathdelays()
         print 'Update path flows in Graph object.'; graph.update_pathflows(x)
     return x

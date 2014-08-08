@@ -125,7 +125,7 @@ def objective_hyper(x, z, ks, p):
     for k in range(p): l += x[k*n:(k+1)*n]
     f, Df, H = 0.0, matrix(0.0, (1,n)), matrix(0.0, (n,1))
     for i in range(n):
-        f += ks[i,0]*l[i] - ks[i,1]*np.log(ks[i,2]-l[i])
+        f += ks[i,0]*l[i] - ks[i,1]*np.log(max(ks[i,2]-l[i], 1e-13))
         Df[i] = ks[i,0] + ks[i,1]/(ks[i,2]-l[i])
         H[i] = ks[i,1]/(ks[i,2]-l[i])**2
     Df = matrix([[Df]]*p)
@@ -141,7 +141,7 @@ def get_data(graph):
     return Aeq, beq, ffdelays, parameters, type
     
 
-def solver(graph=None, update=False, full=False, data=None):
+def solver(graph=None, update=False, full=False, data=None, SO=False):
     """Find the UE link flow
     
     Parameters
@@ -157,8 +157,8 @@ def solver(graph=None, update=False, full=False, data=None):
     p = Aeq.size[1]/n
     A, b = spmatrix(-1.0, range(p*n), range(p*n)), matrix(0.0, (p*n,1))
     if type == 'Polynomial':
-        coefs_i = pm * spdiag([1.0/(j+2) for j in range(pm.size[1])])
-        def F(x=None, z=None): return objective_poly(x, z, matrix([[ffdelays], [coefs_i]]), p)
+        if not SO: pm = pm * spdiag([1.0/(j+2) for j in range(pm.size[1])])
+        def F(x=None, z=None): return objective_poly(x, z, matrix([[ffdelays], [pm]]), p)
     if type == 'Hyperbolic':
         def F(x=None, z=None): return objective_hyper(x, z, matrix([[ffdelays-div(pm[:,0],pm[:,1])], [pm]]), p)
     x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']

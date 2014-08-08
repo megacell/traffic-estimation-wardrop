@@ -160,8 +160,8 @@ def plot_errors():
 
 def main():
     
-    type = 'Polynomial'
-    #type = 'Hyperbolic'
+    #type = 'Polynomial'
+    type = 'Hyperbolic'
     noise = 0.0
     test1(type, noise)
     #test2(type, noise)

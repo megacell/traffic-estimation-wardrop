@@ -123,24 +123,30 @@ paths = [[8,35,7,6,5],
 def test1(delaytype):
     if delaytype == 'Polynomial': theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
     if delaytype == 'Hyperbolic': theta = (3.5, 3.0)
-    graph = los_angeles(theta, delaytype)[0]
-    for p in paths: graph.add_path_from_nodes(p)
-    graph.visualize(general=True, ODs=True, links=True, paths=True)
-    P = path.linkpath_incidence(graph)
+    g = los_angeles(theta, delaytype)[3]
+    for p in paths: g.add_path_from_nodes(p)
+    g.visualize(general=True, ODs=True, links=True, paths=True)
+    P = path.linkpath_incidence(g)
     print P.size
-    U,r = path.simplex(graph)
+    U,r = path.simplex(g)
     print U.size
     print r.size
     print path.solver_init(U,r).size
-    l1 = ue.solver(graph)
-    l2 = P*path.solver(graph)
-    print abs(l1-l2)
+    l1 = ue.solver(g, update=True, SO=True)
+    d1 = sum([link.delay*link.flow for link in g.links.values()])
+    path_flows = path.solver(g, update=True, SO=True)
+    g.visualize(paths=True)
+    d2 = sum([p.delay*p.flow for p in g.paths.values()])
+    #print path_flows
+    l2 = P*path_flows
+    #print abs(l1-l2)
     print np.linalg.norm(l1 - l2)
+    print d1,d2
 
 
 def main():
-    test1('Hyperbolic')
-    #test1('Polynomial')
+    #test1('Hyperbolic')
+    test1('Polynomial')
 
 
 if __name__ == '__main__':
