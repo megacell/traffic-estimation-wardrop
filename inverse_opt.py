@@ -6,6 +6,7 @@ Created on Jun 6, 2014
 import ue_solver as ue
 import numpy as np
 from cvxopt import matrix, spmatrix, solvers, mul, spdiag
+from multiprocessing import Pool
 
 
 def get_data(graphs):
@@ -192,6 +193,40 @@ for j in range(N):
     ls.append(xy_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j], a))
 """
 
+
+def smm_helper(data):
+    """Helper function for solver_mis_multi"""
+    ffdelays, coefs, Aeq, beq, soft, obs, l_obs = data
+    return x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs)
+
+
+def solver_mis_multi(data, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3, processes=1):
+    """Solves the inverse optimization problem with missing values using several processes
+    
+    Parameters
+    ----------
+    data: Aeq, beqs, ffdelays, slopes from get_data(graphs)
+    ls_obs: list of partially-observed link flow vectors in equilibrium
+    obs: indlinks ids of observed links
+    degree: degree of the polynomial function to estimate
+    smooth: regularization parameter on theta
+    soft: regularization parameter for soft constraints
+    max_iter: maximum number of iterations
+    processes: number of processes
+    """
+    Aeq, beqs, ffdelays, slopes = data
+    N, n = len(beqs), len(ffdelays)
+    p = Aeq.size[1]/n
+    m = Aeq.size[0]/p
+    theta = matrix(np.zeros(degree)); theta[0] = 1.0
+    for k in range(max_iter):
+        coefs = compute_coefs(ffdelays, slopes, theta)
+        pool = Pool(processes=processes)
+        ls = pool.map(smm_helper, zip([ffdelays]*N, [coefs]*N, [Aeq]*N, beqs, [soft]*N, [obs]*N, ls_obs))
+        theta = solver(data, ls, degree, smooth)
+    return theta
+
+
 def main_solver(graphs, ls_obs, obs, degree, betas, soft=1000.0, max_iter=3):
     """Solves solve_mis with the best parameter
     
@@ -209,7 +244,8 @@ def main_solver(graphs, ls_obs, obs, degree, betas, soft=1000.0, max_iter=3):
     Aeq, beqs, ffdelays, slopes = data
     type, N, min_e, n = 'Polynomial', len(beqs), np.inf, len(ffdelays)
     for i in betas:
-        if n_obs < n: theta = solver_mis(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter)
+        #if n_obs < n: theta = solver_mis(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter)
+        if n_obs < n: theta = solver_mis_multi(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter, 4)
         if n_obs == n: theta = solver(data, ls_obs, degree, i*np.ones(degree))
         coefs = compute_coefs(ffdelays, slopes, theta)
         xs = [ue.solver(data=(Aeq, beqs[j], ffdelays, coefs, type)) for j in range(N)]
