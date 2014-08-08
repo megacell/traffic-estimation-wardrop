@@ -4,7 +4,7 @@ Created on Apr 25, 2014
 @author: jeromethai
 '''
 
-from test_graph import small_example, los_angeles
+from generate_graph import small_example, los_angeles
 import draw_graph as d
 import matplotlib.pyplot as plt
 

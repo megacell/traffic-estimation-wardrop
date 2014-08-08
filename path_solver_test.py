@@ -8,7 +8,9 @@ import numpy as np
 import ue_solver as ue
 import path_solver as path
 from cvxopt import matrix
-from test_graph import los_angeles
+from generate_graph import los_angeles
+import shortest_paths as sh
+
 
 paths = [[8,35,7,6,5],
              [8,35,7,6,12,5],
@@ -123,9 +125,15 @@ paths = [[8,35,7,6,5],
 def test1(delaytype):
     if delaytype == 'Polynomial': theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
     if delaytype == 'Hyperbolic': theta = (3.5, 3.0)
-    g = los_angeles(theta, delaytype)[3]
-    for p in paths: g.add_path_from_nodes(p)
-    g.visualize(general=True, ODs=True, links=True, paths=True)
+    g = los_angeles(theta, delaytype)[2]
+    #for p in paths: g.add_path_from_nodes(p)
+    for sink in [5,20,22]:
+        sources = [od[0] for od in g.ODs.keys() if od[1]==sink]
+        As = sh.mainKSP(g, sources, sink, 10)
+        for s in sources:
+            for p in As[s]: g.add_path_from_nodes(p)
+    g.visualize(general=True)
+    return
     P = path.linkpath_incidence(g)
     print P.size
     U,r = path.simplex(g)
@@ -135,7 +143,9 @@ def test1(delaytype):
     l1 = ue.solver(g, update=True, SO=True)
     d1 = sum([link.delay*link.flow for link in g.links.values()])
     path_flows = path.solver(g, update=True, SO=True)
-    g.visualize(paths=True)
+    #print [l.delay for l in g.links.values()]
+    #print [p.delay for p in g.paths.values()]
+    #g.visualize(paths=True)
     d2 = sum([p.delay*p.flow for p in g.paths.values()])
     #print path_flows
     l2 = P*path_flows

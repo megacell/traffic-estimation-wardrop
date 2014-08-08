@@ -7,7 +7,7 @@ Created on Jun 6, 2014
 import numpy as np
 import ue_solver as ue
 import inverse_opt as invopt
-from test_graph import los_angeles
+from generate_graph import los_angeles
 import matplotlib.pyplot as plt
 from cvxopt import matrix
 from util import add_noise

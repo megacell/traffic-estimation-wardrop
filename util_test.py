@@ -28,23 +28,6 @@ def test2():
 
 
 def test3():
-    """Read LA_shps_V2"""
-    theta = matrix([0.0, 0.0, 0.0, 0.15])
-    graph, G, IDs = util.read_shapefile('LA_shps_V2', 'Polynomial', theta, 'LA OSM network')
-    print G.number_of_nodes() #return the number of nodes in the graph
-    print G.number_of_edges() #return the number of edges b/w two nodes
-    print G.size() #return the number of edges
-    print G.number_of_selfloops() #return a list of nodes with selfloops
-    print graph.numnodes
-    print graph.numlinks
-    #d.draw(graph, nodes=False)
-    #util.extract_routes_ODs('ODs/grouped_trajectories.csv', 'ODs/grouped_routes.csv', 'ODs/grouped_ODs.csv', IDs, 5)
-    util.add_ODs_from_csv(graph, 'ODs/processed_ODs.csv')
-    util.add_routes_from_csv(graph, 'ODs/grouped_routes.csv')
-    graph.visualize(True)
-
-
-def test4():
     """Test multiprocessing"""
     start = time.clock()
     pool = Pool(processes=4)
@@ -57,7 +40,7 @@ def test4():
     print t1, t2
     
     
-def test5(b):
+def test4(b):
     """Test cvxopt and provide a function using cvxopt package for test6"""
     A = matrix([ [-1.0, -1.0, 0.0, 1.0], [1.0, -1.0, -1.0, -2.0] ])
     c = matrix([ 2.0, 1.0 ])
@@ -65,7 +48,7 @@ def test5(b):
     return sol['x']
     
 
-def test6():
+def test5():
     """Test cvxopt together with multiprocessing on Python, this works!"""
     b = matrix([ 1.0, -2.0, 0.0, 4.0 ])
     pool = Pool(processes=4)
@@ -76,9 +59,9 @@ def main():
     #print test1(4.0)
     #test2()
     #test3()
-    #test4()
-    #return test5(matrix([ 1.0, -2.0, 0.0, 4.0 ]))
-    test6()
+    #test3()
+    #return test4(matrix([ 1.0, -2.0, 0.0, 4.0 ]))
+    test5()
 
 
 if __name__ == '__main__':
