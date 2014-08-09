@@ -8,29 +8,28 @@ from cvxopt import matrix
 import numpy as np
 
 class Graph:
-    """A graph containing nodes and links"""
-    def __init__(self, description=None, nodes={}, links={}, ODs={}, paths={}, 
-                 numnodes=0, numlinks=0, numODs=0, numpaths=0, nodes_position={}, indlinks={}, indods={}, indpaths={}):
+    """Class Graph containing nodes, links, ODs, paths for traffic assignment"""
+    def __init__(self, description=None):
         self.description = description
-        self.nodes = nodes
-        self.links = links
-        self.ODs = ODs
-        self.paths = paths
-        self.numnodes = numnodes
-        self.numlinks = numlinks
-        self.numODs = numODs
-        self.numpaths = numpaths
-        self.nodes_position = nodes_position
-        self.indlinks = indlinks # indexation for matrix generations
-        self.indods = indods # indexation for matrix generations
-        self.indpaths = indpaths # indexation for matrix generations
+        self.nodes = {}
+        self.links = {}
+        self.ODs = {}
+        self.paths = {}
+        self.numnodes = 0
+        self.numlinks = 0
+        self.numODs = 0
+        self.numpaths = 0
+        self.nodes_position = {}
+        self.indlinks = {} # indexation for matrix generations
+        self.indods = {} # indexation for matrix generations
+        self.indpaths = {} # indexation for matrix generations
         
     
     def add_node(self, position=None):
         """Add a node with coordinates as a tuple"""
         self.numnodes += 1
         self.nodes_position[self.numnodes] = position
-        self.nodes[self.numnodes] = Node(position, inlinks={}, outlinks={}, startODs={}, endODs={})
+        self.nodes[self.numnodes] = Node(position)
         
         
     def add_nodes_from_list(self, list):
@@ -49,7 +48,7 @@ class Graph:
         if (startnode, endnode, route) in self.links:
             print 'ERROR: link ({},{},{}) already exists.'.format(startnode, endnode, route); return
         else:
-            link = Link(startnode, endnode, route, float(flow), float(delay), float(ffdelay), delayfunc, {})
+            link = Link(startnode, endnode, route, float(flow), float(delay), float(ffdelay), delayfunc)
             self.indlinks[(startnode, endnode, route)] = self.numlinks
             self.numlinks += 1
             self.links[(startnode, endnode, route)] = link
@@ -81,7 +80,7 @@ class Graph:
         else:
             self.indods[(origin, destination)] = self.numODs
             self.numODs += 1
-            od = OD(origin, destination, float(flow), {})
+            od = OD(origin, destination, float(flow))
             self.ODs[(origin, destination)] = od
             self.nodes[origin].startODs[(origin, destination)] = od
             self.nodes[destination].endODs[(origin, destination)] = od
@@ -265,7 +264,7 @@ class Graph:
     
 class Link:
     """A link in the graph"""
-    def __init__(self, startnode, endnode, route, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None, paths={}, numpaths=0):
+    def __init__(self, startnode, endnode, route, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None):
         self.startnode = startnode
         self.endnode = endnode
         self.route = route  #if multiple edges
@@ -273,18 +272,18 @@ class Link:
         self.delay = delay  #delay on the link
         self.ffdelay = ffdelay #free flow delay
         self.delayfunc = delayfunc
-        self.paths = paths  #set of paths passing through
-        self.numpaths = numpaths
+        self.paths = {}  #set of paths passing through
+        self.numpaths = 0
         
 
 class Node:
     """A node in the graph"""
-    def __init__(self, position, inlinks, outlinks, startODs, endODs):
+    def __init__(self, position):
         self.position = position
-        self.inlinks = inlinks
-        self.outlinks = outlinks
-        self.startODs = startODs   #set of OD pairs with origin at node
-        self.endODs = endODs   #set of OD pairs with destination at node 
+        self.inlinks = {}
+        self.outlinks = {}
+        self.startODs = {}   #set of OD pairs with origin at node
+        self.endODs = {}   #set of OD pairs with destination at node 
         
         
 class Path:
@@ -301,12 +300,12 @@ class Path:
         
 class OD:
     """OD pairs"""
-    def __init__(self, origin, destination, flow=0.0, paths={}, numpaths=0):
+    def __init__(self, origin, destination, flow=0.0):
         self.o = origin
         self.d = destination
         self.flow = flow
-        self.paths = paths # set of all paths for the OD pair
-        self.numpaths = numpaths
+        self.paths = {} # set of all paths for the OD pair
+        self.numpaths = 0
        
        
 class PolyDelay:
@@ -354,7 +353,7 @@ def create_delayfunc(type, parameters=None):
 def create_graph_from_list(list_nodes, list_links, delaytype, list_ods=None, description=None):
     """Create a graph from a list of of nodes and links
     """
-    graph = Graph(description, {},{},{},{},0,0,0,0,{},{},{},{})
+    graph = Graph(description)
     graph.add_nodes_from_list(list_nodes)
     graph.add_links_from_list(list_links, delaytype)
     if list_ods is not None: graph.add_ods_from_list(list_ods)

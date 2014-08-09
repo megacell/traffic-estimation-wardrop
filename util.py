@@ -7,7 +7,7 @@ import scipy.linalg as sla
 import scipy.io as sio
 import numpy as np
 from cvxopt import matrix
-from numpy.random import normal
+import numpy.random as ra
 import networkx as nx
 
 
@@ -60,7 +60,7 @@ def add_noise(A, a, tol=0.1):
     for i in range(m):
         for j in range(n):
             M[i,j] = A[i,j]
-            if M[i,j] > tol: M[i,j] = normal(A[i,j], a*A[i,j])
+            if M[i,j] > tol: M[i,j] = ra.normal(A[i,j], a*A[i,j])
     return M
 
 

@@ -28,8 +28,20 @@ def test_helper(demand, paths):
     d4 = sum([p.delay*p.flow for p in g.paths.values()])
     return l1,l2,l3,l4,d1,d2,d3,d4
     
+    
+def get_shortest_paths(g, K):
+    """Get the K-shortest paths for all the OD pairs in the graph with current delay
+    """
+    paths = []
+    for sink in [5,20,22]:
+        sources = [od[0] for od in g.ODs.keys() if od[1]==sink]
+        As = sh.mainKSP(g, sources, sink, K)
+        for s in sources:
+            for p in As[s]: paths.append(p)
+    return paths
+    
 
-def test1(SO, K, demand):
+def test1(SO, K, demand, ffdelays=False):
     """This experiment does the following tests:
     1. compute the UE/SO link flows using node-link formulation 
     2. get the link delays for the UE link flow
@@ -43,21 +55,18 @@ def test1(SO, K, demand):
     SO: if False, compute the UE, if True, compute the SO
     K: number of shortest paths
     demand: choice of OD demand
+    ffdelays: if True the k-shortest paths are obtained from ff delays
     """
     delaytype = 'Polynomial'
     theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
     g = los_angeles(theta, delaytype)[demand]
+    if ffdelays: paths = get_shortest_paths(g, K)
     l1 = ue.solver(g, update=True, SO=SO)
     d1 = sum([link.delay*link.flow for link in g.links.values()])
     if SO:
         for link in g.links.values():
             link.delay = link.ffdelay*(1+0.75*(link.flow*link.delayfunc.slope)**4)
-    paths = []
-    for sink in [5,20,22]:
-        sources = [od[0] for od in g.ODs.keys() if od[1]==sink]
-        As = sh.mainKSP(g, sources, sink, K)
-        for s in sources:
-            for p in As[s]: paths.append(p)
+    if not ffdelays: paths = get_shortest_paths(g, K)
     for p in paths: g.add_path_from_nodes(p)
     g.visualize(general=True)
     P = path.linkpath_incidence(g)
@@ -108,7 +117,38 @@ def test3(demand, return_paths=False):
     print len(paths)
     
 
-def test4():
+def test4(SO):
+    """
+    1. take the union for all optimum shortest paths
+    2. compute UE/SO using node-link and link-path formulation for all demands
+    3. compare results
+    """
+    paths, ls, ds = [], [], []
+    K = [2, 2, 2, 3]
+    if SO: K = [2, 2, 4, 7]
+    for i in range(4):
+        tmp = test1(SO, K[i], i)[2]
+        for p in tmp:
+            if p not in paths: paths.append(p)
+    theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
+    for i in range(4):
+        g = los_angeles(theta, 'Polynomial')[i]
+        for p in paths: g.add_path_from_nodes(p)
+        P = path.linkpath_incidence(g)
+        g.visualize(general=True)
+        l1 = ue.solver(g, update=True, SO=SO)
+        d1 = sum([link.delay*link.flow for link in g.links.values()])
+        l2 = P*path.solver(g, update=True, SO=SO)
+        d2 = sum([p.delay*p.flow for p in g.paths.values()])
+        ls.append([l1,l2])
+        ds.append([d1,d2])
+    for i in range(4):
+        print np.linalg.norm(ls[i][0] - ls[i][1])
+        print ds[i][0], ds[i][1]
+    print len(paths)
+
+
+def test5():
     """
     1. take the union of all optimum shortest paths for UE and SO for all demands
     2. compute UE and SO using node-link and link-path formulation for all demands
@@ -135,10 +175,11 @@ def test4():
 
 
 def main():  
-    #test1(False, 2, 0)
+    #test1(False, 12, 2, True)
     #test2()
     #test3(0)
-    test4()
+    test4(False)
+    #test5()
 
 
 if __name__ == '__main__':
