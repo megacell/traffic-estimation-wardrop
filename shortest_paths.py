@@ -33,13 +33,13 @@ def Dijkstra(graph, sink, sources=None):
         if len(S)==0: return dist,next
         Q.remove(u)
         for link in graph.nodes[u].inlinks.values():
-            v, alt = link.startnode, dist[u] + link.ffdelay
+            v, alt = link.startnode, dist[u] + link.delay
             if alt < dist[v]: dist[v] = alt; next[v] = u
     return dist, next
 
 
 def get_path(source, sink, next):
-    """Get shortest path from source to sink from next (given by Dijkstra)
+    """Get shortest path from source to sink from next (given by output of Dijkstra)
     
     Return value:
     -------------
@@ -68,57 +68,39 @@ def YenKSP(graph, source, sink, K, A0):
     {see http://en.wikipedia.org/wiki/Yen's_algorithm}
     """
     A, B, costs, j, tmp, k2 = [A0], {}, {}, 0, {}, 0
-    print 'start YenKSP with A0 =', A
     for k in range(K-1):
-        print '################## ITERATION k =', k
         for i in range(len(A[k2])-1):
             spurNode, rootPath = A[k2][i], A[k2][:i+1]
-            print '########## spurNode, rootPath =', spurNode, rootPath
             costRootPath = 0
             for l in range(i):
-                costRootPath += graph.links[(A[k2][l],A[k2][l+1],1)].ffdelay
-            #print 'costRootPath =', costRootPath
+                costRootPath += graph.links[(A[k2][l],A[k2][l+1],1)].delay
             for p in A:
                 if rootPath == p[:i+1]:
-                    print 'Found same rootpath: ', p
                     if (p[i],p[i+1],1) not in tmp.keys():
-                        print 'Remove ', (p[i],p[i+1])
                         link = graph.links[(p[i],p[i+1],1)]
-                        tmp[(p[i],p[i+1],1)] = link.ffdelay #save p.edge(i, i + 1)
-                        link.ffdelay = np.inf #remove p.edge(i, i + 1)
+                        tmp[(p[i],p[i+1],1)] = link.delay #save p.edge(i, i + 1)
+                        link.delay = np.inf #remove p.edge(i, i + 1)
             for node in rootPath:
-                print 'Make node unreachable: ', node 
                 for link in graph.nodes[node].inlinks.values():
                     if (link.startnode,node,1) not in tmp.keys():
-                        #print 'Remove ', (link.startnode,node)
-                        tmp[(link.startnode,node,1)] = link.ffdelay #save edge
-                        link.ffdelay = np.inf #remove edge
-            #print sink,spurNode
-            #print tmp
+                        tmp[(link.startnode,node,1)] = link.delay #save edge
+                        link.delay = np.inf #remove edge
             dist, next = Dijkstra(graph, sink, [spurNode])
             cost = costRootPath + dist[spurNode]
             if dist[spurNode] < np.inf and cost not in costs.values():
                 B[j] = rootPath[:-1] + get_path(spurNode, sink, next)
                 costs[j] = cost
-                print 'Add path to B with cost: ', B[j], costs[j]
                 j += 1
-            else:
-                print 'Do not path to B', 
-            print 'Restore paths and nodes'
-            for id,ffdelay in tmp.items(): graph.links[id].ffdelay = ffdelay
+            for id,delay in tmp.items(): graph.links[id].delay = delay
             tmp = {}
         if len(B) == 0: break
         min_cost = min(costs.values())
         for key,cost in costs.items():    
             if cost == min_cost:
-                print 'Found min cost path of B: ', B[key]
                 A.append(B[key]); k2+=1
-                print 'Add min cost path of B to A: ', B[key]
-                print 'A is now: ', A
                 del costs[key]
                 del B[key]
                 break
-        print 'B is now: ', B
     return A
                 
             
