@@ -103,6 +103,12 @@ def sample_line(N, line, scale):
     return l
 
 
+def in_box(point, box):
+    """Check if point (x,y) is in box (x1,y1,x2,y2)"""
+    x1,y1,x2,y2 = box
+    return x1<=point[0]<=x2 and y1<=point[1]<=y2
+
+
 if __name__ == '__main__':
     pass
     

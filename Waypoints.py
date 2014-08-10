@@ -6,9 +6,10 @@ Created on Aug 9, 2014
 
 import numpy as np
 import numpy.random as ra
-from util import sample_line, sample_box, create_networkx_graph
+from util import sample_line, sample_box, create_networkx_graph, in_box
 import networkx as nx    
 import matplotlib.pyplot as plt
+from math import floor
 
 
 class Waypoints:
@@ -20,16 +21,25 @@ class Waypoints:
         self.wp = {}
         
         
-    def closest_to_point(self, point):
+    def closest_to_point(self, point, fast=False):
         """Find closest waypoint to a point (x,y)"""
-        min = np.inf
-        for id,p in self.wp.items():
-            d = np.linalg.norm([point[0]-p[0], point[1]-p[1]])
-            if d < min: min, wp_id = d, id
+        min_dist = np.inf
+        if fast:
+            x1,y1,x2,y2 = self.geometry
+            res = self.partition[0]
+            w, h = (x2-x1)/res[0], (y2-y1)/res[1]
+            i = min(int(floor((point[0]-x1)/w)), res[0]-1)
+            j = min(int(floor((point[1]-y1)/h)), res[1]-1)
+            ids = self.partition[1][(i,j)]
+        else:
+            ids = self.wp.keys() #explore all ids
+        for id in ids:
+            d = np.linalg.norm([point[0]-self.wp[id][0], point[1]-self.wp[id][1]])
+            if d < min_dist: min_dist, wp_id = d, id
         return wp_id
         
         
-    def closest_to_line(self, directed_line, n):
+    def closest_to_line(self, directed_line, n, fast=False):
         """Find list of closest waypoints to a directed_line
         
         Parameters:
@@ -39,14 +49,14 @@ class Waypoints:
         """    
         x1,y1,x2,y2 = directed_line
         for k,t in enumerate(np.linspace(0,1,n)):
-            if k == 0: ids = [self.closest_to_point((x1,y1))]
+            if k == 0: ids = [self.closest_to_point((x1,y1), fast)]
             if k > 0:
-                id = self.closest_to_point((x1+t*(x2-x1), y1+t*(y2-y1)))
+                id = self.closest_to_point((x1+t*(x2-x1), y1+t*(y2-y1)), fast)
                 if id != ids[-1]: ids.append(id)
         return ids
 
 
-    def closest_to_polyline(self, polyline, n):
+    def closest_to_polyline(self, polyline, n, fast=False):
         """Find list of closest waypoints to a directed polyline
         
         Parameters:
@@ -56,15 +66,15 @@ class Waypoints:
         """
         ids = []
         for k, line in enumerate(polyline):
-            if k == 0: ids = self.closest_to_line(line, n)
+            if k == 0: ids = self.closest_to_line(line, n, fast)
             if k > 0:
-                tmp = self.closest_to_line(line, n)
+                tmp = self.closest_to_line(line, n, fast)
                 if ids[-1] == tmp[0]: ids += tmp[1:]
                 if ids[-1] != tmp[0]: ids += tmp
         return ids
     
     
-    def closest_to_path(self, graph, path_id, n):
+    def closest_to_path(self, graph, path_id, n, fast=False):
         """Find list of closest waypoints to a path in the graph
         
         Parameters:
@@ -78,7 +88,7 @@ class Waypoints:
             x1, y1 = graph.nodes_position[link.startnode]
             x2, y2 = graph.nodes_position[link.endnode]
             polyline.append((x1,y1,x2,y2))
-        return self.closest_to_polyline(polyline, n)
+        return self.closest_to_polyline(polyline, n, fast)
     
     
     def draw_waypoints(self, graph=None, wps=None, ps=None, path_id=None):
@@ -128,7 +138,7 @@ class Waypoints:
         plt.show()
  
 
-    def generate_wp_flows(self, graph, n, tol=1e-3):
+    def generate_wp_flows(self, graph, n, fast=False, tol=1e-3):
         """Generate Waypoint flows
         
         Parameters:
@@ -136,10 +146,12 @@ class Waypoints:
         graph: Graph object with path flows in it
         n: number of points to take on each link of paths
         """
-        wp_flow = {}
+        wp_flow, k = {}, 0
         for path_id, path in graph.paths.items():
             if path.flow > tol:
-                ids = self.closest_to_path(graph, path_id, n)
+                k += 1
+                if k%10 == 0: print 'Number of paths processed: ', k
+                ids = self.closest_to_path(graph, path_id, n, fast)
                 wp_flow[path_id] = (ids, path.flow)
         return wp_flow
      
@@ -148,6 +160,7 @@ class Rectangle(Waypoints):
     """Rectangle containing geo=(x1,y1,x2,y2), N waypoints, and a shape"""
     def __init__(self, geo):
         Waypoints.__init__(self, geo, 'Rectangle')
+        self.partition = None
         
     def populate(self, N, first=1):
         """Uniformly sample N points in rectangle
@@ -156,7 +169,27 @@ class Rectangle(Waypoints):
         ps = sample_box(N, self.geometry)
         self.wp = {id: p for id,p in enumerate(ps,first)}
         if self.shape == 'Bounding box': self.N0 = self.N
-
+        
+    def build_partition(self, res, margin):
+        """Build partition of the rectangle into cells such that
+        partition[(x1,y1,x2,y2)] = [wp_ids s.t. wp in (x1-w*margin, y1-h*margin, x2+w*margin, y2+h*margin)]
+        w, h width and length of one cell of the partition
+        
+        Parameters:
+        ----------
+        res: (n1, n2) s.t. the width is divided into n1 cells and the height into n2 cells
+        margin: margin around each cell
+        """
+        X1, Y1, X2, Y2 = self.geometry
+        w, h, partition = (X2-X1)/res[0], (Y2-Y1)/res[1], {}
+        for i in range(res[0]):
+            for j in range(res[1]):
+                x1, y1, x2, y2 = X1+i*w, Y1+j*h, X1+(i+1)*w, Y1+(j+1)*h
+                box = (x1-w*margin, y1-h*margin, x2+w*margin, y2+h*margin)
+                ids = [id for id,p in self.wp.items() if in_box(p,box)]
+                partition[(i,j)] = ids
+        self.partition = (res, partition)
+                
 
 class BoundingBox(Rectangle):
     """BoundingBox containing geo=(x1,y1,x2,y2), N waypoints, shape, lines, regions
@@ -203,7 +236,7 @@ class Line(Waypoints):
         self.wp = {id: p for id,p in enumerate(ps,first)}
 
 
-def sample_waypoints(graph, N0, N1, regions, margin):
+def sample_waypoints(graph, N0, N1, regions, margin=0.05):
     """Sample waypoints on graph
     
     Parameters:
