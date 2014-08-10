@@ -12,8 +12,10 @@ from generate_graph import los_angeles
 import shortest_paths as sh
 
 
+theta = matrix([0.0, 0.0, 0.0, 0.15])
+
+
 def test_helper(demand, paths):
-    theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
     g = los_angeles(theta, 'Polynomial')[demand]
     for p in paths: g.add_path_from_nodes(p)
     P = path.linkpath_incidence(g)
@@ -44,11 +46,11 @@ def get_shortest_paths(g, K):
 def test1(SO, K, demand, ffdelays=False):
     """This experiment does the following tests:
     1. compute the UE/SO link flows using node-link formulation 
-    2. get the link delays for the UE link flow
-    3. find the K-shortest paths for these delays/marginal delays
+    2. get the link delays for the UE/SO link flow
+    3. find the K-shortest paths for these delays/marginal delays (used ones under UE/SO)
     4. add these paths to the network
     5. compute the UE/SO path flows using link-path formulation
-    6. check if we get the same UE/SO
+    6. check if we get the same UE/SO link flow
     
     Parameters:
     -----------
@@ -58,7 +60,6 @@ def test1(SO, K, demand, ffdelays=False):
     ffdelays: if True the k-shortest paths are obtained from ff delays
     """
     delaytype = 'Polynomial'
-    theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
     g = los_angeles(theta, delaytype)[demand]
     if ffdelays: paths = get_shortest_paths(g, K)
     l1 = ue.solver(g, update=True, SO=SO)
@@ -77,7 +78,7 @@ def test1(SO, K, demand, ffdelays=False):
 
 
 def test2(tol=1.0):
-    """Find the minimum of k-shortest paths to get the same UE/SO solution
+    """Find the minimum of k-shortest paths to get the same UE/SO
     for both node-link and link-path formulations
     
     Results:     tol    0.1       1.0       10.0
@@ -98,7 +99,7 @@ def test2(tol=1.0):
 
 def test3(demand, return_paths=False):
     """For specific demand,
-    1. take the union of optimum shortest paths for UE and for SO
+    1. take the union of optimum shortest paths for UE and SO from link flow solutions
     2. compute the UE and SO using node-link and link-path formulation
     3. compare results
     """
@@ -117,9 +118,9 @@ def test3(demand, return_paths=False):
     print len(paths)
     
 
-def test4(SO):
+def find_UESOpaths(SO, return_paths=True):
     """
-    1. take the union for all optimum shortest paths
+    1. take the union for all optimum shortest paths for UE/SO
     2. compute UE/SO using node-link and link-path formulation for all demands
     3. compare results
     """
@@ -130,7 +131,7 @@ def test4(SO):
         tmp = test1(SO, K[i], i)[2]
         for p in tmp:
             if p not in paths: paths.append(p)
-    theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
+    if return_paths: return paths
     for i in range(4):
         g = los_angeles(theta, 'Polynomial')[i]
         for p in paths: g.add_path_from_nodes(p)
@@ -178,7 +179,7 @@ def main():
     #test1(False, 12, 2, True)
     #test2()
     #test3(0)
-    test4(False)
+    find_UESOpaths(False, False)
     #test5()
 
 

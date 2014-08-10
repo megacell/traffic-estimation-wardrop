@@ -6,41 +6,67 @@ Created on Aug 9, 2014
 
 import Waypoints as w
 from generate_graph import los_angeles
-
+from generate_paths import find_UESOpaths
+from cvxopt import matrix
+import path_solver as path
+import numpy as np
     
-def test1():
+theta = matrix([0.0, 0.0, 0.0, 0.15])
+    
+    
+def example():
     """First test to understand the utilization of waypoints"""
-    bbox = w.BoundingBox((0.0, 0.0, 1.0, 1.0))
-    bbox.populate(3)
-    print bbox.N
-    print bbox.wp
-    bbox.add_rectangle((0.0, 0.0, 0.1, 0.1), 3)
-    print bbox.N
-    print bbox.wp
-    print bbox.regions
-    print bbox.regions.values()[0].wp
-    print bbox.regions.values()[0].N
-    bbox.add_line((0.5, 0.5, 1.0, 1.0), 3, 0.1)
-    print bbox.N
-    print bbox.wp
-    print bbox.lines
-    print bbox.lines.values()[0].wp
-    print bbox.lines.values()[0].N
-    print bbox.N0
+    R = w.Rectangle((0.0, 0.0, 10.0, 10.0))
+    R.populate(100)
+    R.draw_waypoints()
+    L = w.Line((0.0, 0.0, 10.0, 10.0))
+    L.populate(100)
+    L.draw_waypoints()
+    point = (5.0, 5.0)
+    id = R.closest_to_point(point)
+    R.draw_waypoints(wps=[('b',[id],'closest')], ps=[('r',[point],'position')])
+    id = L.closest_to_point(point)
+    L.draw_waypoints(wps=[('b',[id],'closest')], ps=[('r',[point],'position')])
+    polyline = [(5.0, 0.0, 5.0, 5.0), ((5.0, 5.0, 10.0, 5.0))]
+    ids = R.closest_to_polyline(polyline, 100)
+    R.draw_waypoints(wps=[('b',ids,'closest')])
     
     
-def test2():
+def generate_wp(demand=3, draw=False):
     """Generate waypoints following the map of L.A. and draw the map"""
-    graph = los_angeles()[0]
-    WP = w.sample_waypoints(graph, 50, 100, [((3.5, 0.5, 6.5, 3.0), 50)], 0.05)
-    print len(WP.wp)
-    w.draw_waypoints(graph, WP)
+    graph = los_angeles(theta, 'Polynomial')[demand]
+    regions = [((3.5, 0.5, 6.5, 3.0), 50)]
+    WP = w.sample_waypoints(graph, 50, 100, regions, 0.05)
+    if draw: WP.draw_waypoints(graph)
+    return graph, WP
     
+    
+def test3(SO=False, demand=3):
+    """
+    1. Get used paths in UE/SO (see generate_paths module)
+    2. generate waypoints following the map of L.A.
+    3. Draw the closest waypoints to random path in the graph
+    """
+    g, WP = generate_wp(demand)
+    paths = find_UESOpaths(SO)
+    for p in paths: g.add_path_from_nodes(p)
+    g.visualize(general=True)
+    k = np.random.random_integers(0, g.numpaths-1)
+    path_id = g.paths.keys()[k]
+    ids = WP.closest_to_path(g, path_id, 20)
+    WP.draw_waypoints(g, [('r',ids,'closest')], path_id = path_id)
+    p_flow = path.solver(g, update=True, SO=SO)
+    wp_flow = WP.generate_wp_flows(g, 20)
+    print len(wp_flow), wp_flow
+    
+    
+#def test4(SO, ):
     
 
 def main():
-    #test1()
-    test2()
+    #example()
+    #generate_wp(draw=True)
+    test3()
 
 if __name__ == '__main__':
     main()
