@@ -6,6 +6,8 @@ Created on Jul 23, 2014
 
 import ue_solver as ue
 from cvxopt import matrix, spmatrix, spdiag, solvers, div
+import numpy.random as ra
+
 
 def linkpath_incidence(graph):
     """Returns matrix of incidence link-path
@@ -41,33 +43,47 @@ def simplex(graph):
     return spmatrix(1.0, I, J), r
 
 
-def solver_init(U,r):
+def solver_init(U,r, random=False):
+    """Initialize with a feasible point
+    
+    Parameters:
+    ---------
+    U: matrix of simplex constraints
+    r: matrix of OD flows
+    random: if true
+    """
     n,m = U.size
     x0 = matrix(0.0, (m,1))
     for i in range(n):
-        k = sum(U[i,:])
-        if k > 0.0:
-            for j in range(m):
-                if U[i,j] > 0.0: x0[j] = r[i]/k
+        k = int(sum(U[i,:]))
+        if random:
+            tmp = ra.rand(k)
+            tmp = r[i]*(tmp/sum(tmp))
+        else: tmp = [r[i]/k]*k
+        k = 0
+        for j in range(m):
+            if U[i,j] > 0.0: x0[j] = tmp[k]; k += 1
     return x0
 
 
-def solver(graph, update=False, data=None, SO=False):
+def solver(graph, update=False, data=None, SO=False, random=False):
     """Solve for the UE equilibrium using link-path formulation
     
     Parameters
     ----------
     graph: graph object
-    update: if update==True, update path flows in graph
+    update: if True, update link and path flows in graph
     data: (P,U,r) 
             P: link-path incidence matrix
             U,r: simplex constraints 
+    SO: if True compute SO
+    random: if True, initialize with a random feasible point
     """
     type = graph.links.values()[0].delayfunc.type
     if data is None:
         P = linkpath_incidence(graph)
         U,r = simplex(graph)
-    else: (P,U,r) = data
+    else: P,U,r = data
     m = graph.numpaths
     A, b = spmatrix(-1.0, range(m), range(m)), matrix(0.0, (m,1))
     ffdelays = graph.get_ffdelays()
@@ -81,7 +97,7 @@ def solver(graph, update=False, data=None, SO=False):
         parameters = matrix([[ffdelays-div(ks[:,0],ks[:,1])], [ks]])
         G = ue.objective_hyper
     def F(x=None, z=None):
-        if x is None: return 0, solver_init(U,r)
+        if x is None: return 0, solver_init(U,r,random)
         if z is None:
             f, Df = G(P*x, z, parameters, 1)
             return f, Df*P
@@ -93,3 +109,28 @@ def solver(graph, update=False, data=None, SO=False):
         print 'Update path delays in Graph.'; graph.update_pathdelays()
         print 'Update path flows in Graph object.'; graph.update_pathflows(x)
     return x
+
+
+def feasible_pathflows(graph, l_obs, obs=None, update=False, eq_constraints=None, random=False):
+    """Attempts to find feasible pathflows given partial of full linkflows
+    
+    Parameters:
+    ----------
+    graph: Graph object
+    l_obs: observations
+    obs: indices of the observed links
+    update: if True, update path flows in graph
+    random: if True, initialize with a random feasible point
+    """
+    P, n = linkpath_incidence(graph), graph.numpaths
+    if eq_constraints is None: U, r = simplex(graph)
+    else: U, r = eq_constraints
+    if obs is not None: P2 = P[obs,:]
+    C, d = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1))
+    x = solvers.qp(P2.trans()*P2, -P2.trans()*l_obs, C, d, U, r, initvals=solver_init(U,r,random))['x']
+    if update:
+        print 'Update link flows, delays in Graph.'; graph.update_linkflows_linkdelays(P*x)
+        print 'Update path delays in Graph.'; graph.update_pathdelays()
+        print 'Update path flows in Graph object.'; graph.update_pathflows(x)
+    return x
+    

@@ -5,11 +5,11 @@ Created on Aug 9, 2014
 '''
 
 import numpy as np
-import numpy.random as ra
 from util import sample_line, sample_box, create_networkx_graph, in_box
 import networkx as nx    
 import matplotlib.pyplot as plt
 from math import floor
+from cvxopt import matrix, spmatrix
 
 
 class Waypoints:
@@ -22,7 +22,8 @@ class Waypoints:
         
         
     def closest_to_point(self, point, fast=False):
-        """Find closest waypoint to a point (x,y)"""
+        """Find closest waypoint to a point (x,y)
+        Note: fast is only available in Rectangle class"""
         min_dist = np.inf
         if fast:
             x1,y1,x2,y2 = self.geometry
@@ -138,22 +139,33 @@ class Waypoints:
         plt.show()
  
 
-    def generate_wp_flows(self, graph, n, fast=False, tol=1e-3):
-        """Generate Waypoint flows
+    def get_wp_trajs(self, graph, n, fast=False, tol=1e-3):
+        """Compute Waypoint trajectories and returns {path_id: wp_ids}, [(wp_traj, path_list, flow)]
         
         Parameters:
         ----------
         graph: Graph object with path flows in it
         n: number of points to take on each link of paths
+        fast: if True do fast computation
         """
-        wp_flow, k = {}, 0
+        path_wps, k = {}, 0
         for path_id, path in graph.paths.items():
             if path.flow > tol:
                 k += 1
                 if k%10 == 0: print 'Number of paths processed: ', k
                 ids = self.closest_to_path(graph, path_id, n, fast)
-                wp_flow[path_id] = (ids, path.flow)
-        return wp_flow
+                path_wps[path_id] = ids
+        wps_list, paths_list, flows_list = [], [], []
+        for path_id, wps in path_wps.items():
+            try:
+                index = wps_list.index(wps)
+                paths_list[index].append(path_id)
+                flows_list[index] += graph.paths[path_id].flow
+            except ValueError:
+                wps_list.append(wps)
+                paths_list.append([path_id])
+                flows_list.append(graph.paths[path_id].flow)
+        return path_wps, zip(wps_list, paths_list, flows_list)
      
        
 class Rectangle(Waypoints):
@@ -236,7 +248,7 @@ class Line(Waypoints):
         self.wp = {id: p for id,p in enumerate(ps,first)}
 
 
-def sample_waypoints(graph, N0, N1, regions, margin=0.05):
+def sample_waypoints(graph, N0, N1, regions, scale, margin=0.05):
     """Sample waypoints on graph
     
     Parameters:
@@ -262,11 +274,25 @@ def sample_waypoints(graph, N0, N1, regions, margin=0.05):
         total_length += length
         lines.append([(xs,ys,xt,yt), length])
     weights = [line[1]/total_length for line in lines]
-    Ns = ra.multinomial(N1, weights, size=1)[0]
-    for k,line in enumerate(lines): WP.add_line(line[0], Ns[k], 0.1)
+    Ns = np.random.multinomial(N1, weights, size=1)[0]
+    for k,line in enumerate(lines): WP.add_line(line[0], Ns[k], scale)
     for r in regions: WP.add_rectangle(r[0], r[1])
     return WP
     
+
+def simplex(graph, wp_trajs):
+    """Build simplex constraints from waypoint trajectories wp_trajs
+    wp_trajs is given by WP.get_wp_trajs()[1]
+    """
+    I, J, r, i = [], [], matrix(0.0, (len(wp_trajs),1)), 0
+    for wp_traj, path_ids, flow in wp_trajs:
+        r[i] = flow
+        for id in path_ids:
+            I.append(i)
+            J.append(graph.indpaths[id])
+        i += 1
+    return spmatrix(1.0, I, J), r
+
 
 if __name__ == '__main__':
     pass

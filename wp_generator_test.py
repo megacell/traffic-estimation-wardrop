@@ -55,18 +55,19 @@ def fast_search1():
 def generate_wp(demand=3, draw=False):
     """Generate waypoints following the map of L.A. and draw the map"""
     graph = los_angeles(theta, 'Polynomial')[demand]
-    regions = [((3.5, 0.5, 6.5, 3.0), 50)]
-    WP = w.sample_waypoints(graph, 50, 100, regions)
+    regions = [((3.5, 0.5, 6.5, 3.0), 25)]
+    WP = w.sample_waypoints(graph, 25, 50, regions, 0.2)
+    WP.build_partition((16,8), 2.0)
     if draw: WP.draw_waypoints(graph)
     return graph, WP
     
     
 def fast_search2(SO=False, demand=3):
-    """
+    """Show the efficiency of fast search
     1. Get used paths in UE/SO (see generate_paths module)
     2. generate waypoints following the map of L.A.
     3. Draw the closest waypoints to random path in the graph
-    4. Compare against fast search
+    4. Compare against fast search cpu time
     """
     g, WP = generate_wp(demand)
     paths = find_UESOpaths(SO)
@@ -78,24 +79,26 @@ def fast_search2(SO=False, demand=3):
     ids = WP.closest_to_path(g, path_id, 20)
     print time.clock() - start
     WP.draw_waypoints(g, [('r',ids,'closest')], path_id = path_id)
-    WP.build_partition((16,8), 1.0)
     start = time.clock()
     ids = WP.closest_to_path(g, path_id, 20, True)
     print time.clock() - start
     WP.draw_waypoints(g, [('r',ids,'closest')], path_id = path_id)
     
     
-def compute_wp_flow(SO=False, demand=3):
-    """
+def compute_wp_flow(SO=False, demand=3, random=False):
+    """Compute waypoint flows
+    1. Get used paths in UE/SO (see generate_paths module)
+    2. generate waypoints following the map of L.A.
+    3. For each path, find closest waypoints
     """
     g, WP = generate_wp(demand)
     paths = find_UESOpaths(SO)
     for p in paths: g.add_path_from_nodes(p)
     g.visualize(general=True)
-    p_flow = path.solver(g, update=True, SO=SO)
-    WP.build_partition((16,8), 1.0)
-    wp_flow = WP.generate_wp_flows(g, 20, True)
-    print len(wp_flow), wp_flow
+    p_flow = path.solver(g, update=True, SO=SO, random=random)
+    path_wps, wp_trajs = WP.get_wp_trajs(g, 20, True)
+    print len(path_wps), path_wps
+    print len(wp_trajs), wp_trajs
     
     
 
@@ -103,8 +106,8 @@ def main():
     #example1()
     #fast_search1()
     #generate_wp(draw=True)
-    #fast_search2()
-    compute_wp_flow()
+    fast_search2()
+    #compute_wp_flow(random=True)
     
 
 if __name__ == '__main__':

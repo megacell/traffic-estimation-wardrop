@@ -43,7 +43,7 @@ def get_shortest_paths(g, K):
     return paths
     
 
-def test1(SO, K, demand, ffdelays=False):
+def get_paths(SO, K, demand, return_paths=True, ffdelays=False):
     """This experiment does the following tests:
     1. compute the UE/SO link flows using node-link formulation 
     2. get the link delays for the UE/SO link flow
@@ -57,10 +57,10 @@ def test1(SO, K, demand, ffdelays=False):
     SO: if False, compute the UE, if True, compute the SO
     K: number of shortest paths
     demand: choice of OD demand
+    return_paths: if True, return paths
     ffdelays: if True the k-shortest paths are obtained from ff delays
     """
-    delaytype = 'Polynomial'
-    g = los_angeles(theta, delaytype)[demand]
+    g = los_angeles(theta, 'Polynomial')[demand]
     if ffdelays: paths = get_shortest_paths(g, K)
     l1 = ue.solver(g, update=True, SO=SO)
     d1 = sum([link.delay*link.flow for link in g.links.values()])
@@ -68,6 +68,7 @@ def test1(SO, K, demand, ffdelays=False):
         for link in g.links.values():
             link.delay = link.ffdelay*(1+0.75*(link.flow*link.delayfunc.slope)**4)
     if not ffdelays: paths = get_shortest_paths(g, K)
+    if return_paths: return paths
     for p in paths: g.add_path_from_nodes(p)
     g.visualize(general=True)
     P = path.linkpath_incidence(g)
@@ -91,7 +92,7 @@ def test2(tol=1.0):
         best_k = []
         for i in range(4):
             for j in range(2,10):
-                d1,d2,paths = test1(SO, j, i)
+                d1,d2,paths = get_paths(SO, j, i, False)
                 if abs(d1-d2) < tol: best_k.append(j); break
         result.append(best_k)
         print result
@@ -104,8 +105,8 @@ def test3(demand, return_paths=False):
     3. compare results
     """
     K1, K2 = [2, 2, 2, 3], [2, 2, 4, 7]
-    paths = test1(False, K1[demand], demand)[2]
-    paths2 = test1(True, K2[demand], demand)[2]
+    paths = get_paths(False, K1[demand], demand)
+    paths2 = get_paths(True, K2[demand], demand)
     for p in paths2:
         if p not in paths: paths.append(p)
     if return_paths: return paths
@@ -118,17 +119,17 @@ def test3(demand, return_paths=False):
     print len(paths)
     
 
-def find_UESOpaths(SO, return_paths=True):
+def find_UESOpaths(SO, return_paths=True, random=False):
     """
     1. take the union for all optimum shortest paths for UE/SO
     2. compute UE/SO using node-link and link-path formulation for all demands
     3. compare results
     """
-    paths, ls, ds = [], [], []
+    paths, ls, ds, ps = [], [], [], []
     K = [2, 2, 2, 3]
     if SO: K = [2, 2, 4, 7]
     for i in range(4):
-        tmp = test1(SO, K[i], i)[2]
+        tmp = get_paths(SO, K[i], i)
         for p in tmp:
             if p not in paths: paths.append(p)
     if return_paths: return paths
@@ -139,14 +140,17 @@ def find_UESOpaths(SO, return_paths=True):
         g.visualize(general=True)
         l1 = ue.solver(g, update=True, SO=SO)
         d1 = sum([link.delay*link.flow for link in g.links.values()])
-        l2 = P*path.solver(g, update=True, SO=SO)
+        p_flows = path.solver(g, update=True, SO=SO, random=random)
+        l2 = P*p_flows
         d2 = sum([p.delay*p.flow for p in g.paths.values()])
         ls.append([l1,l2])
         ds.append([d1,d2])
+        ps.append(p_flows)
     for i in range(4):
         print np.linalg.norm(ls[i][0] - ls[i][1])
         print ds[i][0], ds[i][1]
     print len(paths)
+    print ps[3]
 
 
 def test5():
@@ -175,12 +179,38 @@ def test5():
     print paths
 
 
+def test_feasible_pathflows(SO, demand, random=False):
+    """Test function feasible_pathflows"""
+    paths = find_UESOpaths(SO)
+    g = los_angeles(theta, 'Polynomial')[demand]
+    l1 = ue.solver(g, update=True, SO=SO)
+    d1 = sum([link.delay*link.flow for link in g.links.values()])
+    for p in paths: g.add_path_from_nodes(p)
+    g.visualize(general=True)
+    P = path.linkpath_incidence(g)
+    l2 = P*path.solver(g, update=True, SO=SO, random=random)
+    d2 = sum([p.delay*p.flow for p in g.paths.values()])
+    ind_obs, ls, ds = {}, [], []
+    ind_obs[0] = g.indlinks.keys()
+    ind_obs[1] = [(36,37,1), (13,14,1), (17,8,1), (24,17,1), (28,22,1), (14,13,1), (17,24,1), (24,40,1), (14,21,1), (16,23,1)]
+    ind_obs[2] = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
+    ind_obs[3] = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
+    for i in range(len(ind_obs)):
+        obs = [g.indlinks[id] for id in ind_obs[i]]
+        obs = [int(i) for i in list(np.sort(obs))]
+        ls.append(P*path.feasible_pathflows(g, l1[obs], obs, True, random=random))
+        ds.append(sum([p.delay*p.flow for p in g.paths.values()]))
+    print d1,d2,ds
+    print np.linalg.norm(l1-l2), [np.linalg.norm(l1-ls[i]) for i in range(len(ind_obs))]
+
+
 def main():  
-    #test1(False, 12, 2, True)
+    #get_paths(False, 12, 2, False)
     #test2()
     #test3(0)
-    find_UESOpaths(False, False)
+    #find_UESOpaths(False, False, True)
     #test5()
+    test_feasible_pathflows(False, 3, False)
 
 
 if __name__ == '__main__':
