@@ -111,7 +111,7 @@ def solver(graph, update=False, data=None, SO=False, random=False):
     return x
 
 
-def feasible_pathflows(graph, l_obs, obs=None, update=False, eq_constraints=None, random=False):
+def feasible_pathflows(graph, l_obs, obs=None, update=False, eq_constraints=None):
     """Attempts to find feasible pathflows given partial of full linkflows
     
     Parameters:
@@ -120,14 +120,13 @@ def feasible_pathflows(graph, l_obs, obs=None, update=False, eq_constraints=None
     l_obs: observations
     obs: indices of the observed links
     update: if True, update path flows in graph
-    random: if True, initialize with a random feasible point
     """
     P, n = linkpath_incidence(graph), graph.numpaths
     if eq_constraints is None: U, r = simplex(graph)
     else: U, r = eq_constraints
     if obs is not None: P2 = P[obs,:]
-    C, d = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1))
-    x = solvers.qp(P2.trans()*P2, -P2.trans()*l_obs, C, d, U, r, initvals=solver_init(U,r,random))['x']
+    C, d, q = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1)), -P2.trans()*l_obs
+    x = solvers.qp(P2.trans()*P2, q, C, d, U, r)['x']
     if update:
         print 'Update link flows, delays in Graph.'; graph.update_linkflows_linkdelays(P*x)
         print 'Update path delays in Graph.'; graph.update_pathdelays()

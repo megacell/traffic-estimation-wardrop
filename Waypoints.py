@@ -10,6 +10,9 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from math import floor
 from cvxopt import matrix, spmatrix
+from rank_nullspace import rank
+from util import find_basis
+import path_solver as path
 
 
 class Waypoints:
@@ -248,7 +251,7 @@ class Line(Waypoints):
         self.wp = {id: p for id,p in enumerate(ps,first)}
 
 
-def sample_waypoints(graph, N0, N1, regions, scale, margin=0.05):
+def sample_waypoints(graph, N0, N1, scale, regions, margin=0.05):
     """Sample waypoints on graph
     
     Parameters:
@@ -280,18 +283,27 @@ def sample_waypoints(graph, N0, N1, regions, scale, margin=0.05):
     return WP
     
 
-def simplex(graph, wp_trajs):
+def simplex(graph, wp_trajs, withODs=False):
     """Build simplex constraints from waypoint trajectories wp_trajs
     wp_trajs is given by WP.get_wp_trajs()[1]
     """
-    I, J, r, i = [], [], matrix(0.0, (len(wp_trajs),1)), 0
+    n = len(wp_trajs)
+    I, J, r, i = [], [], matrix(0.0, (n,1)), 0
     for wp_traj, path_ids, flow in wp_trajs:
         r[i] = flow
         for id in path_ids:
             I.append(i)
             J.append(graph.indpaths[id])
         i += 1
-    return spmatrix(1.0, I, J), r
+    U = spmatrix(1.0, I, J, (n, graph.numpaths))
+    if not withODs: return U, r
+    else:
+        U1, r1 = path.simplex(graph)
+        U, r = matrix([U, U1]), matrix([r, r1])
+        if rank(U) < U.size[0]:
+            print 'Remove redundant constraint(s)'; ind = find_basis(U.trans())
+            return U[ind,:], r[ind]
+        return U, r
 
 
 if __name__ == '__main__':

@@ -127,7 +127,7 @@ class Graph:
         self.add_path(link_ids)
     
         
-    def visualize(self, general=False, nodes=False, links=False, ODs=False, paths=False, only_pos_flows=False, tol=1e-3):
+    def visualize(self, general=True, nodes=False, links=False, ODs=False, paths=False, only_pos_flows=False, tol=1e-3):
         """Visualize graph"""
         if general:
             print 'Description: ', self.description

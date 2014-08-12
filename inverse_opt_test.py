@@ -163,10 +163,10 @@ def main():
     type = 'Polynomial'
     #type = 'Hyperbolic'
     noise = 0.0
-    test1(type, noise)
+    #test1(type, noise)
     #test2(type, noise)
     #test3(type, noise)
-    #plot_errors()
+    plot_errors()
     
     
 if __name__ == '__main__':

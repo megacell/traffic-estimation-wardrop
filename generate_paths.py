@@ -126,8 +126,8 @@ def find_UESOpaths(SO, return_paths=True, random=False):
     3. compare results
     """
     paths, ls, ds, ps = [], [], [], []
-    K = [2, 2, 2, 3]
-    if SO: K = [2, 2, 4, 7]
+    K = [5,5,5,5] #[2, 2, 2, 3] #[2,3,3,4]
+    if SO: K = [2, 2, 4, 7] #[2,4,7,9]
     for i in range(4):
         tmp = get_paths(SO, K[i], i)
         for p in tmp:
@@ -150,7 +150,6 @@ def find_UESOpaths(SO, return_paths=True, random=False):
         print np.linalg.norm(ls[i][0] - ls[i][1])
         print ds[i][0], ds[i][1]
     print len(paths)
-    print ps[3]
 
 
 def test5():
@@ -194,11 +193,10 @@ def test_feasible_pathflows(SO, demand, random=False):
     ind_obs[0] = g.indlinks.keys()
     ind_obs[1] = [(36,37,1), (13,14,1), (17,8,1), (24,17,1), (28,22,1), (14,13,1), (17,24,1), (24,40,1), (14,21,1), (16,23,1)]
     ind_obs[2] = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
-    ind_obs[3] = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
     for i in range(len(ind_obs)):
         obs = [g.indlinks[id] for id in ind_obs[i]]
         obs = [int(i) for i in list(np.sort(obs))]
-        ls.append(P*path.feasible_pathflows(g, l1[obs], obs, True, random=random))
+        ls.append(P*path.feasible_pathflows(g, l1[obs], obs, True))
         ds.append(sum([p.delay*p.flow for p in g.paths.values()]))
     print d1,d2,ds
     print np.linalg.norm(l1-l2), [np.linalg.norm(l1-ls[i]) for i in range(len(ind_obs))]
@@ -208,9 +206,9 @@ def main():
     #get_paths(False, 12, 2, False)
     #test2()
     #test3(0)
-    #find_UESOpaths(False, False, True)
+    find_UESOpaths(False, False, True)
     #test5()
-    test_feasible_pathflows(False, 3, False)
+    #test_feasible_pathflows(False, 3, False)
 
 
 if __name__ == '__main__':

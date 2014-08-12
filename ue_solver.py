@@ -50,8 +50,10 @@ def nodelink_incidence(graph):
         for id2,link in node.outlinks.items(): entries.append(-1.0); I.append(id1-1); J.append(graph.indlinks[id2])
     C = spmatrix(entries, I, J, (m,n))
     M = matrix(C); r = rank(M)
-    if r < m: print 'Remove {} redundant constraint(s)'.format(m-r); ind = find_basis(M.trans())
-    return C[ind,:], ind
+    if r < m:
+        print 'Remove {} redundant constraint(s)'.format(m-r); ind = find_basis(M.trans())
+        return C[ind,:], ind
+    return C, range(m)
 
 
 def get_demands(graph, ind, node_id):

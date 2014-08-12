@@ -30,46 +30,48 @@ def example1():
     id = L.closest_to_point(point)
     L.draw_waypoints(wps=[('b',[id],'closest')], ps=[('r',[point],'position')])
     polyline = [(5.0, 0.0, 5.0, 5.0), ((5.0, 5.0, 10.0, 5.0))]
-    ids = R.closest_to_polyline(polyline, 100)
-    R.draw_waypoints(wps=[('b',ids,'closest')])
-    
-    
-def fast_search1():
-    """Example to show fast search"""
-    R = w.Rectangle((0.0, 0.0, 10.0, 10.0))
-    R.populate(100)
-    R.build_partition((6,6), 1.0)
-    print R.partition
-    print min(len(list) for list in R.partition[1].values())
-    polyline = [(5.0, 0.0, 5.0, 5.0), ((5.0, 5.0, 10.0, 5.0))]
     start = time.clock()
     ids = R.closest_to_polyline(polyline, 100)
-    print time.clock() - start
+    print 'Found the closest waypoints to polyline in: ', time.clock() - start
     R.draw_waypoints(wps=[('b',ids,'closest')])
+    start = time.clock()
+    R.build_partition((6,6), 1.0)
+    print 'Build a partition of the space in: ', time.clock() - start
+    print R.partition
     start = time.clock()
     ids = R.closest_to_polyline(polyline, 100, True)
-    print time.clock() - start
+    print 'Found the closest waypoints to polyline in: ',time.clock() - start
     R.draw_waypoints(wps=[('b',ids,'closest')])
     
     
-def generate_wp(demand=3, draw=False):
-    """Generate waypoints following the map of L.A. and draw the map"""
+def generate_wp(demand=3, data=None, draw=False):
+    """Generate waypoints following the map of L.A. and draw the map
+    
+    Parameters:
+    demand: OD demand
+    N0: number of background samples
+    N0: number of samples on links
+    regions: list of regions, regions[k] = (geometry, N_region) 
+    """
+    if data is None:
+        N0, N1, scale, regions, res, margin = 25, 50, 0.2, [((3.5, 0.5, 6.5, 3.0), 25)], (16,8), 2.0
+    else:
+        N0, N1, scale, regions, res, margin = data
     graph = los_angeles(theta, 'Polynomial')[demand]
-    regions = [((3.5, 0.5, 6.5, 3.0), 25)]
-    WP = w.sample_waypoints(graph, 25, 50, regions, 0.2)
-    WP.build_partition((16,8), 2.0)
+    WP = w.sample_waypoints(graph, N0, N1, scale, regions)
+    WP.build_partition(res, margin)
     if draw: WP.draw_waypoints(graph)
     return graph, WP
     
     
-def fast_search2(SO=False, demand=3):
+def fast_search(SO=False, data=None, demand=3):
     """Show the efficiency of fast search
     1. Get used paths in UE/SO (see generate_paths module)
     2. generate waypoints following the map of L.A.
     3. Draw the closest waypoints to random path in the graph
     4. Compare against fast search cpu time
     """
-    g, WP = generate_wp(demand)
+    g, WP = generate_wp(demand, data)
     paths = find_UESOpaths(SO)
     for p in paths: g.add_path_from_nodes(p)
     g.visualize(general=True)
@@ -85,29 +87,34 @@ def fast_search2(SO=False, demand=3):
     WP.draw_waypoints(g, [('r',ids,'closest')], path_id = path_id)
     
     
-def compute_wp_flow(SO=False, demand=3, random=False):
+def compute_wp_flow(SO=False, demand=3, random=False, data=None):
     """Compute waypoint flows
     1. Get used paths in UE/SO (see generate_paths module)
     2. generate waypoints following the map of L.A.
     3. For each path, find closest waypoints
     """
-    g, WP = generate_wp(demand)
+    g, WP = generate_wp(demand, data)
     paths = find_UESOpaths(SO)
     for p in paths: g.add_path_from_nodes(p)
     g.visualize(general=True)
     p_flow = path.solver(g, update=True, SO=SO, random=random)
     path_wps, wp_trajs = WP.get_wp_trajs(g, 20, True)
-    print len(path_wps), path_wps
-    print len(wp_trajs), wp_trajs
+    print len(path_wps), len(wp_trajs)
+    return g, p_flow, path_wps, wp_trajs
+    #print len(path_wps), path_wps
+    #print len(wp_trajs), wp_trajs
     
     
 
 def main():
     #example1()
-    #fast_search1()
-    #generate_wp(draw=True)
-    fast_search2()
-    #compute_wp_flow(random=True)
+    #data = (20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (12,6), 2.0)
+    #data = (10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (10,5), 2.0)
+    #data = (5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (6,3), 2.0)
+    data = (3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0)
+    generate_wp(data=data, draw=True)
+    #fast_search(data=data)
+    #compute_wp_flow(random=True, data=data)
     
 
 if __name__ == '__main__':
