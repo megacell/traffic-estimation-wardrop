@@ -5,12 +5,11 @@ Created on Jul 16, 2014
 '''
 
 import util
-from cvxopt import matrix, spmatrix
+from cvxopt import matrix, spmatrix, solvers
 import draw_graph as d
 import numpy as np
 from multiprocessing import Pool
 import time
-from cvxopt import matrix, solvers
 
 
 def test1(x):
@@ -52,7 +51,7 @@ def test5():
     """Test cvxopt together with multiprocessing on Python, this works!"""
     b = matrix([ 1.0, -2.0, 0.0, 4.0 ])
     pool = Pool(processes=4)
-    print pool.map(test5, [0.5*b, 1.0*b, 1.5*b, 2.0*b])
+    print pool.map(test4, [0.5*b, 1.0*b, 1.5*b, 2.0*b])
 
 
 def main():

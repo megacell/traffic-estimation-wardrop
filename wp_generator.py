@@ -44,7 +44,7 @@ def example1():
     R.draw_waypoints(wps=[('b',ids,'closest')])
     
     
-def generate_wp(demand=3, data=None, draw=False):
+def generate_wp(demand=3, data=None, draw=False, voronoi=False):
     """Generate waypoints following the map of L.A. and draw the map
     
     Parameters:
@@ -60,7 +60,7 @@ def generate_wp(demand=3, data=None, draw=False):
     graph = los_angeles(theta, 'Polynomial')[demand]
     WP = w.sample_waypoints(graph, N0, N1, scale, regions)
     WP.build_partition(res, margin)
-    if draw: WP.draw_waypoints(graph)
+    if draw: WP.draw_waypoints(graph, voronoi=voronoi)
     return graph, WP
     
     
@@ -84,7 +84,7 @@ def fast_search(SO=False, data=None, demand=3):
     start = time.clock()
     ids = WP.closest_to_path(g, path_id, 20, True)
     print time.clock() - start
-    WP.draw_waypoints(g, [('r',ids,'closest')], path_id = path_id)
+    WP.draw_waypoints(g, [('r',ids,'closest')], path_id = path_id, voronoi=True)
     
     
 def compute_wp_flow(SO=False, demand=3, random=False, data=None):
@@ -106,14 +106,17 @@ def compute_wp_flow(SO=False, demand=3, random=False, data=None):
     
     
 
+
+
 def main():
     #example1()
     #data = (20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (12,6), 2.0)
-    #data = (10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (10,5), 2.0)
+    data = (10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (10,5), 2.0)
     #data = (5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (6,3), 2.0)
-    data = (3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0)
-    generate_wp(data=data, draw=True)
-    #fast_search(data=data)
+    #data = (3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0)
+    #data = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
+    #generate_wp(data=data, draw=True, voronoi=False)
+    fast_search(data=data)
     #compute_wp_flow(random=True, data=data)
     
 

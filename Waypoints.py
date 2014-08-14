@@ -13,6 +13,7 @@ from cvxopt import matrix, spmatrix
 from rank_nullspace import rank
 from util import find_basis
 import path_solver as path
+import scipy.spatial as spa
 
 
 class Waypoints:
@@ -95,7 +96,7 @@ class Waypoints:
         return self.closest_to_polyline(polyline, n, fast)
     
     
-    def draw_waypoints(self, graph=None, wps=None, ps=None, path_id=None):
+    def draw_waypoints(self, graph=None, wps=None, ps=None, path_id=None, voronoi=False):
         """Draw waypoints and graph.
         Can specify specific waypoints, points, and path to draw
         
@@ -105,10 +106,19 @@ class Waypoints:
         wps: list [(color, list of waypoint_ids)] following matlab colorspec
         ps: list [(color, list of points)] following matlab colorspec
         path_id: path to draw
+        voronoi: if True, draw voronoi cells
         """
+        if voronoi:
+            vor = self.get_voronoi()
+            regions, vertices = voronoi_finite_polygons_2d(vor)
+            for region in regions:
+                polygon = vertices[region]
+                plt.fill(*zip(*polygon), fill=False, linestyle='dashed', color='r', linewidth=.5)
+            plt.xlim(vor.min_bound[0] - 0.1, vor.max_bound[0] + 0.1)
+            plt.ylim(vor.min_bound[1] - 0.1, vor.max_bound[1] + 0.1)
         if graph is not None:
             G, pos = create_networkx_graph(graph), graph.nodes_position
-            nx.draw_networkx_edges(G, pos, arrows=False)
+            nx.draw_networkx_edges(G, pos, arrows=False, width=1.5)
             if path_id is not None:
                 edges = [(link.startnode, link.endnode) for link in graph.paths[path_id].links]
                 nx.draw_networkx_edges(G, pos, edgelist=edges, width=7, alpha=0.5, edge_color='r', arrows=False)
@@ -116,31 +126,54 @@ class Waypoints:
             if self.N0 > 0:
                 xs = [self.wp[i+1][0] for i in range(self.N0)]
                 ys = [self.wp[i+1][1] for i in range(self.N0)]
-                plt.plot(xs, ys, 'co', label='uniform')
+                plt.plot(xs, ys, 'co', label='uniform', markersize=8.0)
             if len(self.lines) > 0:
                 xs = [p[0] for line in self.lines.values() for p in line.wp.values()]
                 ys = [p[1] for line in self.lines.values() for p in line.wp.values()]
-                plt.plot(xs, ys, 'mo', label='lines')
+                plt.plot(xs, ys, 'mo', label='lines', markersize=8.0)
             if len(self.regions) > 0:
                 xs = [p[0] for r in self.regions.values() for p in r.wp.values()]
                 ys = [p[1] for r in self.regions.values() for p in r.wp.values()]
-                plt.plot(xs, ys, 'go', label='regions')
+                plt.plot(xs, ys, 'go', label='regions', markersize=8.0)
         else:
             if self.N > 0:
                 xs = [self.wp[i+1][0] for i in range(self.N)]
                 ys = [self.wp[i+1][1] for i in range(self.N)]
-                plt.plot(xs, ys, 'co', label='uniform')
+                plt.plot(xs, ys, 'co', label='uniform', markersize=8.0)
         if wps is not None:
             for color, ids, label in wps:
                 xs, ys = [self.wp[id][0] for id in ids], [self.wp[id][1] for id in ids]
-                plt.plot(xs, ys, color+'o', label=label)
+                plt.plot(xs, ys, color+'o', label=label, markersize=8.0)
         if ps is not None:
             for color, ps, label in ps:
                 xs, ys = [p[0] for p in ps], [p[1] for p in ps]
-                plt.plot(xs, ys, color+'o', label=label)      
+                plt.plot(xs, ys, color+'o', label=label, markersize=8.0)
         plt.legend()
         plt.show()
- 
+    
+    
+    def get_voronoi(self):
+        points = []
+        if self.shape == 'Bounding box':
+            if self.N0 > 0:
+                xs = [self.wp[i+1][0] for i in range(self.N0)]
+                ys = [self.wp[i+1][1] for i in range(self.N0)]
+                for x,y in zip(xs,ys): points.append([x,y])
+            if len(self.lines) > 0:
+                xs = [p[0] for line in self.lines.values() for p in line.wp.values()]
+                ys = [p[1] for line in self.lines.values() for p in line.wp.values()]
+                for x,y in zip(xs,ys): points.append([x,y])
+            if len(self.regions) > 0:
+                xs = [p[0] for r in self.regions.values() for p in r.wp.values()]
+                ys = [p[1] for r in self.regions.values() for p in r.wp.values()]
+                for x,y in zip(xs,ys): points.append([x,y])
+        else:
+            if self.N > 0:
+                xs = [self.wp[i+1][0] for i in range(self.N)]
+                ys = [self.wp[i+1][1] for i in range(self.N)]
+                for x,y in zip(xs,ys): points.append([x,y])
+        return spa.Voronoi(np.array(points))
+    
 
     def get_wp_trajs(self, graph, n, fast=False, tol=1e-3):
         """Compute Waypoint trajectories and returns {path_id: wp_ids}, [(wp_traj, path_list, flow)]
@@ -304,6 +337,76 @@ def simplex(graph, wp_trajs, withODs=False):
             print 'Remove redundant constraint(s)'; ind = find_basis(U.trans())
             return U[ind,:], r[ind]
         return U, r
+
+
+def voronoi_finite_polygons_2d(vor, radius=None):
+    """
+    Reconstruct infinite voronoi regions in a 2D diagram to finite
+    regions.
+
+    Parameters
+    ----------
+    vor : Voronoi
+        Input diagram
+    radius : float, optional
+        Distance to 'points at infinity'.
+
+    Returns
+    -------
+    regions : list of tuples
+        Indices of vertices in each revised Voronoi regions.
+    vertices : list of tuples
+        Coordinates for revised Voronoi vertices. Same as coordinates
+        of input vertices, with 'points at infinity' appended to the
+        end.
+
+    """
+    if vor.points.shape[1] != 2:
+        raise ValueError("Requires 2D input")
+    new_regions = []
+    new_vertices = vor.vertices.tolist()
+    center = vor.points.mean(axis=0)
+    if radius is None:
+        radius = vor.points.ptp().max()
+    # Construct a map containing all ridges for a given point
+    all_ridges = {}
+    for (p1, p2), (v1, v2) in zip(vor.ridge_points, vor.ridge_vertices):
+        all_ridges.setdefault(p1, []).append((p2, v1, v2))
+        all_ridges.setdefault(p2, []).append((p1, v1, v2))
+    # Reconstruct infinite regions
+    for p1, region in enumerate(vor.point_region):
+        vertices = vor.regions[region]
+
+        if all(v >= 0 for v in vertices):
+            # finite region
+            new_regions.append(vertices)
+            continue
+        # reconstruct a non-finite region
+        ridges = all_ridges[p1]
+        new_region = [v for v in vertices if v >= 0]
+        for p2, v1, v2 in ridges:
+            if v2 < 0:
+                v1, v2 = v2, v1
+            if v1 >= 0:
+                # finite ridge: already in the region
+                continue
+            # Compute the missing endpoint of an infinite ridge
+            t = vor.points[p2] - vor.points[p1] # tangent
+            t /= np.linalg.norm(t)
+            n = np.array([-t[1], t[0]])  # normal
+            midpoint = vor.points[[p1, p2]].mean(axis=0)
+            direction = np.sign(np.dot(midpoint - center, n)) * n
+            far_point = vor.vertices[v2] + direction * radius
+            new_region.append(len(new_vertices))
+            new_vertices.append(far_point.tolist())
+        # sort region counterclockwise
+        vs = np.asarray([new_vertices[v] for v in new_region])
+        c = vs.mean(axis=0)
+        angles = np.arctan2(vs[:,1] - c[1], vs[:,0] - c[0])
+        new_region = np.array(new_region)[np.argsort(angles)]
+        # finish
+        new_regions.append(new_region.tolist())
+    return new_regions, np.asarray(new_vertices)
 
 
 if __name__ == '__main__':
