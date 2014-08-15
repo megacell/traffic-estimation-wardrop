@@ -6,7 +6,7 @@ Created on Apr 20, 2014
 
 import numpy as np
 from cvxopt import matrix, spmatrix, solvers, spdiag, mul, div
-from rank_nullspace import rank
+import rank_nullspace as rn
 from util import find_basis, place_zeros
 
 
@@ -49,7 +49,7 @@ def nodelink_incidence(graph):
         for id2,link in node.inlinks.items(): entries.append(1.0); I.append(id1-1); J.append(graph.indlinks[id2])
         for id2,link in node.outlinks.items(): entries.append(-1.0); I.append(id1-1); J.append(graph.indlinks[id2])
     C = spmatrix(entries, I, J, (m,n))
-    M = matrix(C); r = rank(M)
+    M = matrix(C); r = rn.rank(M)
     if r < m:
         print 'Remove {} redundant constraint(s)'.format(m-r); ind = find_basis(M.trans())
         return C[ind,:], ind

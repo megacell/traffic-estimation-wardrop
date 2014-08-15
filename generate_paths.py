@@ -59,6 +59,9 @@ def get_paths(SO, K, demand, return_paths=True, ffdelays=False):
     demand: choice of OD demand
     return_paths: if True, return paths
     ffdelays: if True the k-shortest paths are obtained from ff delays
+    
+    Return value:
+    ------------
     """
     g = los_angeles(theta, 'Polynomial')[demand]
     if ffdelays: paths = get_shortest_paths(g, K)
@@ -78,7 +81,7 @@ def get_paths(SO, K, demand, return_paths=True, ffdelays=False):
     return d1,d2,paths
 
 
-def test2(tol=1.0):
+def find_optimum_K(tol=1.0):
     """Find the minimum of k-shortest paths to get the same UE/SO
     for both node-link and link-path formulations
     
@@ -97,27 +100,6 @@ def test2(tol=1.0):
         result.append(best_k)
         print result
 
-
-def test3(demand, return_paths=False):
-    """For specific demand,
-    1. take the union of optimum shortest paths for UE and SO from link flow solutions
-    2. compute the UE and SO using node-link and link-path formulation
-    3. compare results
-    """
-    K1, K2 = [2, 2, 2, 3], [2, 2, 4, 7]
-    paths = get_paths(False, K1[demand], demand)
-    paths2 = get_paths(True, K2[demand], demand)
-    for p in paths2:
-        if p not in paths: paths.append(p)
-    if return_paths: return paths
-    l1,l2,l3,l4,d1,d2,d3,d4 = test_helper(demand, paths)
-    print np.linalg.norm(l1 - l2)
-    print d1,d2
-    print np.linalg.norm(l3 - l4)
-    print d3,d4
-    print paths
-    print len(paths)
-    
 
 def find_UESOpaths(SO, return_paths=True, random=False):
     """
@@ -152,32 +134,6 @@ def find_UESOpaths(SO, return_paths=True, random=False):
     print len(paths)
 
 
-def test5():
-    """
-    1. take the union of all optimum shortest paths for UE and SO for all demands
-    2. compute UE and SO using node-link and link-path formulation for all demands
-    3. compare results
-    """
-    paths = []
-    for i in range(4):
-        tmp = test3(i, True)
-        for p in tmp:
-            if p not in paths: paths.append(p)
-    ls, ds = [], []
-    for demand in range(4):
-        l1,l2,l3,l4,d1,d2,d3,d4 = test_helper(demand, paths)
-        ls.append([l1,l2,l3,l4])
-        ds.append([d1,d2,d3,d4])
-    for i in range(4):
-        print 'Results for demand ', i
-        print np.linalg.norm(ls[i][0] - ls[i][1])
-        print ds[i][0], ds[i][1]
-        print np.linalg.norm(ls[i][2] - ls[i][3])
-        print ds[i][2], ds[i][3]
-    print len(paths)
-    print paths
-
-
 def test_feasible_pathflows(SO, demand, random=False):
     """Test function feasible_pathflows"""
     paths = find_UESOpaths(SO)
@@ -204,10 +160,8 @@ def test_feasible_pathflows(SO, demand, random=False):
 
 def main():  
     #get_paths(False, 12, 2, False)
-    #test2()
-    #test3(0)
+    #find_optimum_K()
     find_UESOpaths(False, False, True)
-    #test5()
     #test_feasible_pathflows(False, 3, False)
 
 

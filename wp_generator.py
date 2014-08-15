@@ -48,13 +48,21 @@ def generate_wp(demand=3, data=None, draw=False, voronoi=False):
     """Generate waypoints following the map of L.A. and draw the map
     
     Parameters:
+    ----------
     demand: OD demand
     N0: number of background samples
-    N0: number of samples on links
-    regions: list of regions, regions[k] = (geometry, N_region) 
+    N1: number of samples on links
+    regions: list of regions, regions[k] = (geometry, N_region)
+    res: (n1, n2) s.t. the width is divided into n1 cells and the height into n2 cells
+    margin: margin around each cell
+    
+    Return value:
+    ------------
+    graph: Graph of L.A.
+    WP: waypoint object with waypoints following the map of L.A.
     """
     if data is None:
-        N0, N1, scale, regions, res, margin = 25, 50, 0.2, [((3.5, 0.5, 6.5, 3.0), 25)], (16,8), 2.0
+        N0, N1, scale, regions, res, margin = 20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (12,6), 2.0
     else:
         N0, N1, scale, regions, res, margin = data
     graph = los_angeles(theta, 'Polynomial')[demand]
@@ -88,10 +96,25 @@ def fast_search(SO=False, data=None, demand=3):
     
     
 def compute_wp_flow(SO=False, demand=3, random=False, data=None):
-    """Compute waypoint flows
-    1. Get used paths in UE/SO (see generate_paths module)
-    2. generate waypoints following the map of L.A.
-    3. For each path, find closest waypoints
+    """Generate map of L.A., UE path_flow, waypoint trajectories
+    1. Generate map of L.A. and waypoints with generate_wp
+    2. Get used paths in UE/SO (see generate_paths module)
+    3. generate waypoints following the map of L.A.
+    4. For each path, find closest waypoints
+    
+    Parameters:
+    ----------
+    SO: if True compute the SO
+    demand: OD demand
+    random: if True, generate random UE/SO paths
+    data: waypoint density (N0, N1, scale, regions, res, margin) inputs of generate_wp
+    
+    Return value:
+    -------------
+    g: Graph object of L.A.
+    p_flow: vector of path flows
+    path_wps: dictionary of paths with >tol flow with wp trajectory associated {path_id: wp_ids}
+    wp_trajs: list of waypoint trajectories with paths along this trajectory [(wp_traj, path_list, flow)]
     """
     g, WP = generate_wp(demand, data)
     paths = find_UESOpaths(SO)
@@ -103,9 +126,6 @@ def compute_wp_flow(SO=False, demand=3, random=False, data=None):
     return g, p_flow, path_wps, wp_trajs
     #print len(path_wps), path_wps
     #print len(wp_trajs), wp_trajs
-    
-    
-
 
 
 def main():
@@ -116,8 +136,8 @@ def main():
     #data = (3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0)
     #data = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
     #generate_wp(data=data, draw=True, voronoi=False)
-    fast_search(data=data)
-    #compute_wp_flow(random=True, data=data)
+    #fast_search(data=data)
+    compute_wp_flow(random=True, data=data)
     
 
 if __name__ == '__main__':

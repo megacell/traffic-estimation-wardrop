@@ -10,7 +10,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from math import floor
 from cvxopt import matrix, spmatrix
-from rank_nullspace import rank
+import rank_nullspace as rn
 from util import find_basis
 import path_solver as path
 import scipy.spatial as spa
@@ -153,6 +153,7 @@ class Waypoints:
     
     
     def get_voronoi(self):
+        """Construct voronoi paritioning the Waypoint object"""
         points = []
         if self.shape == 'Bounding box':
             if self.N0 > 0:
@@ -183,6 +184,12 @@ class Waypoints:
         graph: Graph object with path flows in it
         n: number of points to take on each link of paths
         fast: if True do fast computation
+        tol:
+        
+        Return value:
+        ------------
+        path_wps: dictionary of paths with >tol flow with wp trajectory associated {path_id: wp_ids}
+        wp_trajs: list of waypoint trajectories with paths along this trajectory [(wp_traj, path_list, flow)]
         """
         path_wps, k = {}, 0
         for path_id, path in graph.paths.items():
@@ -333,7 +340,7 @@ def simplex(graph, wp_trajs, withODs=False):
     else:
         U1, r1 = path.simplex(graph)
         U, r = matrix([U, U1]), matrix([r, r1])
-        if rank(U) < U.size[0]:
+        if rn.rank(U) < U.size[0]:
             print 'Remove redundant constraint(s)'; ind = find_basis(U.trans())
             return U[ind,:], r[ind]
         return U, r
