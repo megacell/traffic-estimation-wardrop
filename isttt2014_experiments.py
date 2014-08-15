@@ -84,9 +84,9 @@ def ration_wptrajs_usedpaths(trials=10, demand=3):
     for k in range(trials):
         for i in range(5):
             g, f_true, path_wps, wp_trajs = wp.compute_wp_flow(False, demand, True, data[i])
-            ratiosUE[i] += append(float(100*len(wp_trajs)) / len(path_wps))
+            ratiosUE[i] += float(100*len(wp_trajs)) / len(path_wps)
             g, f_true, path_wps, wp_trajs = wp.compute_wp_flow(True, demand, True, data[i])
-            ratiosSO[i] += append(float(100*len(wp_trajs)) / len(path_wps))
+            ratiosSO[i] += float(100*len(wp_trajs)) / len(path_wps)
     for i in range(5):
         ratiosUE[i] /= trials
         ratiosSO[i] /= trials
