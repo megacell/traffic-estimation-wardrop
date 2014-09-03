@@ -22,10 +22,11 @@ def draw(graph, link_ids=None, G=None, width=7, alpha=0.5, edge_color='r', nodes
     alpha: transparency of the highlights
     edge_color: color of the highlights
     """
+    m=graph.numnodes
     pos=graph.nodes_position
     if G is None: G = create_networkx_graph(graph)
     if nodes: 
-        nx.draw(G, pos)
+        nx.draw(G, pos, arrows=False, node_color='w')
     else: 
         nx.draw_networkx_edges(G, pos, arrows=False)
     if link_ids is not None:
@@ -63,7 +64,8 @@ def draw_delays(graph, linkflows=None, G=None, width=7, alpha=0.5, levels=[1.5, 
     """
     pos=graph.nodes_position
     if G is None: G = create_networkx_graph(graph)
-    nx.draw(G, pos)
+    #nx.draw(G, pos, arrows=False, node_color='w')
+    nx.draw_networkx_edges(G, pos, arrows=False)
     edgelists, colors = [[],[],[],[]], ['b', 'g', 'y', 'r']
     u = [f for f in levels]
     u.append(np.inf)

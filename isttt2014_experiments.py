@@ -79,7 +79,7 @@ def synthetic_data(data=None, SO=False, demand=3, N=10):
     return g, f_true, l, path_wps, wp_trajs, obs
 
 
-def ration_wptrajs_usedpaths(trials=10, demand=3):
+def ratio_wptrajs_usedpaths(trials=10, demand=3):
     ratiosUE, ratiosSO = [0.0]*5, [0.0]*5
     for k in range(trials):
         for i in range(5):
@@ -159,7 +159,7 @@ def run_experiments():
 
 
 def plot_results(mean_l_errors, mean_f_errors, std_l_errors, std_f_errors, numexp, SO, id):
-    
+    """Plot results of the experiment"""
     if SO: state = 'SO'
     else: state = 'UE'
     k = 1
@@ -298,7 +298,7 @@ def display_results():
     color = ['m', 'c', 'b', 'k', 'g']
     num_wps = [80, 40, 20, 10, 5]
     for i in range(5):
-        plt.plot(index, wpUE[i], '-o'+color[i], label='With {} waypoints'.format(num_wps[i]))
+        plt.plot(index, wpUE[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
     plt.title('Path flow errors for network in UE')
     plt.xlabel('Percentage of links observed (%)')
     plt.ylabel('Relative error')
@@ -308,7 +308,7 @@ def display_results():
     
     plt.plot(index, odSO, '-or', label='With OD flows')
     for i in range(5):
-        plt.plot(index, wpSO[i], '-o'+color[i], label='With {} waypoints'.format(num_wps[i]))
+        plt.plot(index, wpSO[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
     plt.title('Path flow errors for network in SO')
     plt.xlabel('Percentage of links observed (%)')
     plt.ylabel('Relative error')
@@ -360,7 +360,7 @@ def display_ranks():
         plt.plot(index, [round(used-j, 1) for j in ranks2[k]], '--r', label='With ODs')
         for i in range(5):
             data = [round(used-j, 1) for j in ranks[4*i+k]]
-            plt.plot(index, data, '-o'+color[i], label='With {} waypoints'.format(num_wps[i]))
+            plt.plot(index, data, '-o'+color[i], label='With {} cells'.format(num_wps[i]))
         plt.title('Network in '+state[k]+' '+ODs[k]+' ODs, dim: {}, used paths: {}'.format(dims[4*i+k], num_used[4*i+k]))
         plt.xlabel('Percentage of links observed (%)')
         plt.ylabel('Degrees of freedom')
@@ -369,13 +369,30 @@ def display_ranks():
     #print len(ranks)
 
 
+def display_ratios():
+    ratios1 = [96.59340659340658, 92.52747252747251, 75.27472527472527, 48.35164835164835, 21.318681318681318]
+    ratios2 = [92.6797385620915, 83.33333333333334, 59.28104575163398, 38.104575163398685, 14.11764705882353]
+    labels = ['5', '10', '20', '40', '80']
+    index = range(5)
+    plt.plot(index, ratios1[::-1], '-o', label='UE')
+    plt.plot(index, ratios2[::-1], '-o', label='SO')
+    plt.title('Number of Waypoints over number of used paths')
+    plt.xlabel('Number of cells')
+    plt.ylabel('Percentage')
+    plt.xticks(index, labels)
+    plt.legend(loc=0)
+    plt.show()
+    
+
+
 def main():
     #synthetic_data()
-    ration_wptrajs_usedpaths()
+    #ratio_wptrajs_usedpaths()
     #run_experiments()
     #display_results()
     #run_QP_ranks(False)
-    #display_ranks()
+    display_ranks()
+    #display_ratios()
 
 if __name__ == '__main__':
     main()

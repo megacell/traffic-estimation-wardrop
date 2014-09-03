@@ -27,8 +27,8 @@ def draw_los_angeles():
     #d.draw(graph)
     #d.draw(graph, link_ids)
     #d.draw(graph, nodes=False)
-    for k in range(4): d.draw(graph, link_ids[k], nodes=False)
-    #d.draw_ODs(graph, 22)
+    #for k in range(4): d.draw(graph, link_ids[k], nodes=False)
+    d.draw_ODs(graph, 22)
 
 
 def main():

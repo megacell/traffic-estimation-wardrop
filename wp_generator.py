@@ -130,14 +130,14 @@ def compute_wp_flow(SO=False, demand=3, random=False, data=None):
 
 def main():
     #example1()
-    #data = (20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (12,6), 2.0)
-    data = (10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (10,5), 2.0)
+    data = (20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (12,6), 2.0)
+    #data = (10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (10,5), 2.0)
     #data = (5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (6,3), 2.0)
     #data = (3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0)
     #data = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
     #generate_wp(data=data, draw=True, voronoi=False)
     #fast_search(data=data)
-    compute_wp_flow(random=True, data=data)
+    compute_wp_flow(SO=False, random=True, data=data)
     
 
 if __name__ == '__main__':
