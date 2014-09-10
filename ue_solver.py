@@ -112,14 +112,15 @@ def objective_poly(x, z, coefs, p, soft=0.0, obs=None, l_obs=None):
 
 def objective_hyper(x, z, ks, p):
     """Objective function of UE program with hyperbolic delay functions
-    f(x) = sum_i f_i(l_i) with l = sum_w x_w
+    f(x) = sum_i f_i(v_i) with v = sum_w x_w
     f_i(u) = ks[i,0]*u - ks[i,1]*log(ks[i,2]-u)
     
     Parameters
     ----------
     x,z: variables for the F(x,z) function for cvxopt.solvers.cp
     ks: matrix of size (n,3) 
-    p: number of w's
+    p: number of destinations
+    (we use multiple-sources single-sink node-arc formulation)
     """
     n = ks.size[0]
     if x is None: return 0, matrix(1.0/p, (p*n,1))
@@ -127,9 +128,37 @@ def objective_hyper(x, z, ks, p):
     for k in range(p): l += x[k*n:(k+1)*n]
     f, Df, H = 0.0, matrix(0.0, (1,n)), matrix(0.0, (n,1))
     for i in range(n):
+        tmp = 1.0/(ks[i,2]-l[i])
         f += ks[i,0]*l[i] - ks[i,1]*np.log(max(ks[i,2]-l[i], 1e-13))
-        Df[i] = ks[i,0] + ks[i,1]/(ks[i,2]-l[i])
-        H[i] = ks[i,1]/(ks[i,2]-l[i])**2
+        Df[i] = ks[i,0] + ks[i,1]*tmp
+        H[i] = ks[i,1]*tmp**2
+    Df = matrix([[Df]]*p)
+    if z is None: return f, Df
+    return f, Df, matrix([[spdiag(z[0] * H)]*p]*p)
+
+
+def objective_hyper_SO(x, z, ks, p):
+    """Objective function of SO program with hyperbolic delay functions
+    f(x) = \sum_i f_i(v_i) with v = sum_w x_w
+    f_i(u) = ks[i,0]*u + ks[i,1]*u/(ks[i,2]-u)
+    
+    Parameters
+    ----------
+    x,z: variables for the F(x,z) function for cvxopt.solvers.cp
+    ks: matrix of size (n,3) where ks[i,j] is the j-th parameter of the delay on link i
+    p: number of destinations
+    (we use multiple-sources single-sink node-arc formulation)
+    """
+    n = ks.size[0]
+    if x is None: return 0, matrix(1.0/p, (p*n,1))
+    l = matrix(0.0, (n,1))
+    for k in range(p): l += x[k*n:(k+1)*n]
+    f, Df, H = 0.0, matrix(0.0, (1,n)), matrix(0.0, (n,1))
+    for i in range(n):
+        tmp = 1.0/(ks[i,2]-l[i])
+        f += ks[i,0]*l[i] + ks[i,1]*l[i]*tmp
+        Df[i] = ks[i,0] + ks[i,1]*tmp + ks[i,1]*l[i]*tmp**2
+        H[i] = 2.0*ks[i,1]*tmp**2 + 2.0*ks[i,1]*l[i]*tmp**3
     Df = matrix([[Df]]*p)
     if z is None: return f, Df
     return f, Df, matrix([[spdiag(z[0] * H)]*p]*p)
@@ -162,7 +191,10 @@ def solver(graph=None, update=False, full=False, data=None, SO=False):
         if not SO: pm = pm * spdiag([1.0/(j+2) for j in range(pm.size[1])])
         def F(x=None, z=None): return objective_poly(x, z, matrix([[ffdelays], [pm]]), p)
     if type == 'Hyperbolic':
-        def F(x=None, z=None): return objective_hyper(x, z, matrix([[ffdelays-div(pm[:,0],pm[:,1])], [pm]]), p)
+        if SO:
+            def F(x=None, z=None): return objective_hyper_SO(x, z, matrix([[ffdelays-div(pm[:,0],pm[:,1])], [pm]]), p)
+        else:
+            def F(x=None, z=None): return objective_hyper(x, z, matrix([[ffdelays-div(pm[:,0],pm[:,1])], [pm]]), p)
     x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
     linkflows = matrix(0.0, (n,1))
     for k in range(p): linkflows += x[k*n:(k+1)*n]

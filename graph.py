@@ -261,6 +261,17 @@ class Graph:
         """Update path flows in Graph object"""
         for id,path in self.paths.items(): path.flow = pathflows[self.indpaths[id]]
         
+        
+    def get_interior_links(self):
+        """Get the ids of links in the interior of the graph"""
+        intnode_ids, intlk_ids = [], []
+        for id,node in self.nodes.items():
+            if len(node.inlinks.items()) == 1: intnode_ids.append(id)
+        for id,link in self.links.items():
+            if link.endnode not in intnode_ids and link.startnode not in intnode_ids:
+                intlk_ids.append(id)                
+        return intlk_ids
+        
     
 class Link:
     """A link in the graph"""

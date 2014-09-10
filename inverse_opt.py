@@ -227,7 +227,7 @@ def solver_mis_multi(data, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3,
     return theta
 
 
-def main_solver(graphs, ls_obs, obs, degree, betas, soft=1000.0, max_iter=3):
+def main_solver(graphs, ls_obs, obs, degree, betas=[1e-2, 1e0, 1e2, 1e4, 1e6], soft=1000.0, max_iter=3):
     """Solves solve_mis with the best parameter
     
     Parameters
@@ -249,7 +249,7 @@ def main_solver(graphs, ls_obs, obs, degree, betas, soft=1000.0, max_iter=3):
         if n_obs == n: theta = solver(data, ls_obs, degree, i*np.ones(degree))
         coefs = compute_coefs(ffdelays, slopes, theta)
         xs = [ue.solver(data=(Aeq, beqs[j], ffdelays, coefs, type)) for j in range(N)]
-        e = np.linalg.norm(matrix(ls_obs)-matrix([x[obs] for x in xs]))
+        e = np.linalg.norm(matrix(ls_obs)-matrix([x[obs] for x in xs]), 1)
         if e < min_e:
             best_beta, min_e, best_theta, best_xs = i, e, theta, xs
     print best_theta
