@@ -82,11 +82,6 @@ def experiment(indlinks_obs, delaytype, betas, noise=0.0, display=False, soft=10
         x1, x2, x3, x4 = add_noise(l1,noise), add_noise(l2,noise), add_noise(l3,noise), add_noise(l4,noise)
         g1, g2, g3, g4 = los_angeles(true_theta, 'Polynomial', noise)
     theta, xs, beta = invopt.main_solver([g1,g2,g3,g4], [x1[obs],x2[obs],x3[obs],x4[obs]], obs, degree, betas, soft)
-    intlk_ids = g1.get_interior_links()
-    intlk = [g1.indlinks[id] for id in intlk_ids]
-    intlk = [int(i) for i in list(np.sort(intlk))]
-    u = matrix([l1[intlk],l2[intlk],l3[intlk],l4[intlk]])
-    v = matrix([xs[0][intlk], xs[1][intlk], xs[2][intlk], xs[3][intlk]])
     u, v = matrix([l1,l2,l3,l4]), matrix(xs)
     error = np.linalg.norm(u-v, 1) / np.linalg.norm(u, 1)
     if display: display_results(error, true_theta, [theta], delaytype, beta)
