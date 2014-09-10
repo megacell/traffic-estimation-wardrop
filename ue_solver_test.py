@@ -30,14 +30,14 @@ def test2(delaytype):
     #d.draw_delays(g, x[2*n:])
     #print l
     print max(mul(l,g.get_slopes()))
-    print sum([link.delay*link.flow for link in g.links.values()])
+    print 'cost UE:', sum([link.delay*link.flow for link in g.links.values()])
     l2, x2 = ue.solver(g, update=True, full=True, SO=True)
     #d.draw_delays(g, x2[:n])
     #d.draw_delays(g, x2[n:2*n])
-    d.draw_delays(g, x2[2*n:])
+    #d.draw_delays(g, x2[2*n:])
     #print l2
     print max(mul(l2,g.get_slopes()))
-    print sum([link.delay*link.flow for link in g.links.values()])
+    print 'cost SO:', sum([link.delay*link.flow for link in g.links.values()])
 
 
 def main():

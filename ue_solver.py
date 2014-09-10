@@ -73,31 +73,31 @@ def get_demands(graph, ind, node_id):
     return d[ind]
 
 
-def objective_poly(x, z, coefs, p, soft=0.0, obs=None, l_obs=None):
+def objective_poly(x, z, ks, p, soft=0.0, obs=None, l_obs=None):
     """Objective function of UE program with polynomial delay functions
     f(x) = sum_i f_i(l_i) (+ 0.5*soft*||l[obs]-l_obs||^2)
-    f_i(u) = sum_{k=1}^degree coefs[i,k] u^k
+    f_i(u) = sum_{k=1}^degree ks[i,k] u^k
     with l = sum_w x_w
     
     Parameters
     ----------
     x,z: variables for the F(x,z) function for cvxopt.solvers.cp
-    coefs: matrix of size (n,degree) 
+    ks: matrix of size (n,degree) 
     p: number of w's
     soft: parameter
     obs: indices of the observed links
     l_obs: observations
     """
-    n, d = coefs.size
+    n, d = ks.size
     if x is None: return 0, matrix(1.0/p, (p*n,1))
     l = matrix(0.0, (n,1))
     for k in range(p): l += x[k*n:(k+1)*n]
     f, Df, H = 0.0, matrix(0.0, (1,n)), matrix(0.0, (n,1))
     for i in range(n):
         tmp = matrix(np.power(l[i],range(d+1)))
-        f += coefs[i,:] * tmp[1:]
-        Df[i] = coefs[i,:] * mul(tmp[:-1], matrix(range(1,d+1)))
-        H[i] = coefs[i,1:] * mul(tmp[:-2], matrix(range(2,d+1)), matrix(range(1,d)))
+        f += ks[i,:] * tmp[1:]
+        Df[i] = ks[i,:] * mul(tmp[:-1], matrix(range(1,d+1)))
+        H[i] = ks[i,1:] * mul(tmp[:-2], matrix(range(2,d+1)), matrix(range(1,d)))
     
     if soft != 0.0:
         num_obs, e = len(obs), l[obs]-l_obs

@@ -79,7 +79,7 @@ def solver(data, ls, degree, smooth):
     return solvers.qp(P, c, G=A, h=b)['x'][range(degree)]
 
 
-def x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs):
+def x_solver(ffdelays, coefs, Aeq, beq, soft=0.0, obs=None, l_obs=None):
     """
     optimization w.r.t. x_block
     
