@@ -19,6 +19,21 @@ def compute_delays(l, ffdelays, coefs):
     return delays
 
 
+def compute_cost(data, toll=None, SO=False):
+    """Compute (tolled) UE equilibrium or SO equilibrium
+    
+    Return value
+    ------------
+    total cost
+    linkflows
+    """
+    Aeq, beq, ffdelays, coefs, type = data
+    if toll is None: toll = 0.0
+    x = ue.solver(data=(Aeq, beq, ffdelays+toll, coefs, type), SO=SO)
+    delays = compute_delays(x, ffdelays, coefs)
+    return (delays.T*x)[0], x
+
+
 def ty_solver(data, l, w_so, w_toll):
     """Solves the block (t,y) of the toll pricing model
     
@@ -66,35 +81,30 @@ def solver(data, w_so, w_toll, max_iter=5):
     return toll
 
 
-def main_solver(graph, theta, ws_so, ws_toll, max_iter=5):
+def main_solver(graph, theta, ws=[1e-8, 1e-6, 1e-4, 1e-2, 1.0], max_iter=5):
     """Main solver for the toll pricing model
     
     Parameters
     ----------
     graph: Graph object
     theta: coefficients of polynomial graph
-    ws_so: list of weights on the SO objective
-    ws_toll: list of weights on the min toll collection objective
+    ws: list of weights on the toll pricing (suppose w_toll=w_so)
     max_iter: maximum number of iterations
     """
     ffdelays, slopes = graph.get_ffdelays(), graph.get_slopes()
     Aeq, beq = ue.constraints(graph)
     coefs = invopt.compute_coefs(ffdelays, slopes, theta)
     data = (Aeq, beq, ffdelays, coefs)
-    m, n = len(ws_so), len(ws_toll)
-    costs, tolls_collected = matrix(0.0, (m,n)), matrix(0.0, (m,n))
-    for i in range(m):
-        for j in range(n):
-            toll = solver(data, ws_so[i], ws_toll[j], max_iter)
-            x = ue.solver(data=(Aeq, beq, ffdelays+toll, coefs, 'Polynomial'))
-            costs[i,j] = (compute_delays(x, ffdelays, coefs).T*x)[0]
-            tolls_collected[i,j] = (toll.T*x)[0]
-    x = ue.solver(data=(Aeq, beq, ffdelays, coefs, 'Polynomial'))
-    UE_cost = (compute_delays(x, ffdelays, coefs).T*x)[0]
-    x = ue.solver(data=(Aeq, beq, ffdelays, coefs, 'Polynomial'), SO=True)
-    SO_cost = (compute_delays(x, ffdelays, coefs).T*x)[0]
-    print toll
-    return costs, tolls_collected, UE_cost, SO_cost
+    k, min_cost, toll_collected = len(ws), np.inf, 0.0
+    for i in range(k):
+        t = solver(data, ws[i], ws[i], max_iter)
+        cost, x = compute_cost((Aeq, beq, ffdelays, coefs, 'Polynomial'), t)
+        if cost < min_cost:
+            toll = t
+            min_cost = cost
+            toll_collected = (toll.T*x)[0]
+            weight = ws[i]
+    return toll, min_cost, toll_collected, weight
 
 
 if __name__ == '__main__':
