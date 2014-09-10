@@ -7,15 +7,20 @@ Created on Sep 9, 2014
 import numpy as np
 import ue_solver as ue
 import inverse_opt as invopt
-from cvxopt import matrix, spdiag, solvers
+from cvxopt import matrix, spdiag, solvers, div
 
 
-def compute_delays(l, ffdelays, coefs):
+def compute_delays(l, ffdelays, pm, type='Polynomial'):
     """Compute delays given linkflows l"""
-    n, d = coefs.size
+    n, d = pm.size
     delays = matrix(0.0, (n,1))
-    for i in range(n):
-        delays[i] = ffdelays[i] + coefs[i,:] * matrix(np.power(l[i],range(1,d+1)))
+    if type == 'Polynomial':
+        for i in range(n):
+            delays[i] = ffdelays[i] + pm[i,:] * matrix(np.power(l[i],range(1,d+1)))
+    if type == 'Hyperbolic':
+        ks = matrix([[ffdelays-div(pm[:,0],pm[:,1])], [pm]])
+        for i in range(n):
+            delays[i] = ks[i,0] + ks[i,1]/(ks[i,2]-l[i])
     return delays
 
 
@@ -27,10 +32,10 @@ def compute_cost(data, toll=None, SO=False):
     total cost
     linkflows
     """
-    Aeq, beq, ffdelays, coefs, type = data
+    Aeq, beq, ffdelays, pm, type = data
     if toll is None: toll = 0.0
-    x = ue.solver(data=(Aeq, beq, ffdelays+toll, coefs, type), SO=SO)
-    delays = compute_delays(x, ffdelays, coefs)
+    x = ue.solver(data=(Aeq, beq, ffdelays+toll, pm, type), SO=SO)
+    delays = compute_delays(x, ffdelays, pm, type)
     return (delays.T*x)[0], x
 
 
@@ -73,7 +78,7 @@ def solver(data, w_so, w_toll, max_iter=5):
     Aeq, beq, ffdelays, coefs = data
     n = len(ffdelays)
     p = Aeq.size[1]/n
-    toll = matrix(0.0, (n,1))
+    toll = matrix(100.0, (n,1))
     for k in range(max_iter):
         l = invopt.x_solver(ffdelays+(1.0+w_toll/(w_so+1))*toll, coefs, Aeq, beq)
         print (compute_delays(l, ffdelays, coefs).T*l)[0]
@@ -81,7 +86,7 @@ def solver(data, w_so, w_toll, max_iter=5):
     return toll
 
 
-def main_solver(graph, theta, ws=[1e-8, 1e-6, 1e-4, 1e-2, 1.0], max_iter=5):
+def main_solver(graph, theta, ws=[1e-6], max_iter=5):
     """Main solver for the toll pricing model
     
     Parameters
