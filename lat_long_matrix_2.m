@@ -242,4 +242,4 @@ ODs4 = [ODs(:,1:2), 1.2*ODs(:,3)];
 %plot(D(:,2),D(:,1),'.','MarkerSize',20)
 
 links = [links; [links(:,2), links(:,1), links(:,3:5)]];
-save('los_angeles_data_2.mat','nodes','links','ODs1','ODs2','ODs3','ODs4')
+%save('los_angeles_data_2.mat','nodes','links','ODs1','ODs2','ODs3','ODs4')
