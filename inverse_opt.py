@@ -7,6 +7,7 @@ import ue_solver as ue
 import numpy as np
 from cvxopt import matrix, spmatrix, solvers, mul, spdiag
 from multiprocessing import Pool
+import shortest_paths as sh
 
 
 def get_data(graphs):
@@ -64,7 +65,7 @@ def constraints(data, ls, degree):
     return c, A, b
 
 
-def solver(data, ls, degree, smooth):
+def solver(data, ls, degree, smooth, full=False):
     """Solves the inverse optimization problem
     
     Parameters
@@ -76,6 +77,7 @@ def solver(data, ls, degree, smooth):
     """
     c, A, b = constraints(data, ls, degree)
     P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
+    if full: solvers.qp(P, c, G=A, h=b)['x']
     return solvers.qp(P, c, G=A, h=b)['x'][range(degree)]
 
 
@@ -88,7 +90,7 @@ def x_solver(ffdelays, coefs, Aeq, beq, soft=0.0, obs=None, l_obs=None):
     ffdelays: matrix of freeflow delays from graph.get_ffdelays()
     coefs: matrix of coefficients from graph.get_coefs()
     Aeq, beq: equality constraints of the ue program
-    soft: parameter
+    soft: weight on the observation residual
     obs: indices of the observed links
     l_obs: observations
     """
@@ -200,7 +202,7 @@ def smm_helper(data):
     return x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs)
 
 
-def solver_mis_multi(data, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3, processes=1):
+def solver_mis_multi_thread(data, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3, processes=1):
     """Solves the inverse optimization problem with missing values using several processes
     
     Parameters
@@ -245,12 +247,90 @@ def main_solver(graphs, ls_obs, obs, degree, betas=[1e-2, 1e0, 1e2, 1e4, 1e6], s
     type, N, min_e, n = 'Polynomial', len(beqs), np.inf, len(ffdelays)
     for i in betas:
         if n_obs < n: theta = solver_mis(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter)
-        #if n_obs < n: theta = solver_mis_multi(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter, 4)
+        #if n_obs < n: theta = solver_mis_multi_thread(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter, 4)
         if n_obs == n: theta = solver(data, ls_obs, degree, i*np.ones(degree))
         coefs = compute_coefs(ffdelays, slopes, theta)
         xs = [ue.solver(data=(Aeq, beqs[j], ffdelays, coefs, type)) for j in range(N)]
         e = np.linalg.norm(matrix(ls_obs)-matrix([x[obs] for x in xs]), 1)
         if e < min_e:
             best_beta, min_e, best_theta, best_xs = i, e, theta, xs
-    print best_theta
+    print best_theta, min_e
     return best_theta, best_xs, best_beta
+
+
+def compute_scaling(graphs, ls_obs):
+    """Scale the objectives for multi-objective optimization
+    
+    Parameters
+    ----------
+    graphs: list of graphs
+    ls_obs: list of observed links
+    
+    Return value
+    ------------
+    scale: vector of scaling factor
+    scale[0]: scaling for the observation residual
+    scale[1]: scaling for the gap function
+    scale[2]: scaling for the regularization term
+    """
+    graph = graphs[0]
+    scale = matrix(0.0, (3,1))
+    scale[0] = 2.*np.linalg.norm(matrix(ls_obs),2)**-2
+    total_delay = 0.0
+    sinks = [id for id,node in graph.nodes.items() if len(node.endODs) > 0]
+    for t in sinks:
+        sources = [od[0] for od in graph.ODs.keys() if od[1]==t]
+        As = sh.mainKSP(graph, sources, t, 1)
+        for s,path in As.items():
+            delay = 0.0
+            for i in range(len(path[0])-1): delay += graph.links[(path[0][i],path[0][i+1],1)].delay
+            demand = 0.0
+            for g in graphs: demand += g.ODs[(s,t)].flow
+            total_delay += 5.*delay*demand
+    scale[1] = 1/total_delay
+    scale[2] = 1e-2 #suppose max theta[0] max 10 hence max ||theta||^2=100
+    return scale
+
+
+def multi_objective_solver(graphs, ls_obs, obs, degree, w_multi, w_reg, max_iter=3):
+    """Multi-objective optimization for the latency inference problem with the following weights:
+    w1: weight on the observation residual
+    w2: weight on the gap function
+    w1 + w2 = 1
+    
+    Parameters
+    ----------
+    graphs: list of graphs
+    ls_obs: list of partially-observed link flow vectors in equilibrium
+    obs: indlinks ids of observed links
+    degree: degree of the polynomial function to estimate
+    w_multi: list of values for the weights on the obs. and gap residuals
+    w_reg: list of weights on the regularization of theta
+    max_iter: maximum number of iterations
+    """
+    scale = compute_scaling(graphs, ls_obs)
+    print scale    
+    softs = [w/(1-w) for w in w_multi]
+    data = get_data(graphs)
+    Aeq, beqs, ffdelays, slopes = data
+    for soft in softs:
+        for i in w_reg:
+            theta = solver_mis(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter)
+    
+    
+    """
+    type, N, min_e, n = 'Polynomial', len(beqs), np.inf, len(ffdelays)
+    for i in betas:
+        if n_obs < n: theta = solver_mis(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter)
+        #if n_obs < n: theta = solver_mis_multi_thread(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter, 4)
+        if n_obs == n: theta = solver(data, ls_obs, degree, i*np.ones(degree))
+        coefs = compute_coefs(ffdelays, slopes, theta)
+        xs = [ue.solver(data=(Aeq, beqs[j], ffdelays, coefs, type)) for j in range(N)]
+        e = np.linalg.norm(matrix(ls_obs)-matrix([x[obs] for x in xs]), 1)
+        if e < min_e:
+            best_beta, min_e, best_theta, best_xs = i, e, theta, xs
+    print best_theta, min_e
+    return best_theta, best_xs, best_beta
+    """
+    
+    
