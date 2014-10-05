@@ -227,7 +227,7 @@ def solver_mis_multi_thread(data, ls_obs, obs, degree, smooth, soft=1000.0, max_
     N, n = len(beqs), len(ffdelays)
     p = Aeq.size[1]/n
     m = Aeq.size[0]/p
-    theta = matrix(np.zeros(degree)); theta[0] = 1.0
+    theta = matrix(np.zeros(degree)); theta[0] = 1.0 #initial theta
     for k in range(max_iter):
         coefs = compute_coefs(ffdelays, slopes, theta)
         pool = Pool(processes=processes)
@@ -265,24 +265,33 @@ def main_solver(graphs, ls_obs, obs, degree, betas=[1e-2, 1e0, 1e2, 1e4, 1e6], s
     return best_theta, best_xs, best_beta
 
 
-def compute_scaling(graphs, ls_obs):
+def compute_scaling(graphs, ls_obs, obs, data):
     """Scale the objectives for multi-objective optimization
     
     Parameters
     ----------
     graphs: list of graphs
     ls_obs: list of observed links
+    obs:
+    data:
+    degree:
     
     Return value
     ------------
     scale: vector of scaling factor
     scale[0]: scaling for the observation residual
     scale[1]: scaling for the gap function
-    scale[2]: scaling for the regularization term
     """
+    N = len(graphs)
+    scale = matrix(0.0, (2,1))
+    Aeq, beqs, ffdelays, slopes = data
+    theta = matrix([1.0]) #initial theta
+    coefs = compute_coefs(ffdelays, slopes, theta)
+    type = 'Polynomial'
+    xs = [ue.solver(data=(Aeq, beqs[k], ffdelays, coefs, type)) for k in range(N)]
+    scale[0] = 2.*np.linalg.norm(matrix(ls_obs)-matrix([x[obs] for x in xs]),2)**-2
+    
     graph = graphs[0]
-    scale = matrix(0.0, (3,1))
-    scale[0] = 2.*np.linalg.norm(matrix(ls_obs),2)**-2
     total_delay = 0.0
     sinks = [id for id,node in graph.nodes.items() if len(node.endODs) > 0]
     for t in sinks:
@@ -295,12 +304,20 @@ def compute_scaling(graphs, ls_obs):
             for g in graphs: demand += g.ODs[(s,t)].flow
             total_delay += 5.*delay*demand
     scale[1] = 1/total_delay
-    scale[2] = 1e-2 #suppose max theta[0] max 10 hence max ||theta||^2=100
     return scale
 
 
 def compute_gap(ls, ys, ks, beqs, scale):
-    """Compute the gap function"""
+    """Compute the gap function
+    
+    Parameters
+    ----------
+    ls: list of estimated link flows
+    ys: list of estimated dual variables
+    ks: matrix of size (n,degree) where ks[i,:] are the coefs of the polynomial delay on link i
+    beqs: 
+    scale: scaling factor for the gap function
+    """
     n, d = ks.size
     gap = 0.0
     for l,y,beq in zip(ls,ys,beqs):
@@ -308,11 +325,11 @@ def compute_gap(ls, ys, ks, beqs, scale):
         for i in range(n):
             tmp = matrix(np.power(l[i],range(1,d+1)))
             gap += ks[i,:] * tmp
-    return scale*gap
+    return scale*gap[0]
     
 
 
-def multi_objective_solver(graphs, ls_obs, obs, degree, w_multi, w_reg, max_iter=3):
+def multi_objective_solver(graphs, ls_obs, obs, degree, w_multi, max_iter=3):
     """Multi-objective optimization for the latency inference problem with the following weights:
     w1: weight on the observation residual
     w2: weight on the gap function
@@ -324,27 +341,20 @@ def multi_objective_solver(graphs, ls_obs, obs, degree, w_multi, w_reg, max_iter
     ls_obs: list of partially-observed link flow vectors in equilibrium
     obs: indlinks ids of observed links
     degree: degree of the polynomial function to estimate
-    w_multi: list of values for the weights on the obs. and gap residuals
-    w_reg: list of weights on the regularization of theta
+    w_multi: list of weights on the observation residual
     max_iter: maximum number of iterations
     """
-    scale = compute_scaling(graphs, ls_obs)
-    softs = [(scale[0]*w)/(scale[1]*(1-w)) for w in w_multi]
-    smooths = []
-    for w in w_multi: smooths.append([scale[2]*v/(scale[1]*(1-w)) for v in w_reg])
     data = get_data(graphs)
+    scale = compute_scaling(graphs, ls_obs, obs, data)
+    softs = [(scale[0]*w)/(scale[1]*(1-w)) for w in w_multi]
     Aeq, beqs, ffdelays, slopes = data
-    type, N, n = 'Polynomial', len(beqs), len(ffdelays)
-    r_gap = matrix(0.0, (len(w_reg), len(w_multi)))
-    r_obs = matrix(0.0, (len(w_reg), len(w_multi)))
-    x_est = {}
+    type, N = 'Polynomial', len(beqs)
+    r_gap, r_obs, x_est = [], [], []
     for j,soft in enumerate(softs):
-        smooth = smooths[j]
-        for i,reg in enumerate(smooth):
-            theta, ys, ls = solver_mis(data, ls_obs, obs, degree, reg*np.ones(degree), soft, max_iter, True)
-            coefs = compute_coefs(ffdelays, slopes, theta)
-            r_gap[i,j] = compute_gap(ls, ys, matrix([[ffdelays], [coefs]]), beqs, scale[1])
-            r_obs[i,j] = scale[0]*0.5*np.linalg.norm(matrix(ls_obs)-matrix([l[obs] for l in ls]), 2)**2
-            xs = [ue.solver(data=(Aeq, beqs[j], ffdelays, coefs, type)) for j in range(N)]
-            x_est[(i,j)] = matrix(xs) 
+        theta, ys, ls = solver_mis(data, ls_obs, obs, degree, 0.0*np.ones(degree), soft, max_iter, True)
+        coefs = compute_coefs(ffdelays, slopes, theta)
+        r_gap.append(compute_gap(ls, ys, matrix([[ffdelays], [coefs]]), beqs, scale[1]))
+        r_obs.append(scale[0]*0.5*np.linalg.norm(matrix(ls_obs)-matrix([l[obs] for l in ls]), 2)**2)
+        xs = [ue.solver(data=(Aeq, beqs[k], ffdelays, coefs, type)) for k in range(N)]
+        x_est.append(matrix(xs)) 
     return r_gap, r_obs, x_est

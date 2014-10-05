@@ -203,9 +203,9 @@ def main():
     ind_obs[2] = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
     ind_obs[3] = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
     
-    #test_toll_pricing(theta, True)
+    test_toll_pricing(theta, True)
     #two_step_test(ind_obs[3], 'Polynomial')
-    plot_results('Hyperbolic')
+    #plot_results('Hyperbolic')
     
     
 
