@@ -74,10 +74,11 @@ def solver(data, ls, degree, smooth, full=False):
     ls: list of link flow vectors in equilibrium
     degree: degree of the polynomial function to estimate
     smooth: regularization parameters on theta
+    full: if False, just return theta, if True, return the whole primal solution
     """
     c, A, b = constraints(data, ls, degree)
     P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
-    if full: solvers.qp(P, c, G=A, h=b)['x']
+    if full: return solvers.qp(P, c, G=A, h=b)['x']
     return solvers.qp(P, c, G=A, h=b)['x'][range(degree)]
 
 
@@ -157,7 +158,7 @@ def compute_coefs(ffdelays, slopes, theta):
     return coefs
 
 
-def solver_mis(data, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3):
+def solver_mis(data, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3, full=False):
     """Solves the inverse optimization problem with missing values
     
     Parameters
@@ -169,6 +170,7 @@ def solver_mis(data, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3):
     smooth: regularization parameter on theta
     soft: regularization parameter for soft constraints
     max_iter: maximum number of iterations
+    full: if False, just return theta 
     """
     Aeq, beqs, ffdelays, slopes = data
     N, n = len(beqs), len(ffdelays)
@@ -179,6 +181,11 @@ def solver_mis(data, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3):
         coefs = compute_coefs(ffdelays, slopes, theta)
         ls = [x_solver(ffdelays, coefs, Aeq, beqs[j], soft, obs, ls_obs[j]) for j in range(N)]
         theta = solver(data, ls, degree, smooth)
+    if full:
+        sol = solver(data, ls, degree, smooth, True)
+        theta = sol[range(degree)]
+        ys = [sol[j*m*p:((j+1)*m*p)] for j in range(N)]
+        return theta, ys, ls
     return theta
 
 """
@@ -292,6 +299,19 @@ def compute_scaling(graphs, ls_obs):
     return scale
 
 
+def compute_gap(ls, ys, ks, beqs, scale):
+    """Compute the gap function"""
+    n, d = ks.size
+    gap = 0.0
+    for l,y,beq in zip(ls,ys,beqs):
+        gap -= beq.T*y
+        for i in range(n):
+            tmp = matrix(np.power(l[i],range(1,d+1)))
+            gap += ks[i,:] * tmp
+    return scale*gap
+    
+
+
 def multi_objective_solver(graphs, ls_obs, obs, degree, w_multi, w_reg, max_iter=3):
     """Multi-objective optimization for the latency inference problem with the following weights:
     w1: weight on the observation residual
@@ -309,28 +329,22 @@ def multi_objective_solver(graphs, ls_obs, obs, degree, w_multi, w_reg, max_iter
     max_iter: maximum number of iterations
     """
     scale = compute_scaling(graphs, ls_obs)
-    print scale    
-    softs = [w/(1-w) for w in w_multi]
+    softs = [(scale[0]*w)/(scale[1]*(1-w)) for w in w_multi]
+    smooths = []
+    for w in w_multi: smooths.append([scale[2]*v/(scale[1]*(1-w)) for v in w_reg])
     data = get_data(graphs)
     Aeq, beqs, ffdelays, slopes = data
-    for soft in softs:
-        for i in w_reg:
-            theta = solver_mis(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter)
-    
-    
-    """
-    type, N, min_e, n = 'Polynomial', len(beqs), np.inf, len(ffdelays)
-    for i in betas:
-        if n_obs < n: theta = solver_mis(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter)
-        #if n_obs < n: theta = solver_mis_multi_thread(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter, 4)
-        if n_obs == n: theta = solver(data, ls_obs, degree, i*np.ones(degree))
-        coefs = compute_coefs(ffdelays, slopes, theta)
-        xs = [ue.solver(data=(Aeq, beqs[j], ffdelays, coefs, type)) for j in range(N)]
-        e = np.linalg.norm(matrix(ls_obs)-matrix([x[obs] for x in xs]), 1)
-        if e < min_e:
-            best_beta, min_e, best_theta, best_xs = i, e, theta, xs
-    print best_theta, min_e
-    return best_theta, best_xs, best_beta
-    """
-    
-    
+    type, N, n = 'Polynomial', len(beqs), len(ffdelays)
+    r_gap = matrix(0.0, (len(w_reg), len(w_multi)))
+    r_obs = matrix(0.0, (len(w_reg), len(w_multi)))
+    x_est = {}
+    for j,soft in enumerate(softs):
+        smooth = smooths[j]
+        for i,reg in enumerate(smooth):
+            theta, ys, ls = solver_mis(data, ls_obs, obs, degree, reg*np.ones(degree), soft, max_iter, True)
+            coefs = compute_coefs(ffdelays, slopes, theta)
+            r_gap[i,j] = compute_gap(ls, ys, matrix([[ffdelays], [coefs]]), beqs, scale[1])
+            r_obs[i,j] = scale[0]*0.5*np.linalg.norm(matrix(ls_obs)-matrix([l[obs] for l in ls]), 2)**2
+            xs = [ue.solver(data=(Aeq, beqs[j], ffdelays, coefs, type)) for j in range(N)]
+            x_est[(i,j)] = matrix(xs) 
+    return r_gap, r_obs, x_est

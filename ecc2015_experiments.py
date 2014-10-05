@@ -38,7 +38,25 @@ def experiment(indlinks_obs, delaytype, display=False):
     obs = [int(i) for i in list(np.sort(obs))]
     w_multi = [.01, .1, .5, .9, .99]
     w_reg = [1e-6, 1e-4, 1e-2, 1e0, 1e2]
-    invopt.multi_objective_solver([g1,g2,g3,g4], [x1[obs],x2[obs],x3[obs],x4[obs]], obs, degree, w_multi, w_reg)
+    r_gap, r_obs, x_est = invopt.multi_objective_solver([g1,g2,g3,g4], [x1[obs],x2[obs],x3[obs],x4[obs]], obs, degree, w_multi, w_reg)
+    print r_gap
+    print r_obs
+    m,n = r_gap.size
+    print m
+    print n
+    print x_est
+    r_est = matrix(0.0, (m,n))
+    u = matrix([x1,x2,x3,x4])
+    for i in range(m):
+        for j in range(n):
+            r_est[i,j] = np.linalg.norm(u-x_est[(i,j)], 1) / np.linalg.norm(u, 1)
+    print r_est
+    
+    
+def display_results():
+    """"""
+    
+    
     
 
 def test1(type):
@@ -50,7 +68,7 @@ def test1(type):
 
 
 def main():
-    type = 'Polynomial'
+    type = 'Hyperbolic'
     test1(type)
 
 
