@@ -73,9 +73,9 @@ def get_demands(graph, ind, node_id):
     return d[ind]
 
 
-def objective_poly(x, z, ks, p, soft=0.0, obs=None, l_obs=None):
+def objective_poly(x, z, ks, p, w_obs=0.0, obs=None, l_obs=None, w_gap=1.0):
     """Objective function of UE program with polynomial delay functions
-    f(x) = sum_i f_i(l_i) (+ 0.5*soft*||l[obs]-l_obs||^2)
+    f(x) = sum_i f_i(l_i) (+ 0.5*w_obs*||l[obs]-l_obs||^2)
     f_i(u) = sum_{k=1}^degree ks[i,k] u^k
     with l = sum_w x_w
     
@@ -84,7 +84,7 @@ def objective_poly(x, z, ks, p, soft=0.0, obs=None, l_obs=None):
     x,z: variables for the F(x,z) function for cvxopt.solvers.cp
     ks: matrix of size (n,degree) 
     p: number of w's
-    soft: parameter
+    w_obs: weight on the observation residual
     obs: indices of the observed links
     l_obs: observations
     """
@@ -98,12 +98,13 @@ def objective_poly(x, z, ks, p, soft=0.0, obs=None, l_obs=None):
         f += ks[i,:] * tmp[1:]
         Df[i] = ks[i,:] * mul(tmp[:-1], matrix(range(1,d+1)))
         H[i] = ks[i,1:] * mul(tmp[:-2], matrix(range(2,d+1)), matrix(range(1,d)))
+    if w_gap != 1.0: f, Df, H = w_gap*f, w_gap*Df, w_gap*H
     
-    if soft != 0.0:
+    if w_obs > 0.0:
         num_obs, e = len(obs), l[obs]-l_obs
-        f += 0.5*soft*e.T*e
-        Df += soft*spmatrix(e, [0]*num_obs, obs, (1,n))
-        H += spmatrix([soft]*num_obs, obs, [0]*num_obs, (n,1))
+        f += 0.5*w_obs*e.T*e
+        Df += w_obs*spmatrix(e, [0]*num_obs, obs, (1,n))
+        H += spmatrix([w_obs]*num_obs, obs, [0]*num_obs, (n,1))
     
     Df = matrix([[Df]]*p)
     if z is None: return f, Df
