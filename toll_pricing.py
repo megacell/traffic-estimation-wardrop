@@ -120,7 +120,7 @@ def main_solver(graph, theta, ws=[1e-6], max_iter=5):
     return toll, min_cost, toll_collected, weight
 
 
-def compute_gap(l, y, ks, beq, toll, scale):
+def compute_gap(l, y, ks, toll, beq, scale):
     """Compute the gap function
     
     Parameters
@@ -133,6 +133,10 @@ def compute_gap(l, y, ks, beq, toll, scale):
     scale: scaling factor for the gap function
     """
     n, d = ks.size
+    print toll.size
+    print l.size
+    print beq.size
+    print y.size
     gap = toll.T*l - beq.T*y
     for i in range(n):
         tmp = matrix(np.power(l[i],range(1,d+1)))

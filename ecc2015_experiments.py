@@ -13,7 +13,8 @@ import inverse_opt as invopt
 from generate_graph import los_angeles
 import matplotlib.pyplot as plt
 from cvxopt import matrix
-from util import add_noise
+import toll_pricing as tp
+
 
 a, b = 3.5, 3.0
 coef = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
@@ -48,10 +49,29 @@ def experiment_estimation(indlinks_obs, delaytype, degree):
     
     
 def experiment_toll_pricing(weights):
-    """"""
+    """Demonstrate multi-objective optimization for toll pricing model
+    1. Generate the graph of L.A.
+    2. Run multi-objective solver
+    3. Post-process results
+    4. Print results
+    """
+    graph = los_angeles(coef, 'Polynomial')[3]
+    r_gap, toll_est, loss_est, toll_res, loss_res = tp.multi_objective_solver(graph, coef, weights)
+    for i in range(len(weights)):
+        for j in range(len(weights)):
+            if r_gap[i,j] < 0.0: r_gap[i,j]=0.0
+            if toll_est[i,j] < 0.0: toll_est[i,j]=0.0
+            if loss_est[i,j] < 0.0: loss_est[i,j]=0.0
+            if toll_res[i,j] < 0.0: toll_res[i,j]=0.0
+            if loss_res[i,j] < 0.0: loss_res[i,j]=0.0
+    print r_gap
+    print toll_est
+    print loss_est
+    print toll_res
+    print loss_res
     
     
-def display_results_polynomial(degree):
+def results_est_poly(degree):
     """Display results when the true delay is polynomial"""
     if degree==6:
         r_gap = [0.3514945478659001, 0.1961611531023568, 0.1716444145948751, 0.17065344166251223, 0.17045516975380648, 0.17048860117939105, 0.17097031561001252]
@@ -84,7 +104,7 @@ def display_results_polynomial(degree):
         r_est = [0.1636889960092226, 0.14262366445679853, 0.20975780359601365, 0.21485693561169467, 0.21495011494538274, 0.21495737632039419, 0.21497898895670292]
     
     
-def display_results_hyperbolic(degree):
+def results_est_hyper(degree):
     """Display results when the true delay is hyperbolic"""
     if degree==6:
         r_gap = [0.28131048379615914, 0.19360668630015063, 0.18294324324316735, 0.18135181038793996, 0.18130181867342157, 0.18129806279354277, 0.18133134602833872]
@@ -117,26 +137,104 @@ def display_results_hyperbolic(degree):
         r_obs = [0.37468249556523475, 0.0068366420085976716, 8.0713371389038932e-05, 1.0379113008469728e-06, 1.2924891933922978e-08, 1.0844837983792924e-10, 1.173409614854846e-12]
         r_est = [0.090273325183187661, 0.060073922279314483, 0.059900322965394943, 0.059864074673187509, 0.059884762753935047, 0.059862465250625031, 0.059862577981822276]
 
-    
-    
-    
 
-def test1(type, degree):
-    ind_obs = {}
-    ind_obs[0] = [(36,37,1), (13,14,1), (17,8,1), (24,17,1), (28,22,1), (14,13,1), (17,24,1), (24,40,1), (14,21,1), (16,23,1)]
-    #ind_obs[2] = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
-    #ind_obs[3] = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
-    for k in range(len(ind_obs)): experiment_estimation(ind_obs[k], type, degree)
+def results_toll():
+    """Display results of experiment_toll_pricing
+    """
+    r_gap = matrix([[ 0.00e+00,  4.32e-09,  3.01e-02,  9.82e-01,  9.65e-01],
+    [ 0.00e+00,  4.34e-09,  3.01e-02,  3.20e-02,  9.65e-01],
+    [ 0.00e+00,  7.02e-09,  2.58e-02,  3.20e-02,  9.65e-01],
+    [ 3.17e-09,  4.34e-09,  3.08e-02,  3.21e-02,  9.65e-01],
+    [ 6.43e-08,  4.44e-09,  3.08e-02,  3.21e-02,  9.65e-01]])
+    
+    toll_est = matrix([[ 7.89e+02,  7.90e+02,  5.19e+00,  0.00e+00,  0.00e+00],
+    [ 9.22e+02,  7.89e+02,  5.19e+00,  0.00e+00,  0.00e+00],
+    [ 7.31e+02,  7.31e+02,  3.45e+01,  0.00e+00,  0.00e+00],
+    [ 6.79e+02,  6.79e+02,  4.46e+00,  0.00e+00,  0.00e+00],
+    [ 6.78e+02,  6.78e+02,  4.45e+00,  0.00e+00,  0.00e+00]])
+    
+    loss_est = matrix([[ 1.46e-01,  1.49e-01,  1.12e-02,  2.92e-05,  7.45e-09],
+    [ 2.04e-01,  1.46e-01,  1.09e-02,  1.55e-07,  7.28e-09],
+    [ 3.39e-02,  3.46e-02,  3.61e-02,  3.36e-07,  1.49e-09],
+    [ 1.13e-05,  1.15e-05,  0.00e+00,  0.00e+00,  5.31e-12],
+    [ 0.00e+00,  1.18e-09,  0.00e+00,  0.00e+00,  4.81e-12]])
+    
+    toll_res = matrix([[ 7.89e+02,  7.90e+02,  3.41e+00,  9.68e-01,  0.00e+00],
+    [ 9.22e+02,  7.89e+02,  3.40e+00,  0.00e+00,  0.00e+00],
+    [ 7.31e+02,  7.31e+02,  3.57e+01,  0.00e+00,  0.00e+00],
+    [ 6.79e+02,  6.79e+02,  2.61e+00,  0.00e+00,  0.00e+00],
+    [ 6.78e+02,  6.78e+02,  2.60e+00,  0.00e+00,  0.00e+00]])
+    
+    loss_res = matrix([[ 1.49e-01,  1.51e-01,  9.95e-01,  1.00e+00,  1.00e+00],
+    [ 2.04e-01,  1.48e-01,  9.95e-01,  1.00e+00,  1.00e+00],
+    [ 3.43e-02,  3.57e-02,  8.11e-01,  1.00e+00,  1.00e+00],
+    [ 1.19e-03,  3.29e-04,  9.91e-01,  1.00e+00,  1.00e+00],
+    [ 1.20e-03,  1.29e-03,  9.91e-01,  1.00e+00,  1.00e+00]])
+    
+    log_r_gap = matrix(0.0, (5,5))
+    for i in range(5):
+        for j in range(5):
+            log_r_gap[i,j]= max(-10.0, np.log10(r_gap[i,j]))
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.set_aspect('equal')
+    plt.imshow(log_r_gap[:4,:4].T, interpolation='nearest', cmap=plt.cm.YlOrRd)
+    plt.colorbar()
+    plt.title('Gap residual')
+    plt.show()
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.set_aspect('equal')
+    plt.imshow(np.flipud(toll_est[:4,:4].T), interpolation='nearest', cmap=plt.cm.YlOrRd)
+    plt.colorbar()
+    plt.title('Estimated toll')
+    plt.show()
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.set_aspect('equal')
+    plt.imshow(np.flipud(loss_est[:4,:4].T), interpolation='nearest', cmap=plt.cm.YlOrRd)
+    plt.colorbar()
+    plt.title('Estimated loss')
+    plt.show()
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.set_aspect('equal')
+    plt.imshow(np.flipud(toll_res[:4,:4].T), interpolation='nearest', cmap=plt.cm.YlOrRd)
+    plt.colorbar()
+    plt.title('Real toll')
+    plt.show()
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(1,1,1)
+    ax.set_aspect('equal')
+    plt.imshow(np.flipud(loss_res[:4,:4].T), interpolation='nearest', cmap=plt.cm.YlOrRd)
+    plt.colorbar()
+    plt.title('Real loss')
+    plt.show()
+    
+    print r_gap
+    print toll_est
+    print loss_est
+    print toll_res
+    print loss_res
 
-
+    
 def main():
     #type = 'Hyperbolic'
     type = 'Polynomial'
     degree = 6
-    test1(type, degree)
+    ind_obs = [(36,37,1), (13,14,1), (17,8,1), (24,17,1), (28,22,1), (14,13,1), (17,24,1), (24,40,1), (14,21,1), (16,23,1)]
+    #ind_obs = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
+    #ind_obs = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
+    #experiment_estimation(ind_obs, type, degree)
     #display_results_polynomial(degree)
     #display_results_hyperbolic(degree)
-
+    #experiment_toll_pricing([1e-4, 1e-2, 1e0, 1e2, 1e4])
+    results_toll()
 
 
 if __name__ == '__main__':
