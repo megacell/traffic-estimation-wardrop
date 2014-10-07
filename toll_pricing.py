@@ -144,14 +144,15 @@ def compute_gap(l, y, ks, toll, beq, scale):
     return scale*gap[0]
 
 
-def multi_objective_solver(graph, theta, ws, max_iter=5):
+def multi_objective_solver(graph, theta, ws_so, ws_toll, max_iter=5):
     """Multi-objective solver for the toll pricing model
     
     Parameters
     ----------
     graph: graph object
     theta: coefficients of polynomial link delays
-    ws: list of weights for w_so and w_toll
+    ws_so: list of weights for so objective
+    ws_toll: list of weights for toll objective
     max_iter: maximum number of iterations
     """
     ffdelays, slopes = graph.get_ffdelays(), graph.get_slopes()
@@ -160,13 +161,14 @@ def multi_objective_solver(graph, theta, ws, max_iter=5):
     ue_cost = compute_cost((Aeq, beq, ffdelays, coefs, 'Polynomial'))[0]
     so_cost = compute_cost((Aeq, beq, ffdelays, coefs, 'Polynomial'), 0.0, True)[0]
     data = (Aeq, beq, ffdelays, coefs)
-    r_gap = matrix(0.0, (len(ws), len(ws)))
-    loss_est = matrix(0.0, (len(ws), len(ws)))
-    toll_est = matrix(0.0, (len(ws), len(ws)))
-    loss_res = matrix(0.0, (len(ws), len(ws)))
-    toll_res = matrix(0.0, (len(ws), len(ws)))
-    for i,w_so in enumerate(ws):
-        for j,w_toll in enumerate(ws):
+    r_gap = matrix(0.0, (len(ws_so), len(ws_toll)))
+    loss_est = matrix(0.0, (len(ws_so), len(ws_toll)))
+    toll_est = matrix(0.0, (len(ws_so), len(ws_toll)))
+    loss_res = matrix(0.0, (len(ws_so), len(ws_toll)))
+    toll_res = matrix(0.0, (len(ws_so), len(ws_toll)))
+    
+    for i,w_so in enumerate(ws_so):
+        for j,w_toll in enumerate(ws_toll):
             t,y,l = solver(data, w_so, w_toll, max_iter, True)
             r_gap[i,j] = compute_gap(l, y, matrix([[ffdelays], [coefs]]), t, beq, 1/ue_cost)
             toll_est[i,j] = (t.T*l)[0]

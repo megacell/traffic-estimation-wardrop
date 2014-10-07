@@ -48,17 +48,22 @@ def experiment_estimation(indlinks_obs, delaytype, degree):
     print r_est
     
     
-def experiment_toll_pricing(weights):
+def experiment_toll_pricing(ws_so, ws_toll):
     """Demonstrate multi-objective optimization for toll pricing model
     1. Generate the graph of L.A.
     2. Run multi-objective solver
     3. Post-process results
     4. Print results
+    
+    Parameters
+    ----------
+    ws_so: list of weights for so objective
+    ws_toll: list of weight for toll objective
     """
     graph = los_angeles(coef, 'Polynomial')[3]
-    r_gap, toll_est, loss_est, toll_res, loss_res = tp.multi_objective_solver(graph, coef, weights)
-    for i in range(len(weights)):
-        for j in range(len(weights)):
+    r_gap, toll_est, loss_est, toll_res, loss_res = tp.multi_objective_solver(graph, coef, ws_so, ws_toll)
+    for i in range(len(ws_so)):
+        for j in range(len(ws_toll)):
             if r_gap[i,j] < 0.0: r_gap[i,j]=0.0
             if toll_est[i,j] < 0.0: toll_est[i,j]=0.0
             if loss_est[i,j] < 0.0: loss_est[i,j]=0.0
@@ -71,13 +76,17 @@ def experiment_toll_pricing(weights):
     print loss_res
     
     
+def draw_tolls():
+    """Draw tolls"""
+    
+    
 def results_est_poly(degree):
     """Display results when the true delay is polynomial"""
     if degree==6:
         r_gap = [0.3514945478659001, 0.1961611531023568, 0.1716444145948751, 0.17065344166251223, 0.17045516975380648, 0.17048860117939105, 0.17097031561001252]
         r_obs = [0.59265598048104329, 0.033896958661912446, 0.00037350125226116084, 5.2242920696447353e-06, 1.5083106412345355e-07, 9.5201385120293674e-08, 1.0040413042368986e-07]
         r_est = [0.13937361069687632, 0.029465753080638112, 0.00034691238632399542, 0.00092494014720187403, 0.0011425727298296376, 0.0011396367098416948, 0.00071672673008782472]
-    
+    """
     if degree==5:
         r_gap = [0.49332717517052505, 0.26663569286718664, 0.23548597091235388, 0.2344311309136928, 0.2341984841323786, 0.23417456989816432, 0.23417166680733056]
         r_obs = [0.59261387804666921, 0.033839942215393444, 0.00037334986647596263, 5.2076372971657296e-06, 6.4654609106342581e-08, 5.3487448435150483e-10, 5.1460506905051785e-12]
@@ -102,6 +111,7 @@ def results_est_poly(degree):
         r_gap = [0.3600603622525474, 0.07398822061038958, 0.0629608973453844, 0.062485537172215826, 0.06247458817535771, 0.062473238185037354, 0.06247319387729183]
         r_obs = [0.67573329964465945, 0.013194910881419174, 8.9279582021092668e-05, 1.1124430182504824e-06, 1.381455724650183e-08, 1.1653459570704158e-10, 1.2436293540089436e-12]
         r_est = [0.1636889960092226, 0.14262366445679853, 0.20975780359601365, 0.21485693561169467, 0.21495011494538274, 0.21495737632039419, 0.21497898895670292]
+    """
     
     
 def results_est_hyper(degree):
@@ -110,7 +120,7 @@ def results_est_hyper(degree):
         r_gap = [0.28131048379615914, 0.19360668630015063, 0.18294324324316735, 0.18135181038793996, 0.18130181867342157, 0.18129806279354277, 0.18133134602833872]
         r_obs = [0.41862638077775782, 0.013212508560595275, 0.00012708736874764273, 1.5688928281663424e-06, 8.1771883584478209e-08, 7.2836247584159581e-08, 9.3129623530239088e-08]
         r_est = [0.078284347401316984, 0.035892084227933531, 0.039703818272014593, 0.03940228808866747, 0.039395305610507671, 0.039397204940010318, 0.039397585861242083]
-    
+    """
     if degree==5:
         r_gap = [0.3928718016343673, 0.2683244905209487, 0.25315353254331346, 0.2511894374466198, 0.25112514576450307, 0.251117783870057, 0.25111786068339664]
         r_obs = [0.41848497751365027, 0.01320176986220244, 0.00012728784653201475, 1.4211775814973044e-06, 1.7626391929271559e-08, 1.4663541626984021e-10, 1.5088483641315054e-12]
@@ -136,10 +146,13 @@ def results_est_hyper(degree):
         r_gap = [0.2473728686809255, 0.14096147360607036, 0.13971982540757377, 0.13961205214936165, 0.1396001333465915, 0.13959882250087846, 0.13959992291384615]
         r_obs = [0.37468249556523475, 0.0068366420085976716, 8.0713371389038932e-05, 1.0379113008469728e-06, 1.2924891933922978e-08, 1.0844837983792924e-10, 1.173409614854846e-12]
         r_est = [0.090273325183187661, 0.060073922279314483, 0.059900322965394943, 0.059864074673187509, 0.059884762753935047, 0.059862465250625031, 0.059862577981822276]
+    """
 
 
 def results_toll():
     """Display results of experiment_toll_pricing
+    
+    optimal weights: w_so=1e2, w_toll=1e-2
     """
     r_gap = matrix([[ 0.00e+00,  4.32e-09,  3.01e-02,  9.82e-01,  9.65e-01],
     [ 0.00e+00,  4.34e-09,  3.01e-02,  3.20e-02,  9.65e-01],
@@ -179,7 +192,9 @@ def results_toll():
     fig = plt.figure()
     ax = fig.add_subplot(1,1,1)
     ax.set_aspect('equal')
-    plt.imshow(log_r_gap[:4,:4].T, interpolation='nearest', cmap=plt.cm.YlOrRd)
+    plt.imshow(np.flipud(log_r_gap[:4,:4].T), interpolation='nearest', cmap=plt.cm.YlOrRd)
+    plt.xlabel('Weight on toll minimization')
+    plt.ylabel('Weight on SO objective')
     plt.colorbar()
     plt.title('Gap residual')
     plt.show()
@@ -188,6 +203,8 @@ def results_toll():
     ax = fig.add_subplot(1,1,1)
     ax.set_aspect('equal')
     plt.imshow(np.flipud(toll_est[:4,:4].T), interpolation='nearest', cmap=plt.cm.YlOrRd)
+    plt.xlabel('Weight on toll minimization')
+    plt.ylabel('Weight on SO objective')
     plt.colorbar()
     plt.title('Estimated toll')
     plt.show()
@@ -196,6 +213,8 @@ def results_toll():
     ax = fig.add_subplot(1,1,1)
     ax.set_aspect('equal')
     plt.imshow(np.flipud(loss_est[:4,:4].T), interpolation='nearest', cmap=plt.cm.YlOrRd)
+    plt.xlabel('Weight on toll minimization')
+    plt.ylabel('Weight on SO objective')
     plt.colorbar()
     plt.title('Estimated loss')
     plt.show()
@@ -204,6 +223,8 @@ def results_toll():
     ax = fig.add_subplot(1,1,1)
     ax.set_aspect('equal')
     plt.imshow(np.flipud(toll_res[:4,:4].T), interpolation='nearest', cmap=plt.cm.YlOrRd)
+    plt.xlabel('Weight on toll minimization')
+    plt.ylabel('Weight on SO objective')
     plt.colorbar()
     plt.title('Real toll')
     plt.show()
@@ -212,6 +233,8 @@ def results_toll():
     ax = fig.add_subplot(1,1,1)
     ax.set_aspect('equal')
     plt.imshow(np.flipud(loss_res[:4,:4].T), interpolation='nearest', cmap=plt.cm.YlOrRd)
+    plt.xlabel('Weight on toll minimization')
+    plt.ylabel('Weight on SO objective')
     plt.colorbar()
     plt.title('Real loss')
     plt.show()
@@ -233,8 +256,8 @@ def main():
     #experiment_estimation(ind_obs, type, degree)
     #display_results_polynomial(degree)
     #display_results_hyperbolic(degree)
-    #experiment_toll_pricing([1e-4, 1e-2, 1e0, 1e2, 1e4])
-    results_toll()
+    experiment_toll_pricing([1e-4, 1e-2, 1e0, 1e2], [1e-4, 1e-2, 1e0, 1e2])
+    #results_toll()
 
 
 if __name__ == '__main__':
