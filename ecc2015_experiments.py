@@ -61,7 +61,7 @@ def experiment_toll_pricing(ws_so, ws_toll):
     ws_toll: list of weight for toll objective
     """
     graph = los_angeles(coef, 'Polynomial')[3]
-    r_gap, toll_est, loss_est, toll_res, loss_res = tp.multi_objective_solver(graph, coef, ws_so, ws_toll)
+    r_gap, toll_est, loss_est, toll_res, loss_res, toll = tp.multi_objective_solver(graph, coef, ws_so, ws_toll)
     for i in range(len(ws_so)):
         for j in range(len(ws_toll)):
             if r_gap[i,j] < 0.0: r_gap[i,j]=0.0
@@ -78,6 +78,16 @@ def experiment_toll_pricing(ws_so, ws_toll):
     
 def draw_tolls():
     """Draw tolls"""
+    graph = los_angeles(coef, 'Polynomial')[3]
+    w_so = [1e2]
+    w_toll =[1e-2]
+    r_gap, toll_est, loss_est, toll_res, loss_res, toll = tp.multi_objective_solver(graph, coef, w_so, w_toll)
+    print toll
+    print r_gap
+    print toll_est
+    print loss_est
+    print toll_res
+    print loss_res
     
     
 def results_est_poly(degree):
@@ -256,8 +266,9 @@ def main():
     #experiment_estimation(ind_obs, type, degree)
     #display_results_polynomial(degree)
     #display_results_hyperbolic(degree)
-    experiment_toll_pricing([1e-4, 1e-2, 1e0, 1e2], [1e-4, 1e-2, 1e0, 1e2])
+    #experiment_toll_pricing([1e-4, 1e-2, 1e0, 1e2], [1e-4, 1e-2, 1e0, 1e2])
     #results_toll()
+    draw_tolls()
 
 
 if __name__ == '__main__':

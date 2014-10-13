@@ -178,7 +178,7 @@ def multi_objective_solver(graph, theta, ws_so, ws_toll, max_iter=5):
             cost, x = compute_cost((Aeq, beq, ffdelays, coefs, 'Polynomial'), t)
             toll_res[i,j] = (t.T*x)[0]
             loss_res[i,j] = (cost-so_cost)/(ue_cost-so_cost)
-    return r_gap, toll_est, loss_est, toll_res, loss_res
+    return r_gap, toll_est, loss_est, toll_res, loss_res, t
 
 
 if __name__ == '__main__':
