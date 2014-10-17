@@ -10,6 +10,7 @@ import gdal
 import csv
 from cvxopt import matrix
 import numpy as np
+import draw_graph as d
 
 
 def read_shapefile(path, delaytype='None', data=None, description=None):
@@ -109,11 +110,11 @@ def main():
     print G.number_of_selfloops() #return a list of nodes with selfloops
     print graph.numnodes
     print graph.numlinks
-    #d.draw(graph, nodes=False)
+    d.draw(graph, nodes=False)
     #util.extract_routes_ODs('ODs/grouped_trajectories.csv', 'ODs/grouped_routes.csv', 'ODs/grouped_ODs.csv', IDs, 5)
-    add_ODs_from_csv(graph, 'ODs/processed_ODs.csv')
-    add_routes_from_csv(graph, 'ODs/grouped_routes.csv')
-    graph.visualize(True)
+    #add_ODs_from_csv(graph, 'ODs/processed_ODs.csv')
+    #add_routes_from_csv(graph, 'ODs/grouped_routes.csv')
+    #graph.visualize(True)
 
 
 if __name__ == '__main__':

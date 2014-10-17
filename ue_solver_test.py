@@ -11,6 +11,7 @@ from generate_graph import small_example, los_angeles
 from cvxopt import matrix, mul
 
 
+
 def test1():
     graph = small_example()
     linkflows = ue.solver(graph)
@@ -44,7 +45,7 @@ def main():
     #test1()
     test2('Polynomial')
     #test2('Hyperbolic')
-    
+
 
 if __name__ == '__main__':
     main()
