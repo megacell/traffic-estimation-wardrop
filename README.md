@@ -17,12 +17,19 @@ Mac OS X frameworks for GDAL: http://www.kyngchaos.com/software:frameworks
 Running
 -----
 python draw_test.py
+
 python read_shps_csv.py
+
 python test_ue_solver.py
+
 python shortest_paths_test.py
+
 python inverse_opt_test.py
+
 python isttt2014_experiments.py
+
 python ecc2015_experiments.py
+
 python toll_pricing_test.py
 
 Troubleshooting
