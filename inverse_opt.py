@@ -273,13 +273,12 @@ def compute_scaling(graphs, ls_obs, obs, data):
     ----------
     graphs: list of graphs
     ls_obs: list of observed links
-    obs:
-    data:
-    degree:
+    obs: indlinks ids of observed links
+    data: obtained from get_data
     
     Return value
     ------------
-    scale: vector of scaling factor
+    scale: vector of scaling factor such that
     scale[0]: scaling for the observation residual
     scale[1]: scaling for the gap function
     """
@@ -352,12 +351,13 @@ def multi_objective_solver(graphs, ls_obs, obs, degree, w_multi, max_iter=3):
     #softs = [(scale[0]*w)/(scale[1]*(1-w)) for w in w_multi]
     Aeq, beqs, ffdelays, slopes = data
     type, N = 'Polynomial', len(beqs)
-    r_gap, r_obs, x_est = [], [], []
+    r_gap, r_obs, x_est, thetas = [], [], [], []
     for w1,w2 in zip(w_obs,w_gap):
         theta, ys, ls = solver_mis(data, ls_obs, obs, degree, 0.0*np.ones(degree), w1, max_iter, True, w2)
         coefs = compute_coefs(ffdelays, slopes, theta)
         r_gap.append(compute_gap(ls, ys, matrix([[ffdelays], [coefs]]), beqs, scale[1]))
         r_obs.append(scale[0]*0.5*np.linalg.norm(matrix(ls_obs)-matrix([l[obs] for l in ls]), 2)**2)
         xs = [ue.solver(data=(Aeq, beqs[k], ffdelays, coefs, type)) for k in range(N)]
-        x_est.append(matrix(xs)) 
-    return r_gap, r_obs, x_est
+        x_est.append(matrix(xs))
+        thetas.append(theta)
+    return r_gap, r_obs, x_est, thetas

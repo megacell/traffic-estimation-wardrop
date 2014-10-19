@@ -45,6 +45,7 @@ def display_results(error, true_theta, thetas, delaytype, info):
     if len(thetas) == 1: plt.title(r'Estimated delay function, error={:.0f}%, beta={:.0e}'.format(100.0*error, info))
     if len(thetas) > 1: plt.title(r'Estimated delay function, mean error={:.0f}%, std={:.3f}'.format(100.0*error, info))
     plt.legend()
+    plt.legend(loc=0)
     plt.show()
 
 
