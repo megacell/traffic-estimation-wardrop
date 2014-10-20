@@ -41,11 +41,10 @@ Network of L.A.
 
 Coordinates for bounding box in L.A.: [-118.328299, 33.984601, -117.68132, 34.255881]
 
-<img src="figures/map_graph.jpg" width=300px />
+Clockwise from top left panel: (a) traffic on the network in morning rush hour on 2014-06-12 at 9:14AM from Google Maps, (b) set of origins and destinations in the network, (c) locations of cell tower sampled on the map with associated Voronoi partitioning, (d) delays incurred by the static traffic assignment model.
 
-Add flow in equilibrium to model morning congestion
+<img src="figures/map.jpg" width=600px />
 
-<img src="figures/map_congestion.jpg" width=300px />
 
 References
 --------
@@ -58,6 +57,6 @@ Anil’s paper: http://www.nt.ntnu.no/users/skoge/prost/proceedings/acc11/data/p
 
 Toll pricing: http://www.columbia.edu/~ns2224/GT/hearnRamanaTollPricing.pdf
 
-"A Multi-Convex approach to Latency Inference and Control in Traffic Equilibria from Sparse data" in preparation
+J. Thai, R. Hariss, A. Bayen, "A Multi-Convex approach to Latency Inference and Control in Traffic Equilibria from Sparse data" in preparation
 
-"Approximate Bilevel Programming via Pareto Optimization for Imputation and Control of Optimization and Equilibrium models" in preparation
+J. Thai, R. Hariss, A. Bayen, "Approximate Bilevel Programming via Pareto Optimization for Imputation and Control of Optimization and Equilibrium models" in preparation
