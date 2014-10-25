@@ -9,6 +9,7 @@ import numpy as np
 import scipy.io as sio
 from cvxopt import matrix
 from numpy.random import normal
+from util import distance_on_unit_sphere
 
 
 def small_example():
@@ -39,6 +40,8 @@ def small_example():
 
 
 def los_angeles(parameters=None, delaytype='None', noise=0.0):
+    """Generate small map of L.A. with 122 links and 44 modes
+    """
     
     data = sio.loadmat('los_angeles_data_2.mat')
         
@@ -77,11 +80,45 @@ def los_angeles(parameters=None, delaytype='None', noise=0.0):
     return g1, g2, g3, g4
 
 
+def los_angeles_2(parameters=None, delaytype='None'):
+    """Generate larger map of L.A. with 664 links and 194 nodes
+    """
+    data = sio.loadmat('los_angeles_data_3.mat')
+    nodes, links = data['nodes'], data['links']
+    tmp = links
+    links = []
+    a1 = 60.0*3960.0/75.0
+    a2 = 60.0*3960.0/50.0
+    
+    if delaytype=='None':
+        for startnode, endnode, category in tmp:
+            arc = distance_on_unit_sphere(nodes[startnode-1][1], nodes[startnode-1][0], nodes[endnode-1][1], nodes[endnode-1][0])
+            if category == 1: ffdelay = a1*arc
+            if category == 2: ffdelay = a2*arc
+            links.append((startnode, endnode, 1, ffdelay, None))
+            
+    if delaytype=='Polynomial':
+        theta = parameters
+        degree = len(theta)
+        for startnode, endnode, category in tmp:
+            arc = distance_on_unit_sphere(nodes[startnode-1][1], nodes[startnode-1][0], nodes[endnode-1][1], nodes[endnode-1][0])
+            if category == 1: ffdelay, slope = a1*arc, 5.0
+            if category == 2: ffdelay, slope = a2*arc, 1.0
+            coef = [ffdelay*a*b for a,b in zip(theta, np.power(slope, range(1,degree+1)))]
+            links.append((startnode, endnode, 1, ffdelay, (ffdelay, slope, coef)))
+
+    #print nodes
+    #print links
+    return g.create_graph_from_list(nodes, links, delaytype, None, 'Larger map of L.A.')
+
+
 def main():
     #graph = small_example()
-    theta = matrix([0.0, 0.0, 0.0, 0.15])
-    graph = los_angeles(theta, 'Polynomial', 1/15.0)[0]
-    graph.visualize(True, True, True, True, True)
+    #theta = matrix([0.0, 0.0, 0.0, 0.15])
+    #graph = los_angeles(theta, 'Polynomial', 1/15.0)[0]
+    #graph.visualize(True, True, True, True, True)
+    graph = los_angeles_2(None, 'None')
+    graph.visualize(True)
 
 if __name__ == '__main__':
     main()

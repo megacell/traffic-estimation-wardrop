@@ -45,6 +45,9 @@ Clockwise from top left panel: (a) traffic on the network in morning rush hour o
 
 <img src="figures/map.jpg" width=600px />
 
+A mode detailed map of L.A. with 194 nodes and 664 links:
+
+<img src="figures/map_larger.jpg" width=600px />
 
 References
 --------

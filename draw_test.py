@@ -4,9 +4,11 @@ Created on Apr 25, 2014
 @author: jeromethai
 '''
 
-from generate_graph import small_example, los_angeles
+from generate_graph import small_example, los_angeles, los_angeles_2
 import draw_graph as d
 import matplotlib.pyplot as plt
+from cvxopt import matrix
+
 
 od_flows1 = [3.0, 3.0, 1.0, 1.0];
 
@@ -31,9 +33,19 @@ def draw_los_angeles():
     d.draw_ODs(graph, 22)
 
 
+def draw_los_angeles_2():
+    theta = matrix([0.0, 0.0, 0.0, 0.15])
+    graph = los_angeles_2(theta, 'Polynomial')
+    graph.visualize()
+    link_ids = [key for key,link in graph.links.items() if link.delayfunc.slope>1.0]
+    d.draw(graph, link_ids, nodes=False)
+
+
 def main():
     #small_graph()
-    draw_los_angeles()
+    #draw_los_angeles()
+    draw_los_angeles_2()
+    
 
 if __name__ == '__main__':
     main()
