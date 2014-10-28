@@ -11,7 +11,6 @@ from generate_graph import small_example, los_angeles
 from cvxopt import matrix, mul
 
 
-
 def test1():
     graph = small_example()
     linkflows = ue.solver(graph)

@@ -7,7 +7,7 @@ Created on Apr 20, 2014
 import numpy as np
 from cvxopt import matrix, spmatrix, solvers, spdiag, mul, div
 import rank_nullspace as rn
-from util import find_basis, place_zeros
+from kktsolver import get_kktsolver
 
 
 def constraints(graph):
@@ -48,12 +48,7 @@ def nodelink_incidence(graph):
     for id1,node in graph.nodes.items():
         for id2,link in node.inlinks.items(): entries.append(1.0); I.append(id1-1); J.append(graph.indlinks[id2])
         for id2,link in node.outlinks.items(): entries.append(-1.0); I.append(id1-1); J.append(graph.indlinks[id2])
-    C = spmatrix(entries, I, J, (m,n))
-    M = matrix(C); r = rn.rank(M)
-    if r < m:
-        print 'Remove {} redundant constraint(s)'.format(m-r); ind = find_basis(M.trans())
-        return C[ind,:], ind
-    return C, range(m)
+    return spmatrix(entries, I, J, (m,n)), range(m)
 
 
 def get_demands(graph, ind, node_id):
@@ -196,7 +191,8 @@ def solver(graph=None, update=False, full=False, data=None, SO=False):
             def F(x=None, z=None): return objective_hyper_SO(x, z, matrix([[ffdelays-div(pm[:,0],pm[:,1])], [pm]]), p)
         else:
             def F(x=None, z=None): return objective_hyper(x, z, matrix([[ffdelays-div(pm[:,0],pm[:,1])], [pm]]), p)
-    x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq)['x']
+    dims = {'l': p*n, 'q': [], 's': []}
+    x = solvers.cp(F, G=A, h=b, A=Aeq, b=beq, kktsolver=get_kktsolver(A, dims, Aeq, F))['x']
     linkflows = matrix(0.0, (n,1))
     for k in range(p): linkflows += x[k*n:(k+1)*n]
     
