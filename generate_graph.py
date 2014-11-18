@@ -4,7 +4,7 @@ Created on Apr 18, 2014
 @author: jeromethai
 '''
 
-import Graph as g
+import graph as g
 import numpy as np
 import scipy.io as sio
 from cvxopt import matrix

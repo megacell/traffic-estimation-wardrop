@@ -115,6 +115,8 @@ def experiment(data=None, SO=False, trials=10, demand=3, N=10, plot=False, withO
         norm_l, norm_f = np.linalg.norm(l, 1), np.linalg.norm(f_true, 1)
         P = path.linkpath_incidence(g)
         U,r = WP.simplex(g, wp_trajs, withODs)
+        test = np.array(U) # check U
+        print test.sum(axis=0) # check U
         ls, fs = [], []
         print 'Compute min ||P*f-l|| s.t. U*f=r, x>=0 with U=OD-path incidence matrix'
         for i in range(N):
@@ -388,10 +390,10 @@ def display_ratios():
 def main():
     #synthetic_data()
     #ratio_wptrajs_usedpaths()
-    #run_experiments()
+    run_experiments()
     #display_results()
     #run_QP_ranks(False)
-    display_ranks()
+    #display_ranks()
     #display_ratios()
 
 if __name__ == '__main__':

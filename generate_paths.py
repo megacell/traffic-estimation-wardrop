@@ -159,9 +159,9 @@ def test_feasible_pathflows(SO, demand, random=False):
 
 
 def main():  
-    #get_paths(False, 12, 2, False)
+    get_paths(False, 11, 2, False)
     #find_optimum_K()
-    find_UESOpaths(False, False, True)
+    #find_UESOpaths(False, False, True)
     #test_feasible_pathflows(False, 3, False)
 
 
