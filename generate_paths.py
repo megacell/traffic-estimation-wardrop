@@ -106,9 +106,14 @@ def find_UESOpaths(SO, return_paths=True, random=False):
     1. take the union for all optimum shortest paths for UE/SO
     2. compute UE/SO using node-link and link-path formulation for all demands
     3. compare results
+    
+    Parameters:
+    -----------
+    SO: if False, compute the UE, if True, compute the SO
+    return_paths: if True, do only step 1 and return paths, if False, do steps 2 and 3
     """
     paths, ls, ds, ps = [], [], [], []
-    K = [5,5,5,5] #[2, 2, 2, 3] #[2,3,3,4]
+    K = [2,3,3,4] #[2, 2, 2, 3] [5,5,5,5]
     if SO: K = [2, 2, 4, 7] #[2,4,7,9]
     for i in range(4):
         tmp = get_paths(SO, K[i], i)
@@ -159,9 +164,9 @@ def test_feasible_pathflows(SO, demand, random=False):
 
 
 def main():  
-    get_paths(False, 11, 2, False)
+    #get_paths(False, 11, 2, False)
     #find_optimum_K()
-    #find_UESOpaths(False, False, True)
+    find_UESOpaths(False, False, True)
     #test_feasible_pathflows(False, 3, False)
 
 
