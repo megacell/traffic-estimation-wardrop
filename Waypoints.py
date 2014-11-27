@@ -193,11 +193,11 @@ class Waypoints:
         """
         path_wps, k = {}, 0
         for path_id, path in graph.paths.items():
-            if path.flow > tol:
-                k += 1
-                if k%10 == 0: print 'Number of paths processed: ', k
-                ids = self.closest_to_path(graph, path_id, n, fast)
-                path_wps[path_id] = ids
+            # if path.flow > tol:
+            k += 1
+            if k%10 == 0: print 'Number of paths processed: ', k
+            ids = self.closest_to_path(graph, path_id, n, fast)
+            path_wps[path_id] = ids
         wps_list, paths_list, flows_list = [], [], []
         for path_id, wps in path_wps.items():
             try:

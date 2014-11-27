@@ -8,7 +8,7 @@ import Waypoints as w
 from generate_graph import los_angeles
 from generate_paths import find_UESOpaths
 from cvxopt import matrix
-import path_solver as path
+import path_solver
 import numpy as np
 import time
     
@@ -44,7 +44,7 @@ def example1():
     R.draw_waypoints(wps=[('b',ids,'closest')])
     
     
-def generate_wp(demand=3, data=None, draw=False, voronoi=False):
+def generate_wp(demand=3, data=None, draw=False, voronoi=False, path=None):
     """Generate waypoints following the map of L.A. and draw the map
     
     Parameters:
@@ -65,7 +65,7 @@ def generate_wp(demand=3, data=None, draw=False, voronoi=False):
         N0, N1, scale, regions, res, margin = 20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (12,6), 2.0
     else:
         N0, N1, scale, regions, res, margin = data
-    graph = los_angeles(theta, 'Polynomial')[demand]
+    graph = los_angeles(theta, 'Polynomial',path=path)[demand]
     WP = w.sample_waypoints(graph, N0, N1, scale, regions)
     WP.build_partition(res, margin)
     if draw: WP.draw_waypoints(graph, voronoi=voronoi)
@@ -95,7 +95,7 @@ def fast_search(SO=False, data=None, demand=3):
     WP.draw_waypoints(g, [('r',ids,'closest')], path_id = path_id, voronoi=True)
     
     
-def compute_wp_flow(SO=False, demand=3, random=False, data=None):
+def compute_wp_flow(SO=False, demand=3, random=False, data=None, path=None):
     """Generate map of L.A., UE path_flow, waypoint trajectories
     1. Generate map of L.A. and waypoints with generate_wp
     2. Get used paths in UE/SO (see generate_paths module)
@@ -116,11 +116,11 @@ def compute_wp_flow(SO=False, demand=3, random=False, data=None):
     path_wps: dictionary of paths with >tol flow with wp trajectory associated {path_id: wp_ids}
     wp_trajs: list of waypoint trajectories with paths along this trajectory [(wp_traj, path_list, flow)]
     """
-    g, WP = generate_wp(demand, data)
-    paths = find_UESOpaths(SO)
+    g, WP = generate_wp(demand, data, path=path)
+    paths = find_UESOpaths(SO, path=path)
     for p in paths: g.add_path_from_nodes(p)
     g.visualize(general=True)
-    p_flow = path.solver(g, update=True, SO=SO, random=random)
+    p_flow = path_solver.solver(g, update=True, SO=SO, random=random)
     path_wps, wp_trajs = WP.get_wp_trajs(g, 20, True)
     print len(path_wps), len(wp_trajs)
     return g, p_flow, path_wps, wp_trajs

@@ -271,8 +271,7 @@ class Graph:
             if link.endnode not in intnode_ids and link.startnode not in intnode_ids:
                 intlk_ids.append(id)                
         return intlk_ids
-        
-    
+
 class Link:
     """A link in the graph"""
     def __init__(self, startnode, endnode, route, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None):
@@ -285,6 +284,9 @@ class Link:
         self.delayfunc = delayfunc
         self.paths = {}  #set of paths passing through
         self.numpaths = 0
+
+    def repr(self):
+        return (self.startnode,self.endnode,self.route)
         
 
 class Node:

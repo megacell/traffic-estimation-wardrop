@@ -162,11 +162,12 @@ def objective_hyper_SO(x, z, ks, p):
 
 def get_data(graph):
     """Get data for the ue solver"""
+    ## TODO deprecated
     Aeq, beq = constraints(graph)
     ffdelays = graph.get_ffdelays()
     parameters, type = graph.get_parameters()
     return Aeq, beq, ffdelays, parameters, type
-    
+
 
 def solver(graph=None, update=False, full=False, data=None, SO=False):
     """Find the UE link flow

@@ -39,11 +39,13 @@ def small_example():
     return graph
 
 
-def los_angeles(parameters=None, delaytype='None', noise=0.0):
+def los_angeles(parameters=None, delaytype='None', noise=0.0, path=None):
     """Generate small map of L.A. with 122 links and 44 modes
     """
-    
-    data = sio.loadmat('los_angeles_data_2.mat')
+
+    if not path:
+        path = 'los_angeles_data_2.mat'
+    data = sio.loadmat(path)
         
     links = data['links']
     ODs1, ODs2, ODs3, ODs4 = data['ODs1'], data['ODs2'], data['ODs3'], data['ODs4']
@@ -56,7 +58,7 @@ def los_angeles(parameters=None, delaytype='None', noise=0.0):
       
     nodes = data['nodes']
     tmp = links
-    links = []  
+    links = []
     
     if delaytype=='Polynomial':
         theta = parameters

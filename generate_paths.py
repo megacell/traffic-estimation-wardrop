@@ -43,7 +43,7 @@ def get_shortest_paths(g, K):
     return paths
     
 
-def get_paths(SO, K, demand, return_paths=True, ffdelays=False):
+def get_paths(SO, K, demand, return_paths=True, ffdelays=False, path=None):
     """This experiment does the following tests:
     1. compute the UE/SO link flows using node-link formulation 
     2. get the link delays for the UE/SO link flow
@@ -63,7 +63,7 @@ def get_paths(SO, K, demand, return_paths=True, ffdelays=False):
     Return value:
     ------------
     """
-    g = los_angeles(theta, 'Polynomial')[demand]
+    g = los_angeles(theta, 'Polynomial', path=path)[demand]
     if ffdelays: paths = get_shortest_paths(g, K)
     l1 = ue.solver(g, update=True, SO=SO)
     d1 = sum([link.delay*link.flow for link in g.links.values()])
@@ -76,7 +76,7 @@ def get_paths(SO, K, demand, return_paths=True, ffdelays=False):
     g.visualize(general=True)
     P = path.linkpath_incidence(g)
     l2 = P*path.solver(g, update=True, SO=SO)
-    d2 = sum([p.delay*p.flow for p in g.paths.values()])    
+    d2 = sum([p.delay*p.flow for p in g.paths.values()])
     print d1,d2
     return d1,d2,paths
 
@@ -101,17 +101,17 @@ def find_optimum_K(tol=1.0):
         print result
 
 
-def find_UESOpaths(SO, return_paths=True, random=False):
+def find_UESOpaths(SO, return_paths=True, random=False, path=None):
     """
     1. take the union for all optimum shortest paths for UE/SO
     2. compute UE/SO using node-link and link-path formulation for all demands
     3. compare results
     """
     paths, ls, ds, ps = [], [], [], []
-    K = [5,5,5,5] #[2, 2, 2, 3] #[2,3,3,4]
+    K = [3,3,3,3] #[5,5,5,5] #[2, 2, 2, 3] #[2,3,3,4]
     if SO: K = [2, 2, 4, 7] #[2,4,7,9]
     for i in range(4):
-        tmp = get_paths(SO, K[i], i)
+        tmp = get_paths(SO, K[i], i, path=path)
         for p in tmp:
             if p not in paths: paths.append(p)
     if return_paths: return paths
@@ -159,7 +159,7 @@ def test_feasible_pathflows(SO, demand, random=False):
 
 
 def main():  
-    #get_paths(False, 12, 2, False)
+    # d1,d2,paths = get_paths(False, 11, 2, False)
     #find_optimum_K()
     find_UESOpaths(False, False, True)
     #test_feasible_pathflows(False, 3, False)
