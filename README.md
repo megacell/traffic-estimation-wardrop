@@ -14,6 +14,12 @@ Installing GDAL on a Mac: http://www.gis.usu.edu/~chrisg/python/2009/docs/gdal_m
 
 Mac OS X frameworks for GDAL: http://www.kyngchaos.com/software:frameworks
 
+Installing PostGIS: http://postgis.net/install
+
+Mac OS X frameworks for PostgreSQL and PosGIS estension: http://www.kyngchaos.com/software/postgres
+
+Tutorial for importing Shapefile into PostgreSQL: http://www.gistutor.com/postgresqlpostgis/4-beginner-postgresqlpostgis-tutorials/18-importing-shapefile-gis-data-into-postgresql.html
+
 Running
 -----
 python draw_test.py

@@ -5,7 +5,7 @@ Created on Aug 7, 2014
 '''
 
 import networkx as nx
-import Graph as g
+import graph as g
 import gdal
 import csv
 from cvxopt import matrix

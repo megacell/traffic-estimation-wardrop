@@ -184,11 +184,12 @@ class Waypoints:
         graph: Graph object with path flows in it
         n: number of points to take on each link of paths
         fast: if True do fast computation
-        tol:
+        tol: consider only paths for which flow on it is more than tol
         
         Return value:
         ------------
-        path_wps: dictionary of paths with >tol flow with wp trajectory associated {path_id: wp_ids}
+        path_wps: dictionary of all the paths with flow>tol and with a list of closest waypoints to it 
+        or associated wp trajectory {path_id: wp_ids}
         wp_trajs: list of waypoint trajectories with paths along this trajectory [(wp_traj, path_list, flow)]
         """
         path_wps, k = {}, 0
@@ -201,10 +202,10 @@ class Waypoints:
         wps_list, paths_list, flows_list = [], [], []
         for path_id, wps in path_wps.items():
             try:
-                index = wps_list.index(wps)
+                index = wps_list.index(wps) # find the index of wps in wps_list
                 paths_list[index].append(path_id)
                 flows_list[index] += graph.paths[path_id].flow
-            except ValueError:
+            except ValueError: # wps not in wps_list
                 wps_list.append(wps)
                 paths_list.append([path_id])
                 flows_list.append(graph.paths[path_id].flow)
@@ -326,6 +327,11 @@ def sample_waypoints(graph, N0, N1, scale, regions, margin=0.05):
 def simplex(graph, wp_trajs, withODs=False):
     """Build simplex constraints from waypoint trajectories wp_trajs
     wp_trajs is given by WP.get_wp_trajs()[1]
+    
+    Parameters:
+    -----------
+    graph: Graph object
+    wp_trajs: list of waypoint trajectories with paths along this trajectory [(wp_traj, path_list, flow)]
     """
     n = len(wp_trajs)
     I, J, r, i = [], [], matrix(0.0, (n,1)), 0

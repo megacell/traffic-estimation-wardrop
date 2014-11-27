@@ -60,6 +60,18 @@ theta = matrix([0.0, 0.0, 0.0, 0.15])
 def synthetic_data(data=None, SO=False, demand=3, N=10, path=None):
     """Generate synthetic data for the experiments
     
+    Parameters:
+    -----------
+    data: (N0, N1, scale, regions, res, margin)
+        N0: number of background samples
+        N1: number of samples on links
+        regions: list of regions, regions[k] = (geometry, N_region)
+        res: (n1, n2) s.t. the width is divided into n1 cells and the height into n2 cells
+        margin: margin around each cell
+    SO: if True, computes SO
+    demand: OD demand
+    N: number of trials
+    
     Return value:
     ------------
     g: Graph object with paths
@@ -143,7 +155,7 @@ def experiment(data=None, SO=False, trials=10, demand=3, N=10, plot=False, withO
 def run_experiments():
     A, B, C, D = [], [], [], []
     for i in range(5):
-        a, b, c, d = experiment(data[i], SO=False, plot=True, withODs=True, data_id=i)
+        a, b, c, d = experiment(data[i], SO=False, plot=True, withODs=False, data_id=i)
         A.append(a)
         B.append(b)
         C.append(c)
@@ -389,10 +401,10 @@ def display_ratios():
 def main():
     #synthetic_data()
     #ratio_wptrajs_usedpaths()
-    #run_experiments()
+    run_experiments()
     #display_results()
     #run_QP_ranks(False)
-    display_ranks()
+    #display_ranks()
     #display_ratios()
 
 if __name__ == '__main__':

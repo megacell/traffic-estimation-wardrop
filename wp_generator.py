@@ -4,6 +4,7 @@ Created on Aug 9, 2014
 @author: jeromethai
 '''
 
+import ue_solver as ue
 import Waypoints as w
 from generate_graph import los_angeles
 from generate_paths import find_UESOpaths
@@ -50,11 +51,14 @@ def generate_wp(demand=3, data=None, draw=False, voronoi=False, path=None):
     Parameters:
     ----------
     demand: OD demand
-    N0: number of background samples
-    N1: number of samples on links
-    regions: list of regions, regions[k] = (geometry, N_region)
-    res: (n1, n2) s.t. the width is divided into n1 cells and the height into n2 cells
-    margin: margin around each cell
+    data: (N0, N1, scale, regions, res, margin)
+        N0: number of background samples
+        N1: number of samples on links
+        regions: list of regions, regions[k] = (geometry, N_region)
+        res: (n1, n2) s.t. the width is divided into n1 cells and the height into n2 cells
+        margin: margin around each cell
+    draw: if True, draw graph and Voronoi
+    voronoi: if voronoi = draw voronoi cells
     
     Return value:
     ------------
@@ -104,7 +108,7 @@ def compute_wp_flow(SO=False, demand=3, random=False, data=None, path=None):
     
     Parameters:
     ----------
-    SO: if True compute the SO
+    SO: if True suppose vehicle behavior follows SO, UE o.w.
     demand: OD demand
     random: if True, generate random UE/SO paths
     data: waypoint density (N0, N1, scale, regions, res, margin) inputs of generate_wp
@@ -113,16 +117,16 @@ def compute_wp_flow(SO=False, demand=3, random=False, data=None, path=None):
     -------------
     g: Graph object of L.A.
     p_flow: vector of path flows
-    path_wps: dictionary of paths with >tol flow with wp trajectory associated {path_id: wp_ids}
+    path_wps: dictionary of all the paths with flow>tol and with a list of closest waypoints to it 
+        or associated wp trajectory {path_id: wp_ids}
     wp_trajs: list of waypoint trajectories with paths along this trajectory [(wp_traj, path_list, flow)]
     """
     g, WP = generate_wp(demand, data, path=path)
-    paths = find_UESOpaths(SO, path=path)
+    paths = find_UESOpaths(SO, path=path) # find the used paths in
     for p in paths: g.add_path_from_nodes(p)
     g.visualize(general=True)
     p_flow = path_solver.solver(g, update=True, SO=SO, random=random)
     path_wps, wp_trajs = WP.get_wp_trajs(g, 20, True)
-    print len(path_wps), len(wp_trajs)
     return g, p_flow, path_wps, wp_trajs
     #print len(path_wps), path_wps
     #print len(wp_trajs), wp_trajs
