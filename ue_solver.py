@@ -5,7 +5,7 @@ Created on Apr 20, 2014
 '''
 
 import numpy as np
-from cvxopt import matrix, spmatrix, solvers, spdiag, mul, div
+from cvxopt import matrix, spmatrix, solvers, spdiag, mul, div, sparse
 import rank_nullspace as rn
 from kktsolver import get_kktsolver
 
@@ -130,7 +130,7 @@ def objective_hyper(x, z, ks, p):
         H[i] = ks[i,1]*tmp**2
     Df = matrix([[Df]]*p)
     if z is None: return f, Df
-    return f, Df, matrix([[spdiag(z[0] * H)]*p]*p)
+    return f, Df, sparse([[spdiag(z[0] * H)]*p]*p)
 
 
 def objective_hyper_SO(x, z, ks, p):

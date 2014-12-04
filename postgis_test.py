@@ -29,10 +29,10 @@ def select():
 
 
 def main():
-    #select()
+    select()
     #create_table()
     #connect()
-    test_utm()
+    #test_utm()
 
 if __name__ == '__main__':
     main()
