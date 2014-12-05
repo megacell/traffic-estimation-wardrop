@@ -23,7 +23,7 @@ def connect():
 def select():
     conn = psycopg2.connect(dbname='ca-census', user='postgres')
     cur = conn.cursor() # creates cursor that establishes connection
-    cur.execute("""SELECT * FROM ca_census_data;""")
+    cur.execute("""SELECT gid, id, ST_AsText(geom) FROM la_nodes;""")
     rows = cur.fetchall()
     for row in rows: print row
 

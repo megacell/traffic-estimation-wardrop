@@ -101,6 +101,7 @@ def add_routes_from_csv(graph, pathin):
 
 
 def main():
+            k += 1
     """Read LA_shps_V2"""
     theta = matrix([0.0, 0.0, 0.0, 0.15])
     graph, G, IDs = read_shapefile('LA_shps_V2', 'Polynomial', theta, 'LA OSM network')

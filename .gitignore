@@ -8,4 +8,5 @@
 *.dbf
 *.prj
 *.csv
+*.json
 taz_boundary_scag_2009/*

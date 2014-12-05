@@ -20,6 +20,8 @@ Mac OS X frameworks for PostgreSQL and PosGIS estension: http://www.kyngchaos.co
 
 Tutorial for importing Shapefile into PostgreSQL: http://www.gistutor.com/postgresqlpostgis/4-beginner-postgresqlpostgis-tutorials/18-importing-shapefile-gis-data-into-postgresql.html
 
+To convert json to csv: http://www.convertcsv.com/json-to-csv.htm
+
 Running
 -----
 python draw_test.py
