@@ -11,6 +11,7 @@ import csv
 from cvxopt import matrix
 import numpy as np
 import draw_graph as d
+import json
 
 
 def read_shapefile(path, delaytype='None', data=None, description=None):
@@ -44,7 +45,7 @@ def read_shapefile(path, delaytype='None', data=None, description=None):
             links.append((d[e[0]], d[e[1]], 1, ffdelay, (ffdelay, slope, coef)))
     graph = g.create_graph_from_list(nodes, links, delaytype, description=description)
     return graph, G, IDs
-                
+
 
 def extract_routes_ODs(pathin, pathout1, pathout2, IDs, k):
     """Extract routes from .csv file
@@ -100,8 +101,17 @@ def add_routes_from_csv(graph, pathin):
             graph.add_path_from_nodes(node_ids)
 
 
-def main():
+def readJson(max):
+    with open("tweets/tweets.json") as json_file:
+        json_data = json.load(json_file)
+        k = 0
+        for item in json_data:
             k += 1
+            print item
+            if k >= max: break
+
+
+def readLAshpsV2():
     """Read LA_shps_V2"""
     theta = matrix([0.0, 0.0, 0.0, 0.15])
     graph, G, IDs = read_shapefile('LA_shps_V2', 'Polynomial', theta, 'LA OSM network')
@@ -116,6 +126,10 @@ def main():
     #add_ODs_from_csv(graph, 'ODs/processed_ODs.csv')
     #add_routes_from_csv(graph, 'ODs/grouped_routes.csv')
     #graph.visualize(True)
+
+
+def main():
+    readJson(10)
 
 
 if __name__ == '__main__':
