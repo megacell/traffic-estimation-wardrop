@@ -30,7 +30,6 @@ def select():
 
 def main():
     select()
-    #create_table()
     #connect()
     #test_utm()
 
