@@ -1,0 +1,76 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1265\cocoasubrtf210
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww10800\viewh12360\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f0\fs24 \cf0 > sudo createdb template_postgis\
+\
+createdb: could not connect to database template1: FATAL:  role "root" does not exist\
+\
+explanation here: \
+http://stackoverflow.com/questions/25049504/postgres-role-root-does-not-exist-when-trying-to-pgpull-database-from-herok\
+\
+
+\b in the terminal, to create a database \'91template_postgis\'92 and connect to it\
+
+\b0 \
+> createdb -U postgres template_postgis\
+\
+> psql -U postgres template_postgis\
+\
+
+\b quand je cree une database, ou est-elle?
+\b0  somewhere not accessible
+\b \
+
+\b0 \
+\pard\pardeftab720\sa240
+
+\b \cf0 what is it?\
+
+\i\b0 You may wish to change the user or use this database as a template to create other PostGIS-enabled databases
+\i0 \
+
+\b in template_postgis\
+
+\b0 > CREATE EXTENSION postgis;\
+> CREATE EXTENSION postgis_topology;\
+> CREATE USER jeromethai password \'91jht2115\'92\
+> CREATE DATABASE mydb OWNER jeromethai TEMPLATE template_postgis ENCODING 'utf8'\
+> \\q\
+
+\b in terminal, to create a new database \'91ca-census\'92 and connect to it\
+
+\b0 > createdb -U postgres ca-census\
+> psql -U postgres ca-census\
+do in the command line for permanent changes\
+
+\b in Python, it doesn\'92t auto-commit the change, but good thing because I can do some tests\
+to have consistent changes, do directly in postgres terminal\
+add tables from .sql file to a database names \'91movie-rating\'92\
+
+\b0 > created -U postgres movie-rating\
+> psql -U postgres movie-rating < rating.sql\
+
+\b read shapefiles with qgis: 
+\b0 needs at least three files .shp .dbf .shx\
+http://gis.stackexchange.com/questions/70244/opening-shp-file-under-add-vector-layer\
+
+\b load shape file into postgres:\
+
+\b0 create first a .sql following the tutorial here, using shp2pgsql:\
+http://www.gistutor.com/postgresqlpostgis/4-beginner-postgresqlpostgis-tutorials/18-importing-shapefile-gis-data-into-postgresql.html\
+then load normally in the right database
+\b \
+load \'91taz.shp\'92 into postgres into \'91taz_data\'92 table into \'91ca-census\'92 database\
+
+\b0 > shp2pgsql taz_boundary_scag_2009.shp taz_data ca-census > taz.sql\
+> psql -U postgres ca-census < taz.sql\
+
+\b install python package\
+
+\b0 put it in usr/local and run setup.py in the terminal\
+if want to install the package for eclipse, go to the PATH\
+> touch ~/.bash_profile; open ~/.bash_profile\
+uncomment the first export python path and relaunch the terminal}

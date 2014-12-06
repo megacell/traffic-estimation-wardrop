@@ -29,6 +29,8 @@ Importing csv to QGIS: http://www.qgistutorials.com/en/docs/importing_spreadshee
 
 Creating a Shapefile from XY Data using QGIS (for L.A. choose EPSG:4326 for Geo Coordinate Systems): http://www.gistutor.com/quantum-gis/19-beginner-quantum-gis-tutorials/59-how-to-create-a-shapefile-from-xy-data-using-qgis.html
 
+If 'Unable to convert data value to UTF-8' error when importing into PostGIS: http://gis.stackexchange.com/questions/39238/how-to-import-shp2pgsql
+
 Running
 -----
 python draw_test.py
