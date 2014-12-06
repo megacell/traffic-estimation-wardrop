@@ -107,7 +107,7 @@ def readJson(max):
         k = 0
         for item in json_data:
             k += 1
-            print item
+            print item['lat'], item['lng']
             if k >= max: break
 
 

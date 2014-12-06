@@ -18,9 +18,16 @@ Installing PostGIS: http://postgis.net/install
 
 Mac OS X frameworks for PostgreSQL and PosGIS estension: http://www.kyngchaos.com/software/postgres
 
-Tutorial for importing Shapefile into PostgreSQL: http://www.gistutor.com/postgresqlpostgis/4-beginner-postgresqlpostgis-tutorials/18-importing-shapefile-gis-data-into-postgresql.html
+Importing shp, csv, json into PostGIS database
+-----
 
-To convert json to csv: http://www.convertcsv.com/json-to-csv.htm
+Importing Shapefile into PostGIS: http://www.gistutor.com/postgresqlpostgis/4-beginner-postgresqlpostgis-tutorials/18-importing-shapefile-gis-data-into-postgresql.html
+
+Converting json to csv: http://www.convertcsv.com/json-to-csv.htm
+
+Importing csv to QGIS: http://www.qgistutorials.com/en/docs/importing_spreadsheets_csv.html
+
+Creating a Shapefile from XY Data using QGIS (for L.A. choose EPSG:4326 for Geo Coordinate Systems): http://www.gistutor.com/quantum-gis/19-beginner-quantum-gis-tutorials/59-how-to-create-a-shapefile-from-xy-data-using-qgis.html
 
 Running
 -----
