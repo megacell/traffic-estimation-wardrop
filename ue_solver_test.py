@@ -7,7 +7,7 @@ Created on Apr 21, 2014
 import numpy as np
 import ue_solver as ue
 import draw_graph as d
-from generate_graph import small_example, los_angeles
+from generate_graph import small_example, los_angeles, los_angeles_2
 from cvxopt import matrix, mul
 
 
@@ -22,7 +22,8 @@ def test1():
 def test2(delaytype):
     if delaytype == 'Polynomial': theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
     if delaytype == 'Hyperbolic': theta = (3.5, 3.0)
-    g = los_angeles(theta, delaytype)[3]
+    #g = los_angeles(theta, delaytype)[3]
+    g = los_angeles_2(theta, delaytype)
     n = g.numlinks
     l, x = ue.solver(g, update=True, full=True)
     d.draw_delays(g, x[:n])
