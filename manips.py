@@ -7,10 +7,9 @@ Created on Thu Nov 13 16:31:03 2014
 import numpy as np
 from util import distance_on_unit_sphere
 
-
 class Manips:
     def __init__(self):
-        self.List_TAZ = np.genfromtxt('LA_medium_data/Description_TAZ.csv', delimiter=',', skip_header = 1)
+        self.List_TAZ = np.genfromtxt('Data/TAZ/Description_TAZ.csv', delimiter=',', skip_header = 1)
         self.dict_TAZ ={}
         for i in range(len(self.List_TAZ)):
             self.dict_TAZ[self.List_TAZ[i][0]] = i 
@@ -20,7 +19,7 @@ class Manips:
     def Read_TAZ_from_csv(self):
         flows = []
         i=0
-        with open('LA_medium_data/CTPP_LA.csv', 'rb') as f:
+        with open('Data/ODs/CSV/CTPP_LA.csv', 'rb') as f:
             for line in f:
 			l = line.split('\",\"')
 			i=i+1

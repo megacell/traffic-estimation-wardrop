@@ -4,25 +4,22 @@ Created on Thu Oct 23 11:49:41 2014
 
 @author: hugo
 """
-
 import numpy as np
-import graph as g
-from util import distance_on_unit_sphere
-
+from util import is_in_box
 
 def create_nodes_links_from_box(latmin=33.0, latmax=36.0, lngmin=-120.0, lngmax=-116.0):
-    data = np.genfromtxt('Data/nodes_la_exported2.csv', delimiter = ';', skiprows=1)
+    data = np.genfromtxt('Data/Network/CSV/LA_small_box_detailed/nodes_la_exported2.csv', delimiter = ';', skiprows=1)
     Nodes_table=[]
     osmId_2_gId = {}
     k = 1
     for i in range(len(data)):
         node=[data[i][0], data[i][1], data[i][2]]
-        if Is_in_box(latmin, latmax, lngmin, lngmax, node):
+        if is_in_box(latmin, latmax, lngmin, lngmax, node):
             Nodes_table.append([node[0], node[1]])    
             osmId_2_gId[int(node[2])] = k # osmId_2_gId[int(osmId)] = gId
             k += 1
     print str(osmId_2_gId[1687115183])+ ' this is the dest'
-    data = np.genfromtxt('Data/links_la_exported.csv', delimiter = ',', skiprows=1)
+    data = np.genfromtxt('Data/Network/CSV/LA_small_box_detailed/links_la_exported.csv', delimiter = ',', skiprows=1)
     link_table=[]
     for i in range(len(data)):
         sn, en=int(data[i][1]), int(data[i][2])
@@ -38,15 +35,8 @@ def create_nodes_links_from_box(latmin=33.0, latmax=36.0, lngmin=-120.0, lngmax=
             u=[startnode,endnode,1,ff_d,slope]
             link_table.append(u)
     return Nodes_table, link_table
-    
-def Is_in_box(latmin, latmax, lngmin, lngmax, node):
-    lng = node[0]
-    lat = node[1]
-    if (lat<latmax and lat>latmin and lng<lngmax and lng>lngmin):
-        return True
-    else:return False
-      
-def Kill_double_links(links_list):
+         
+def kill_double_links(links_list):
     links_without_double=[]
     counter=0
     for i in range(len(links_list)):
@@ -60,18 +50,3 @@ def Kill_double_links(links_list):
         else: counter+=1
     print str(counter)+' links removed'
     return links_without_double
-
-def Closest_Node(lat, lng, nodes):
-    Nodes_candidates=[]
-    Distances=[]
-    latmax=lat+0.2
-    latmin=lat-0.2
-    lngmax=lng+0.2
-    lngmin=lng-0.2
-    for i in range(len(nodes)):
-        node = nodes[i]
-        if Is_in_box(latmin, latmax, lngmin, lngmax, node):
-            Nodes_candidates.append([node[0], node[1], i+1]) #i+1 because the order is shifted because the first node id is 1 
-    for node in Nodes_candidates:
-        Distances.append(distance_on_unit_sphere(lat, lng, node[1], node[0]))
-    return Nodes_candidates[np.argmin(Distances)][2]

@@ -5,11 +5,8 @@ Created on Thu Nov 20 16:15:19 2014
 @author: hugo
 """
 import numpy as np
-import sys
-sys.path.append("/home/hugo/Desktop/Hugo/UE_Jerome")
 import manips as m
-from read_csv import Closest_Node
-from util import distance_on_unit_sphere
+from util import distance_on_unit_sphere, closest_node
 
 
 def Create_ODs_nodes_unique(nodes):
@@ -28,7 +25,7 @@ def Create_dict_TAZ_2_node(List_TAZ, List_TAZ_ids, nodes):
     dict = {}
     for j in range(len(List_TAZ_ids)): 
         i = List_TAZ_ids[j]
-        dict[i] = Closest_Node(List_TAZ[j][1], List_TAZ[j][2], nodes)
+        dict[i] = closest_node(List_TAZ[j][1], List_TAZ[j][2], nodes)
     return dict
 
 def Sum_multiple_ODs(ODs_multiple):
@@ -43,7 +40,7 @@ def Sum_multiple_ODs(ODs_multiple):
         ODs_unique.append([od[0], od[1], value])
     return ODs_unique
 
-nodes = np.genfromtxt('LA_medium_data/nodes_LA_toy.csv', delimiter = ',', skiprows = 1)
+nodes = np.genfromtxt('Data/Network/CSV/LA_big_box_arterials/nodes_LA_toy.csv', delimiter = ',', skiprows = 1)
 nodes = nodes[:,1:3]
 ODs = Create_ODs_nodes_unique(nodes)
 

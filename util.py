@@ -142,8 +142,27 @@ def distance_on_unit_sphere(lat1, long1, lat2, long2):
     #return 6373.*arc to get in km
     return arc
 
+def closest_node(lat, lng, nodes):
+    Nodes_candidates=[]
+    Distances=[]
+    latmax=lat+0.2
+    latmin=lat-0.2
+    lngmax=lng+0.2
+    lngmin=lng-0.2
+    for i in range(len(nodes)):
+        node = nodes[i]
+        if is_in_box(latmin, latmax, lngmin, lngmax, node):
+            Nodes_candidates.append([node[0], node[1], i+1]) #i+1 because the order is shifted because the first node id is 1 
+    for node in Nodes_candidates:
+        Distances.append(distance_on_unit_sphere(lat, lng, node[1], node[0]))
+    return Nodes_candidates[np.argmin(Distances)][2]
+
+def is_in_box(latmin, latmax, lngmin, lngmax, node):
+    lng = node[0]
+    lat = node[1]
+    if (lat<latmax and lat>latmin and lng<lngmax and lng>lngmin):
+        return True
+    else:return False
 
 if __name__ == '__main__':
     pass
-    
-    
