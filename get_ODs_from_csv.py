@@ -43,26 +43,27 @@ def Sum_multiple_ODs(ODs_multiple):
         ODs_unique.append([od[0], od[1], value])
     return ODs_unique
 
-nodes = np.genfromtxt('LA_medium_data/nodes_LA_toy.csv', delimiter = ',', skiprows = 1)
-nodes = nodes[:,1:3]
-ODs = Create_ODs_nodes_unique(nodes)
+if __name__ == "__main__":
+    nodes = np.genfromtxt('LA_medium_data/nodes_LA_toy.csv', delimiter = ',', skiprows = 1)
+    nodes = nodes[:,1:3]
+    ODs = Create_ODs_nodes_unique(nodes)
 
-def Get_key(item):
-    return item[2]
-M = m.Manips() 
-ODs_sorted = np.asarray(sorted(ODs, key = Get_key))
-temp = ODs_sorted
-ODs_sorted = []
+    def Get_key(item):
+        return item[2]
+    M = m.Manips()
+    ODs_sorted = np.asarray(sorted(ODs, key = Get_key))
+    temp = ODs_sorted
+    ODs_sorted = []
 
-for od in temp:
-    startnode = nodes[od[0]-1]
-    endnode = nodes[od[1]-1]
-    ODs_sorted.append([od[0], od[1], od[2], distance_on_unit_sphere(nodes[od[0]-1][1], nodes[od[0]-1][0], nodes[od[1]-1][1], nodes[od[1]-1][0]), m.Is_in_I210box(startnode[1], startnode[0], 'medium'), m.Is_in_I210box(endnode[1], endnode[0], 'medium')])
-ODs_sorted = np.asarray(ODs_sorted)
+    for od in temp:
+        startnode = nodes[od[0]-1]
+        endnode = nodes[od[1]-1]
+        ODs_sorted.append([od[0], od[1], od[2], distance_on_unit_sphere(nodes[od[0]-1][1], nodes[od[0]-1][0], nodes[od[1]-1][1], nodes[od[1]-1][0]), m.Is_in_I210box(startnode[1], startnode[0], 'medium'), m.Is_in_I210box(endnode[1], endnode[0], 'medium')])
+    ODs_sorted = np.asarray(ODs_sorted)
 
-temp = ODs_sorted
-ODs_sorted  = []
+    temp = ODs_sorted
+    ODs_sorted  = []
 
-for od in temp:
-    if od[4]+od[5]>1 : ODs_sorted.append(od[0:4])
-ODs_sorted = np.asarray(ODs_sorted)
+    for od in temp:
+        if od[4]+od[5]>1 : ODs_sorted.append(od[0:4])
+    ODs_sorted = np.asarray(ODs_sorted)

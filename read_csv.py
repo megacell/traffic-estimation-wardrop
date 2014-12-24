@@ -6,7 +6,6 @@ Created on Thu Oct 23 11:49:41 2014
 """
 
 import numpy as np
-import graph as g
 from util import distance_on_unit_sphere
 
 

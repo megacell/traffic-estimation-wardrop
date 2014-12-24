@@ -3,7 +3,7 @@ Created on Apr 18, 2014
 
 @author: jeromethai
 '''
-import graph as g
+import Graph as g
 import numpy as np
 import scipy.io as sio
 from cvxopt import matrix
@@ -39,10 +39,14 @@ def small_example():
     return graph
 
 
-def los_angeles(parameters=None, delaytype='None', noise=0.0):
+def los_angeles(parameters=None, delaytype='None', noise=0.0, path=None):
     """Generate small map of L.A. with 122 links and 44 modes
     """
-    data = sio.loadmat('los_angeles_data_2.mat')
+
+    if not path:
+        path = 'los_angeles_data_2.mat'
+    data = sio.loadmat(path)
+
         
     links = data['links']
     ODs1, ODs2, ODs3, ODs4 = data['ODs1'], data['ODs2'], data['ODs3'], data['ODs4']
