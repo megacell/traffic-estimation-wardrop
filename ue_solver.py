@@ -8,6 +8,12 @@ import numpy as np
 from cvxopt import matrix, spmatrix, solvers, spdiag, mul, div, sparse
 import rank_nullspace as rn
 from kktsolver import get_kktsolver
+import logging
+if logging.getLogger().getEffectiveLevel() >= logging.DEBUG:
+    solvers.options['show_progress'] = False
+else:
+    solvers.options['show_progress'] = True
+
 
 
 def constraints(graph):
@@ -198,8 +204,8 @@ def solver(graph=None, update=False, full=False, data=None, SO=False):
     for k in range(p): linkflows += x[k*n:(k+1)*n]
     
     if update:
-        print 'Update link flows, delays in Graph.'; graph.update_linkflows_linkdelays(linkflows)
-        print 'Update path delays in Graph.'; graph.update_pathdelays()
+        logging.info('Update link flows, delays in Graph.'); graph.update_linkflows_linkdelays(linkflows)
+        logging.info('Update path delays in Graph.'); graph.update_pathdelays()
     
     if full: return linkflows, x    
     return linkflows

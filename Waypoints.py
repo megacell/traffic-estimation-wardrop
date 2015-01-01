@@ -14,6 +14,7 @@ import rank_nullspace as rn
 from util import find_basis
 import path_solver as path
 import scipy.spatial as spa
+import logging
 
 
 class Waypoints:
@@ -196,7 +197,7 @@ class Waypoints:
         for path_id, path in graph.paths.items():
             # if path.flow > tol:
             k += 1
-            if k%10 == 0: print 'Number of paths processed: ', k
+            if k%10 == 0: logging.info('Number of paths processed: ', k)
             ids = self.closest_to_path(graph, path_id, n, fast)
             path_wps[path_id] = ids
         wps_list, paths_list, flows_list = [], [], []
@@ -347,7 +348,7 @@ def simplex(graph, wp_trajs, withODs=False):
         U1, r1 = path.simplex(graph)
         U, r = matrix([U, U1]), matrix([r, r1])
         if rn.rank(U) < U.size[0]:
-            print 'Remove redundant constraint(s)'; ind = find_basis(U.trans())
+            logging.info('Remove redundant constraint(s)'); ind = find_basis(U.trans())
             return U[ind,:], r[ind]
         return U, r
 

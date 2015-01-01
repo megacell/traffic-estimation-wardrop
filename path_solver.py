@@ -7,6 +7,11 @@ Created on Jul 23, 2014
 import ue_solver as ue
 from cvxopt import matrix, spmatrix, spdiag, solvers, div
 import numpy.random as ra
+import logging
+if logging.getLogger().getEffectiveLevel() >= logging.DEBUG:
+    solvers.options['show_progress'] = False
+else:
+    solvers.options['show_progress'] = True
 
 
 def linkpath_incidence(graph):
@@ -105,9 +110,9 @@ def solver(graph, update=False, data=None, SO=False, random=False):
         return f, Df*P, P.T*H*P    
     x = solvers.cp(F, G=A, h=b, A=U, b=r)['x']
     if update:
-        print 'Update link flows, delays in Graph.'; graph.update_linkflows_linkdelays(P*x)
-        print 'Update path delays in Graph.'; graph.update_pathdelays()
-        print 'Update path flows in Graph object.'; graph.update_pathflows(x)
+        logging.info('Update link flows, delays in Graph.'); graph.update_linkflows_linkdelays(P*x)
+        logging.info('Update path delays in Graph.'); graph.update_pathdelays()
+        logging.info('Update path flows in Graph object.'); graph.update_pathflows(x)
     return x
 
 
@@ -128,8 +133,8 @@ def feasible_pathflows(graph, l_obs, obs=None, update=False, eq_constraints=None
     C, d, q = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1)), -P2.trans()*l_obs
     x = solvers.qp(P2.trans()*P2, q, C, d, U, r)['x']
     if update:
-        print 'Update link flows, delays in Graph.'; graph.update_linkflows_linkdelays(P*x)
-        print 'Update path delays in Graph.'; graph.update_pathdelays()
-        print 'Update path flows in Graph object.'; graph.update_pathflows(x)
+        logging.info('Update link flows, delays in Graph.'); graph.update_linkflows_linkdelays(P*x)
+        logging.info('Update path delays in Graph.'); graph.update_pathdelays()
+        logging.info('Update path flows in Graph object.'); graph.update_pathflows(x)
     return x
     

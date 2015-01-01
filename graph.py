@@ -6,6 +6,7 @@ Created on Apr 18, 2014
 
 from cvxopt import matrix
 import numpy as np
+import logging
 
 class Graph:
     """Class Graph containing nodes, links, ODs, paths for traffic assignment"""
@@ -41,12 +42,12 @@ class Graph:
         """Add a link"""
         formatStr = 'ERROR: node {} doesn\'t exist, graph countains {} nodes.'
         startnode, endnode, route = int(startnode), int(endnode), int(route)
-        if startnode == endnode: print 'ERROR: self-loop not allowed.'; return
-        if startnode < 1 or startnode > self.numnodes: print formatStr.format(startnode, self.numnodes); return
-        if endnode < 1 or endnode > self.numnodes: print formatStr.format(endnode, self.numnodes); return
+        if startnode == endnode: logging.error('self-loop not allowed.'); return
+        if startnode < 1 or startnode > self.numnodes: logging.info(formatStr.format(startnode, self.numnodes)); return
+        if endnode < 1 or endnode > self.numnodes: logging.info(formatStr.format(endnode, self.numnodes)); return
         
         if (startnode, endnode, route) in self.links:
-            print 'ERROR: link ({},{},{}) already exists.'.format(startnode, endnode, route); return
+            logging.error('link ({},{},{}) already exists.'.format(startnode, endnode, route)); return
         else:
             link = Link(startnode, endnode, route, float(flow), float(delay), float(ffdelay), delayfunc)
             self.indlinks[(startnode, endnode, route)] = self.numlinks
@@ -71,12 +72,12 @@ class Graph:
         """Add an OD pair"""
         formatStr = 'ERROR: node {} doesn\'t exist, graph countains {} nodes.'
         origin, destination = int(origin), int(destination)
-        if origin == destination: print 'ERROR: self-loop not allowed.'; return
-        if origin < 1 or origin > self.numnodes: print formatStr.format(origin, self.numnodes); return
-        if destination < 1 or destination > self.numnodes: print formatStr.format(destination, self.numnodes); return
+        if origin == destination: logging.error('self-loop not allowed.'); return
+        if origin < 1 or origin > self.numnodes: logging.info(formatStr.format(origin, self.numnodes)); return
+        if destination < 1 or destination > self.numnodes: logging.info(formatStr.format(destination, self.numnodes)); return
         
         if (origin, destination) in self.ODs:
-            print 'ERROR: OD ({},{}) already exists'.format(origin, destination); return
+            logging.error('OD ({},{}) already exists'.format(origin, destination)); return
         else:
             self.indods[(origin, destination)] = self.numODs
             self.numODs += 1
@@ -97,13 +98,13 @@ class Graph:
         """Add a path with link_ids a list of link ids"""
         origin = link_ids[0][0]
         destination = link_ids[len(link_ids)-1][1]
-        if not (origin, destination) in self.ODs: print 'ERROR: OD ({},{}) doesn\'t exist.'.format(origin, destination); return
+        if not (origin, destination) in self.ODs: logging.error('OD ({},{}) doesn\'t exist.'.format(origin, destination)); return
         
         for i in range(len(link_ids)-1):
-            if link_ids[i][1] != link_ids[i+1][0]: print 'ERROR: path not valid.'; return
+            if link_ids[i][1] != link_ids[i+1][0]: logging.error('path not valid.'); return
         
         for path in self.ODs[(origin, destination)].paths.values():
-            if [(link.startnode,link.endnode,link.route) for link in path.links] == link_ids: print 'ERROR: path already exists.'; return
+            if [(link.startnode,link.endnode,link.route) for link in path.links] == link_ids: logging.error('path already exists.'); return
         
         links = []; delay = 0.0; ffdelay = 0.0
         for id in link_ids:
@@ -130,59 +131,59 @@ class Graph:
     def visualize(self, general=True, nodes=False, links=False, ODs=False, paths=False, only_pos_flows=False, tol=1e-3):
         """Visualize graph"""
         if general:
-            print 'Description: ', self.description
+            logging.info('Description: ', self.description)
             #print 'Nodes: ', self.nodes
-            print 'Number of nodes: ', self.numnodes
+            logging.info('Number of nodes: ', self.numnodes)
             #print 'Links: ', self.links
-            print 'Number of links: ', self.numlinks
+            logging.info('Number of links: ', self.numlinks)
             #print 'OD pairs: ', self.ODs
-            print 'Number of OD pairs: ', self.numODs
+            logging.info('Number of OD pairs: ', self.numODs)
             #print 'Paths: ', self.paths
-            print 'Number of paths: ', self.numpaths
+            logging.info('Number of paths: ', self.numpaths)
             #print 'Nodes\' position: ', self.nodes_position
             #print 'Link indexation', self.indlinks
             #print 'OD indexation', self.indods
             #print 'Path indexation', self.indpaths
-            print
-  
+
         if nodes:
             for id, node in self.nodes.items():
-                print 'Node id: ', id
-                print 'Position', node.position
-                print 'In-links: ', node.inlinks
-                print 'Out-links: ', node.outlinks
-                print 'Start ODs: ', node.startODs
-                print 'End ODs: ', node.endODs
-                print
-     
+                logging.info('Node id: ', id)
+                logging.info('Position', node.position)
+                logging.info('In-links: ', node.inlinks)
+                logging.info('Out-links: ', node.outlinks)
+                logging.info('Start ODs: ', node.startODs)
+                logging.info('End ODs: ', node.endODs)
+                logging.info()
+
         if links:    
             for id, link in self.links.items():
                 if link.flow > tol or not only_pos_flows:
-                    print 'Link id: ', id
-                    print 'Flow: ', link.flow
-                    print 'Number of paths: ', link.numpaths
-                    print 'Paths: ', link.paths
-                    print 'Delay: ', link.delay
-                    print 'Free flow delay: ', link.ffdelay
-                    if link.delayfunc is not None: print 'Type of delay function: ', link.delayfunc.type
-                    print
-        
+                    logging.info('Link id: ', id)
+                    logging.info('Flow: ', link.flow)
+                    logging.info('Number of paths: ', link.numpaths)
+                    logging.info('Paths: ', link.paths)
+                    logging.info('Delay: ', link.delay)
+                    logging.info('Free flow delay: ', link.ffdelay)
+                    if link.delayfunc is not None: logging.info('Type of delay function: ', link.delayfunc.type)
+                    logging.info()
+
         if ODs:
             for id, od in self.ODs.items():
-                print 'OD pair id: ', id
-                print 'Flow: ', od.flow
-                print 'Number of paths: ', od.numpaths
-                print 'Paths: ', od.paths
-                print
-     
+                logging.info('OD pair id: ', id)
+                logging.info('Flow: ', od.flow)
+                logging.info('Number of paths: ', od.numpaths)
+                logging.info('Paths: ', od.paths)
+                logging.info()
+
         if paths:   
             for id, path in self.paths.items():
-                print 'Path id: ', id
-                print 'Links: ', [(link.startnode, link.endnode, link.route) for link in path.links]
-                print 'Flow: ', path.flow
-                print 'Delay: ', path.delay
-                print 'Free flow delay: ', path.ffdelay
-                print 
+                logging.info('Path id: ', id)
+                logging.info('Links: ', [(link.startnode, link.endnode, link.route) for link in path.links])
+                logging.info('Flow: ', path.flow)
+                logging.info('Delay: ', path.delay)
+                logging.info('Free flow delay: ', path.ffdelay)
+                logging.info()
+
         
         
     def get_linkflows(self):
@@ -214,7 +215,7 @@ class Graph:
         coefs[i,j] = coef[j] for link i
         """
         type = self.links.values()[0].delayfunc.type
-        if type != 'Polynomial': print 'Delay functions must be polynomial'; return
+        if type != 'Polynomial': logging.error('Delay functions must be polynomial'); return
         n, degree = self.numlinks, self.links.values()[0].delayfunc.degree
         coefs = matrix(0.0, (n, degree))
         for id,link in self.links.items():
@@ -230,7 +231,7 @@ class Graph:
         k[i,j] = kj for link i with j=1,2
         """
         type = self.links.values()[0].delayfunc.type
-        if type != 'Hyperbolic': print 'Delay functions must be hyperbolic'; return
+        if type != 'Hyperbolic': logging.error('Delay functions must be hyperbolic'); return
         ks = matrix(0.0, (self.numlinks,2))
         for id,link in self.links.items():
             i = self.indlinks[id]
