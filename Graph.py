@@ -131,15 +131,15 @@ class Graph:
     def visualize(self, general=True, nodes=False, links=False, ODs=False, paths=False, only_pos_flows=False, tol=1e-3):
         """Visualize graph"""
         if general:
-            logging.info('Description: ', self.description)
+            logging.info('Description: %s' % self.description)
             #print 'Nodes: ', self.nodes
-            logging.info('Number of nodes: ', self.numnodes)
+            logging.info('Number of nodes: %s' % self.numnodes)
             #print 'Links: ', self.links
-            logging.info('Number of links: ', self.numlinks)
+            logging.info('Number of links: %s' % self.numlinks)
             #print 'OD pairs: ', self.ODs
-            logging.info('Number of OD pairs: ', self.numODs)
+            logging.info('Number of OD pairs: %s' % self.numODs)
             #print 'Paths: ', self.paths
-            logging.info('Number of paths: ', self.numpaths)
+            logging.info('Number of paths: %s' % self.numpaths)
             #print 'Nodes\' position: ', self.nodes_position
             #print 'Link indexation', self.indlinks
             #print 'OD indexation', self.indods
@@ -147,41 +147,41 @@ class Graph:
 
         if nodes:
             for id, node in self.nodes.items():
-                logging.info('Node id: ', id)
-                logging.info('Position', node.position)
-                logging.info('In-links: ', node.inlinks)
-                logging.info('Out-links: ', node.outlinks)
-                logging.info('Start ODs: ', node.startODs)
-                logging.info('End ODs: ', node.endODs)
+                logging.info('Node id: %s' % id)
+                logging.info('Position: %s' % node.position)
+                logging.info('In-links: %s' % node.inlinks)
+                logging.info('Out-links: %s' % node.outlinks)
+                logging.info('Start ODs: %s' % node.startODs)
+                logging.info('End ODs: %s' % node.endODs)
                 logging.info()
 
         if links:    
             for id, link in self.links.items():
                 if link.flow > tol or not only_pos_flows:
-                    logging.info('Link id: ', id)
-                    logging.info('Flow: ', link.flow)
-                    logging.info('Number of paths: ', link.numpaths)
-                    logging.info('Paths: ', link.paths)
-                    logging.info('Delay: ', link.delay)
-                    logging.info('Free flow delay: ', link.ffdelay)
-                    if link.delayfunc is not None: logging.info('Type of delay function: ', link.delayfunc.type)
+                    logging.info('Link id: %s' % id)
+                    logging.info('Flow: %s' % link.flow)
+                    logging.info('Number of paths: %s' % link.numpaths)
+                    logging.info('Paths: %s' % link.paths)
+                    logging.info('Delay: %s' % link.delay)
+                    logging.info('Free flow delay: %s' % link.ffdelay)
+                    if link.delayfunc is not None: logging.info('Type of delay function: %s' % link.delayfunc.type)
                     logging.info()
 
         if ODs:
             for id, od in self.ODs.items():
-                logging.info('OD pair id: ', id)
-                logging.info('Flow: ', od.flow)
-                logging.info('Number of paths: ', od.numpaths)
-                logging.info('Paths: ', od.paths)
+                logging.info('OD pair id: %s' % id)
+                logging.info('Flow: %s' % od.flow)
+                logging.info('Number of paths: %s' % od.numpaths)
+                logging.info('Paths: %s' % od.paths)
                 logging.info()
 
         if paths:   
             for id, path in self.paths.items():
-                logging.info('Path id: ', id)
-                logging.info('Links: ', [(link.startnode, link.endnode, link.route) for link in path.links])
-                logging.info('Flow: ', path.flow)
-                logging.info('Delay: ', path.delay)
-                logging.info('Free flow delay: ', path.ffdelay)
+                logging.info('Path id: %s' % id)
+                logging.info('Links: %s' % ([(link.startnode, link.endnode, link.route) for link in path.links]))
+                logging.info('Flow: %s' % path.flow)
+                logging.info('Delay: %s' % path.delay)
+                logging.info('Free flow delay: %s' % path.ffdelay)
                 logging.info()
 
         
