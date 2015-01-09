@@ -43,6 +43,8 @@ class LinkPath:
         from cvxopt import matrix, spmatrix
         n = len(self.lp_trajs)
         m = len(self.G.paths)
+        if n == 0:
+            return None, None
         I, J, r = [], [], matrix(0.0, (n,1))
         for i, path_ids in enumerate(self.lp_trajs.itervalues()):
             r[i] = self.lp_flows[i]
