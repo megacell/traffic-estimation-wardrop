@@ -193,6 +193,8 @@ class Waypoints:
         or associated wp trajectory {path_id: wp_ids}
         wp_trajs: list of waypoint trajectories with paths along this trajectory [(wp_traj, path_list, flow)]
         """
+        if self.N == 0:
+            return None, None
         path_wps, k = {}, 0
         for path_id, path in graph.paths.items():
             # if path.flow > tol:
@@ -334,6 +336,8 @@ def simplex(graph, wp_trajs, withODs=False):
     graph: Graph object
     wp_trajs: list of waypoint trajectories with paths along this trajectory [(wp_traj, path_list, flow)]
     """
+    if wp_trajs is None:
+        return None, None
     n = len(wp_trajs)
     I, J, r, i = [], [], matrix(0.0, (n,1)), 0
     for wp_traj, path_ids, flow in wp_trajs:
