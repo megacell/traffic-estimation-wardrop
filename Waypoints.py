@@ -43,8 +43,8 @@ class Waypoints:
             d = np.linalg.norm([point[0]-self.wp[id][0], point[1]-self.wp[id][1]])
             if d < min_dist: min_dist, wp_id = d, id
         return wp_id
-        
-        
+
+
     def closest_to_line(self, directed_line, n, fast=False):
         """Find list of closest waypoints to a directed_line
         
@@ -201,6 +201,7 @@ class Waypoints:
             k += 1
             if k%10 == 0: logging.info('Number of paths processed: %s' % k)
             ids = self.closest_to_path(graph, path_id, n, fast)
+
             path_wps[path_id] = ids
         wps_list, paths_list, flows_list = [], [], []
         for path_id, wps in path_wps.items():

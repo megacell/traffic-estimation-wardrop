@@ -57,7 +57,7 @@ data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
 theta = matrix([0.0, 0.0, 0.0, 0.15])
 
 
-def synthetic_data(data=None, SO=False, demand=3, N=10, path=None):
+def synthetic_data(data=None, SO=False, demand=3, N=10, path=None, fast=True):
     """Generate synthetic data for the experiments
     
     Parameters:
@@ -80,7 +80,7 @@ def synthetic_data(data=None, SO=False, demand=3, N=10, path=None):
     """
     random = True
     g, f_true, path_wps, wp_trajs = wp.compute_wp_flow(SO, demand, random, data,
-                                                       path=path)
+                                                       path=path, fast=fast)
     l = ue.solver(g, update=True, SO=SO)
     n = g.numlinks
     g.visualize()
