@@ -127,7 +127,7 @@ def compute_wp_flow(SO=False, demand=3, random=False, data=None, path=None, fast
     g.visualize(general=True)
     p_flow = path_solver.solver(g, update=True, SO=SO, random=random)
     path_wps, wp_trajs = WP.get_wp_trajs(g, 20, fast)
-    return g, p_flow, path_wps, wp_trajs
+    return g, p_flow, path_wps, wp_trajs, WP
     #print len(path_wps), path_wps
     #print len(wp_trajs), wp_trajs
 

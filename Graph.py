@@ -273,6 +273,32 @@ class Graph:
                 intlk_ids.append(id)                
         return intlk_ids
 
+    def get_paths(self):
+        """
+        Extract paths (in terms of sequences of link ids) from graph object
+        :param g:
+        :return:
+        """
+        paths_obj = [[(v.startnode,v.endnode,1) for v in p.links] for (k,p) in \
+                     self.paths.iteritems()]
+        paths = [[self.indlinks[v] for v in p] for p in paths_obj]
+        return paths
+
+    def get_links(self):
+        """
+        Extract link positions (start and end nodes) from graph object,
+        ordered by link id
+        :param g:
+        :return:
+        """
+        link_pos,ind= zip(*sorted([((self.nodes[a].position,self.nodes[b].position),v) \
+                                   for ((a,b,c),v) in self.indlinks.iteritems()],
+                                  key=lambda x: x[1]))
+        start_pos, end_pos = zip(*link_pos)
+        start_pos, end_pos = np.array(start_pos), np.array(end_pos)
+        return start_pos, end_pos
+
+
 class Link:
     """A link in the graph"""
     def __init__(self, startnode, endnode, route, flow=0.0, delay=0.0, ffdelay=0.0, delayfunc=None):
