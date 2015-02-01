@@ -174,7 +174,7 @@ class Waypoints:
         return spa.Voronoi(np.array(points))
     
 
-    def get_wp_trajs(self, graph, n, fast=False, tol=1e-3):
+    def get_wp_trajs(self, graph, n=20, fast=False, tol=1e-3):
         """Compute Waypoint trajectories and returns {path_id: wp_ids}, [(wp_traj, path_list, flow)]
         
         Parameters:
