@@ -79,8 +79,8 @@ def synthetic_data(data=None, SO=False, demand=3, N=10, path=None, fast=True):
     wp_trajs: waypoint trajectories [(wp_traj, path_list, flow)]
     """
     random = True
-    g, f_true, path_wps, wp_trajs, wpts = wp.compute_wp_flow(SO, demand, random, data,
-                                                       path=path, fast=fast)
+    g, f_true, path_wps, wp_trajs, wpts = wp.compute_wp_flow(SO, demand, random,
+                                        data, path=path, fast=fast)
     l = ue.solver(g, update=True, SO=SO)
     n = g.numlinks
     g.visualize()

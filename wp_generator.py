@@ -99,7 +99,8 @@ def fast_search(SO=False, data=None, demand=3):
     WP.draw_waypoints(g, [('r',ids,'closest')], path_id = path_id, voronoi=True)
     
     
-def compute_wp_flow(SO=False, demand=3, random=False, data=None, path=None, fast=True):
+def compute_wp_flow(SO=False, demand=3, random=False, data=None, path=None,
+                    fast=True):
     """Generate map of L.A., UE path_flow, waypoint trajectories
     1. Generate map of L.A. and waypoints with generate_wp
     2. Get used paths in UE/SO (see generate_paths module)
