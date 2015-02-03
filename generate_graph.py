@@ -64,7 +64,7 @@ def los_angeles(parameters=None, delaytype='None', noise=0.0, path=None):
     if delaytype=='Polynomial':
         theta = parameters
         degree = len(theta)
-        for startnode, endnode, route, ffdelay, slope in tmp:
+        for startnode, endnode, route, ffdelay, slope in tmp:            #print startnode, endnode, route, ffdelay, slope
             coef = [ffdelay*a*b for a,b in zip(theta, np.power(slope, range(1,degree+1)))]
             links.append((startnode, endnode, route, ffdelay, (ffdelay, slope, coef)))
     if delaytype=='Hyperbolic':

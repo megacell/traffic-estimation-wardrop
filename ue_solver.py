@@ -7,6 +7,7 @@ Created on Apr 20, 2014
 import numpy as np
 from cvxopt import matrix, spmatrix, solvers, spdiag, mul, div, sparse
 import rank_nullspace as rn
+from util import find_basis
 from kktsolver import get_kktsolver
 import logging
 if logging.getLogger().getEffectiveLevel() >= logging.DEBUG:
@@ -16,18 +17,19 @@ else:
 
 
 
-def constraints(graph):
+def constraints(graph, rm_redundant = False):
     """Construct constraints for the UE link flow
     
     Parameters
     ----------
     graph: graph object
+    rm_redundant: if True, remove redundant constraints for the ue solver
     
     Return value
     ------------
     Aeq, beq: equality constraints Aeq*x = beq
     """
-    C, ind = nodelink_incidence(graph)
+    C, ind = nodelink_incidence(graph, rm_redundant)
     ds = [get_demands(graph, ind, id) for id,node in graph.nodes.items() if len(node.endODs) > 0]
     p = len(ds)
     m,n = C.size
@@ -36,13 +38,14 @@ def constraints(graph):
     return Aeq, beq
 
 
-def nodelink_incidence(graph):
+def nodelink_incidence(graph, rm_redundant = False):
     """
     get node-link incidence matrix
     
     Parameters
     ----------
     graph: graph object
+    rm_redundant: if True, remove redundant constraints for the ue solver
     
     Return value
     ------------
@@ -54,7 +57,15 @@ def nodelink_incidence(graph):
     for id1,node in graph.nodes.items():
         for id2,link in node.inlinks.items(): entries.append(1.0); I.append(id1-1); J.append(graph.indlinks[id2])
         for id2,link in node.outlinks.items(): entries.append(-1.0); I.append(id1-1); J.append(graph.indlinks[id2])
-    return spmatrix(entries, I, J, (m,n)), range(m)
+    C = spmatrix(entries, I, J, (m,n))
+    if rm_redundant:
+        M = matrix(C)
+        r = rn.rank(M)
+        if r < m:
+            print 'Remove {} redundant constraint(s)'.format(m-r)
+            ind = find_basis(M.trans())
+            return C[ind,:], ind
+    return C, range(m)
 
 
 def get_demands(graph, ind, node_id):

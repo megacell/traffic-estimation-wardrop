@@ -24,7 +24,7 @@ class Waypoints:
         self.shape = shape
         self.N = 0
         self.wp = {}
-
+        
         
     def closest_to_point(self, point, fast=False):
         """Find closest waypoint to a point (x,y)
@@ -43,8 +43,8 @@ class Waypoints:
             d = np.linalg.norm([point[0]-self.wp[id][0], point[1]-self.wp[id][1]])
             if d < min_dist: min_dist, wp_id = d, id
         return wp_id
-
-
+        
+        
     def closest_to_line(self, directed_line, n, fast=False):
         """Find list of closest waypoints to a directed_line
         
@@ -54,12 +54,12 @@ class Waypoints:
         n: number of points to take on the line
         """    
         x1,y1,x2,y2 = directed_line
-        interp_x = np.linspace(x1,x2,num=n)
-        interp_y = np.linspace(y1,y2,num=n)
-        ids = [self.closest_to_point((x,y), fast) for (x,y) in zip(interp_x,interp_y)]
-        ids_deduped = [ids[0]]
-        ids_deduped.extend([y for (x,y) in zip(ids,ids[1:]) if x!=y])
-        return ids_deduped
+        for k,t in enumerate(np.linspace(0,1,n)):
+            if k == 0: ids = [self.closest_to_point((x1,y1), fast)]
+            if k > 0:
+                id = self.closest_to_point((x1+t*(x2-x1), y1+t*(y2-y1)), fast)
+                if id != ids[-1]: ids.append(id)
+        return ids
 
 
     def closest_to_polyline(self, polyline, n, fast=False):
@@ -70,11 +70,14 @@ class Waypoints:
         polyline: list of directed lines [(x1,y1,x2,y2)]
         n: number of points to take on each line of the polyline
         """
-        ids = [self.closest_to_line(line, n, fast) for line in polyline]
-        ids = [item for sublist in ids for item in sublist]
-        ids_deduped = [ids[0]]
-        ids_deduped.extend([y for (x,y) in zip(ids,ids[1:]) if x!=y])
-        return ids_deduped
+        ids = []
+        for k, line in enumerate(polyline):
+            if k == 0: ids = self.closest_to_line(line, n, fast)
+            if k > 0:
+                tmp = self.closest_to_line(line, n, fast)
+                if ids[-1] == tmp[0]: ids += tmp[1:]
+                if ids[-1] != tmp[0]: ids += tmp
+        return ids
     
     
     def closest_to_path(self, graph, path_id, n, fast=False):
@@ -174,7 +177,7 @@ class Waypoints:
         return spa.Voronoi(np.array(points))
     
 
-    def get_wp_trajs(self, graph, n=20, fast=False, tol=1e-3):
+    def get_wp_trajs(self, graph, n, fast=False, tol=1e-3):
         """Compute Waypoint trajectories and returns {path_id: wp_ids}, [(wp_traj, path_list, flow)]
         
         Parameters:
@@ -190,15 +193,12 @@ class Waypoints:
         or associated wp trajectory {path_id: wp_ids}
         wp_trajs: list of waypoint trajectories with paths along this trajectory [(wp_traj, path_list, flow)]
         """
-        if self.N == 0:
-            return None, None
         path_wps, k = {}, 0
         for path_id, path in graph.paths.items():
             # if path.flow > tol:
             k += 1
-            if k%10 == 0: logging.info('Number of paths processed: %s' % k)
+            if k%10 == 0: logging.info('Number of paths processed: ', k)
             ids = self.closest_to_path(graph, path_id, n, fast)
-
             path_wps[path_id] = ids
         wps_list, paths_list, flows_list = [], [], []
         for path_id, wps in path_wps.items():
@@ -219,7 +219,7 @@ class Rectangle(Waypoints):
         Waypoints.__init__(self, geo, 'Rectangle')
         self.partition = None
         
-    def populate(self, N, first=0):
+    def populate(self, N, first=1):
         """Uniformly sample N points in rectangle
         with first the first key used in wp"""
         self.N = N
@@ -285,7 +285,7 @@ class Line(Waypoints):
     def __init__(self, geo):
         Waypoints.__init__(self, geo, 'Line')
         
-    def populate(self, N, first=0, scale=1e-8):
+    def populate(self, N, first=1, scale=1e-8):
         """Sample N points along line
         with first the first key used in wp"""
         self.N = N
@@ -334,8 +334,6 @@ def simplex(graph, wp_trajs, withODs=False):
     graph: Graph object
     wp_trajs: list of waypoint trajectories with paths along this trajectory [(wp_traj, path_list, flow)]
     """
-    if wp_trajs is None:
-        return None, None
     n = len(wp_trajs)
     I, J, r, i = [], [], matrix(0.0, (n,1)), 0
     for wp_traj, path_ids, flow in wp_trajs:

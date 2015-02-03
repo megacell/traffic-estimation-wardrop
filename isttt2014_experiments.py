@@ -57,7 +57,7 @@ data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
 theta = matrix([0.0, 0.0, 0.0, 0.15])
 
 
-def synthetic_data(data=None, SO=False, demand=3, N=10, m=20, path=None, fast=True):
+def synthetic_data(data=None, SO=False, demand=3, N=10, path=None):
     """Generate synthetic data for the experiments
     
     Parameters:
@@ -79,8 +79,8 @@ def synthetic_data(data=None, SO=False, demand=3, N=10, m=20, path=None, fast=Tr
     wp_trajs: waypoint trajectories [(wp_traj, path_list, flow)]
     """
     random = True
-    g, f_true, path_wps, wp_trajs, wpts = wp.compute_wp_flow(SO, demand, random,
-                                        data, path=path, m=m, fast=fast)
+    g, f_true, path_wps, wp_trajs = wp.compute_wp_flow(SO, demand, random, data,
+                                                       path=path)
     l = ue.solver(g, update=True, SO=SO)
     n = g.numlinks
     g.visualize()
@@ -89,16 +89,16 @@ def synthetic_data(data=None, SO=False, demand=3, N=10, m=20, path=None, fast=Tr
         tmp = np.sort(sorted[-(i+1)*n/N:], axis=0)[:,0]
         obs[i] = [int(k) for k in tmp]
     obs[N-1] = range(n)
-    return g, f_true, l, path_wps, wp_trajs, obs, wpts
+    return g, f_true, l, path_wps, wp_trajs, obs
 
 
 def ratio_wptrajs_usedpaths(trials=10, demand=3):
     ratiosUE, ratiosSO = [0.0]*5, [0.0]*5
     for k in range(trials):
         for i in range(5):
-            g, f_true, path_wps, wp_trajs, wpts = wp.compute_wp_flow(False, demand, True, data[i])
+            g, f_true, path_wps, wp_trajs = wp.compute_wp_flow(False, demand, True, data[i])
             ratiosUE[i] += float(100*len(wp_trajs)) / len(path_wps)
-            g, f_true, path_wps, wp_trajs, wpts = wp.compute_wp_flow(True, demand, True, data[i])
+            g, f_true, path_wps, wp_trajs = wp.compute_wp_flow(True, demand, True, data[i])
             ratiosSO[i] += float(100*len(wp_trajs)) / len(path_wps)
     for i in range(5):
         ratiosUE[i] /= trials
@@ -124,7 +124,7 @@ def experiment(data=None, SO=False, trials=10, demand=3, N=10, plot=False, withO
     numexp = 2*N
     l_errors, f_errors = [[] for i in range(numexp)], [[] for i in range(numexp)]
     for k in range(trials):
-        g, f_true, l, path_wps, wp_trajs, obs, wpts = synthetic_data(data, SO, demand, N)
+        g, f_true, l, path_wps, wp_trajs, obs = synthetic_data(data, SO, demand, N)
         norm_l, norm_f = np.linalg.norm(l, 1), np.linalg.norm(f_true, 1)
         P = path.linkpath_incidence(g)
         U,r = WP.simplex(g, wp_trajs, withODs)
@@ -228,7 +228,7 @@ def QP_rank(data=None, SO=False, trials=10, demand=3, N=10, withODs=False, wp_mo
     if wp_model:
         num_used_paths = 0
         for k in range(trials):
-            g, f_true, l, path_wps, wp_trajs, obs, wpts = synthetic_data(data, SO, demand, N)
+            g, f_true, l, path_wps, wp_trajs, obs = synthetic_data(data, SO, demand, N)
             P = path.linkpath_incidence(g)
             if k==0: dim = P.size[1]
             U,r = WP.simplex(g, wp_trajs, withODs)

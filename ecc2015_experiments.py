@@ -291,8 +291,8 @@ def main():
     ind_obs = [(36,37,1), (13,14,1), (17,8,1), (24,17,1), (28,22,1), (14,13,1), (17,24,1), (24,40,1), (14,21,1), (16,23,1)]
     #ind_obs = [(17,24,1), (24,40,1), (14,21,1), (16,23,1)]
     #ind_obs = [(10,9,1), (19,18,1), (4,5,1), (29,21,1)]
-    experiment_estimation(ind_obs, type, degree)
-    #results_estimation(degree)
+    #experiment_estimation(ind_obs, type, degree)
+    results_estimation(degree)
     #experiment_toll_pricing([1e-4, 1e-2, 1e0, 1e2], [1e-4, 1e-2, 1e0, 1e2])
     #results_toll()
     #draw_tolls()

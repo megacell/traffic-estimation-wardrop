@@ -22,8 +22,7 @@ def test1():
 def test2(delaytype):
     if delaytype == 'Polynomial': theta = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
     if delaytype == 'Hyperbolic': theta = (3.5, 3.0)
-    #g = los_angeles(theta, delaytype)[3]
-    g = los_angeles_2(theta, delaytype)
+    g = los_angeles(theta, delaytype)[3]
     n = g.numlinks
     l, x = ue.solver(g, update=True, full=True)
     d.draw_delays(g, x[:n])
@@ -33,9 +32,9 @@ def test2(delaytype):
     print max(mul(l,g.get_slopes()))
     print 'cost UE:', sum([link.delay*link.flow for link in g.links.values()])
     l2, x2 = ue.solver(g, update=True, full=True, SO=True)
-    #d.draw_delays(g, x2[:n])
-    #d.draw_delays(g, x2[n:2*n])
-    #d.draw_delays(g, x2[2*n:])
+    d.draw_delays(g, x2[:n])
+    d.draw_delays(g, x2[n:2*n])
+    d.draw_delays(g, x2[2*n:])
     #print l2
     print max(mul(l2,g.get_slopes()))
     print 'cost SO:', sum([link.delay*link.flow for link in g.links.values()])

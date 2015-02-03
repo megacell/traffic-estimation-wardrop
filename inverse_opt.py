@@ -8,6 +8,7 @@ import numpy as np
 from cvxopt import matrix, spmatrix, solvers, mul, spdiag
 from multiprocessing import Pool
 import shortest_paths as sh
+import rank_nullspace as rn
 
 
 def get_data(graphs):
@@ -23,7 +24,7 @@ def get_data(graphs):
     ffdelays, slopes = graph.get_ffdelays(), graph.get_slopes()
     beqs = []
     for graph in graphs:
-        Aeq, tmp = ue.constraints(graph)
+        Aeq, tmp = ue.constraints(graph, True)
         beqs.append(tmp)
     return Aeq, beqs, ffdelays, slopes
 
@@ -76,15 +77,10 @@ def solver(data, ls, degree, full=False):
     full: if False, just return theta, if True, return the whole primal solution
     """
     c, A, b = constraints(data, ls, degree)
-    """
-    print c.size
     print A.size
-    print b.size
-    print c
-    print A
-    print b
-    """
-    if full: return solvers.qp(P, c, G=A, h=b)['x']
+    r = rn.rank(matrix(A))
+    print r
+    if full: return solvers.lp(c, G=A, h=b)['x']
     return solvers.lp(c, G=A, h=b)['x'][range(degree)]
 
 
@@ -351,7 +347,7 @@ def multi_objective_solver(graphs, ls_obs, obs, degree, w_multi, max_iter=3):
     type, N = 'Polynomial', len(beqs)
     r_gap, r_obs, x_est, thetas = [], [], [], []
     for w1,w2 in zip(w_obs,w_gap):
-        theta, ys, ls = solver_mis(data, ls_obs, obs, degree, w1, max_iter, True, w2)
+        theta, ys, ls = solver_mis(data, ls_obs, obs, degree, 0.0*np.ones(degree), w1, max_iter, True, w2)
         coefs = compute_coefs(ffdelays, slopes, theta)
         r_gap.append(compute_gap(ls, ys, matrix([[ffdelays], [coefs]]), beqs, scale[1]))
         r_obs.append(scale[0]*0.5*np.linalg.norm(matrix(ls_obs)-matrix([l[obs] for l in ls]), 2)**2)
