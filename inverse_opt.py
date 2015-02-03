@@ -8,6 +8,7 @@ import numpy as np
 from cvxopt import matrix, spmatrix, solvers, mul, spdiag
 from multiprocessing import Pool
 import shortest_paths as sh
+from kktsolver import get_kktsolver
 
 
 def get_data(graphs):
@@ -65,7 +66,7 @@ def constraints(data, ls, degree):
     return c, A, b
 
 
-def solver(data, ls, degree, smooth, full=False):
+def solver(data, ls, degree, full=False):
     """Solves the inverse optimization problem
     
     Parameters
@@ -73,13 +74,19 @@ def solver(data, ls, degree, smooth, full=False):
     data: Aeq, beqs, ffdelays, slopes from get_data(graphs)
     ls: list of link flow vectors in equilibrium
     degree: degree of the polynomial function to estimate
-    smooth: regularization parameters on theta
     full: if False, just return theta, if True, return the whole primal solution
     """
     c, A, b = constraints(data, ls, degree)
-    P = spmatrix(smooth, range(degree), range(degree), (len(c),len(c)))
-    if full: return solvers.qp(P, c, G=A, h=b)['x']
-    return solvers.qp(P, c, G=A, h=b)['x'][range(degree)]
+    if full: return solvers.lp(c, G=A, h=b)['x']
+    def F(x=None, z=None):
+        if x is None: return 0, matrix(0.0, (len(c),1))
+        f, df = c.T*x, c.T
+        if z is None: return f, df
+        return f, df, spmatrix([], [], [], (len(c),len(c)))
+    #return solvers.lp(c, G=A, h=b)['x'][range(degree)]
+    dims = {'l': len(c), 'q': [], 's': []}
+    Aeq = spmatrix([], [], [], (len(c),len(c)))
+    return solvers.cp(F, G=A, h=b, kktsolver=get_kktsolver(A, dims, Aeq, F))['x'][range(degree)]
 
 
 def x_solver(ffdelays, coefs, Aeq, beq, w_obs=0.0, obs=None, l_obs=None, w_gap=1.0):
@@ -160,7 +167,7 @@ def compute_coefs(ffdelays, slopes, theta):
     return coefs
 
 
-def solver_mis(data, ls_obs, obs, degree, smooth, w_obs=1000.0, max_iter=3, full=False, w_gap=1.0):
+def solver_mis(data, ls_obs, obs, degree, w_obs=1000.0, max_iter=3, full=False, w_gap=1.0):
     """Solves the inverse optimization problem with missing values
     
     Parameters
@@ -169,7 +176,6 @@ def solver_mis(data, ls_obs, obs, degree, smooth, w_obs=1000.0, max_iter=3, full
     ls_obs: list of partially-observed link flow vectors in equilibrium
     obs: indlinks ids of observed links
     degree: degree of the polynomial function to estimate
-    smooth: regularization parameter on theta
     w_obs: weight on the observation residual
     max_iter: maximum number of iterations
     full: if False, just return thetam if True, return theta, ys, ls
@@ -183,9 +189,9 @@ def solver_mis(data, ls_obs, obs, degree, smooth, w_obs=1000.0, max_iter=3, full
     for k in range(max_iter):
         coefs = compute_coefs(ffdelays, slopes, theta)
         ls = [x_solver(ffdelays, coefs, Aeq, beqs[j], w_obs, obs, ls_obs[j], w_gap) for j in range(N)]
-        theta = solver(data, ls, degree, smooth)
+        theta = solver(data, ls, degree)
     if full:
-        sol = solver(data, ls, degree, smooth, True)
+        sol = solver(data, ls, degree, True)
         return sol[range(degree)], [sol[j*m*p:((j+1)*m*p)] for j in range(N)], ls #return theta, ys, ls
     return theta
 
@@ -210,7 +216,7 @@ def smm_helper(data):
     return x_solver(ffdelays, coefs, Aeq, beq, soft, obs, l_obs)
 
 
-def solver_mis_multi_thread(data, ls_obs, obs, degree, smooth, soft=1000.0, max_iter=3, processes=1):
+def solver_mis_multi_thread(data, ls_obs, obs, degree, soft=1000.0, max_iter=3, processes=1):
     """Solves the inverse optimization problem with missing values using several processes
     
     Parameters
@@ -219,7 +225,6 @@ def solver_mis_multi_thread(data, ls_obs, obs, degree, smooth, soft=1000.0, max_
     ls_obs: list of partially-observed link flow vectors in equilibrium
     obs: indlinks ids of observed links
     degree: degree of the polynomial function to estimate
-    smooth: regularization parameter on theta
     soft: regularization parameter for soft constraints
     max_iter: maximum number of iterations
     processes: number of processes
@@ -237,7 +242,7 @@ def solver_mis_multi_thread(data, ls_obs, obs, degree, smooth, soft=1000.0, max_
     return theta
 
 
-def main_solver(graphs, ls_obs, obs, degree, betas=[1e-2, 1e0, 1e2, 1e4, 1e6], soft=1000.0, max_iter=3):
+def main_solver(graphs, ls_obs, obs, degree, soft=1000.0, max_iter=3):
     """Solves solve_mis with the best parameter
     
     Parameters
@@ -253,17 +258,13 @@ def main_solver(graphs, ls_obs, obs, degree, betas=[1e-2, 1e0, 1e2, 1e4, 1e6], s
     data, n_obs = get_data(graphs), len(obs)
     Aeq, beqs, ffdelays, slopes = data
     type, N, min_e, n = 'Polynomial', len(beqs), np.inf, len(ffdelays)
-    for i in betas:
-        if n_obs < n: theta = solver_mis(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter)
-        #if n_obs < n: theta = solver_mis_multi_thread(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter, 4)
-        if n_obs == n: theta = solver(data, ls_obs, degree, i*np.ones(degree))
-        coefs = compute_coefs(ffdelays, slopes, theta)
-        xs = [ue.solver(data=(Aeq, beqs[j], ffdelays, coefs, type)) for j in range(N)]
-        e = np.linalg.norm(matrix(ls_obs)-matrix([x[obs] for x in xs]), 1)
-        if e < min_e:
-            best_beta, min_e, best_theta, best_xs = i, e, theta, xs
-    print best_theta, min_e
-    return best_theta, best_xs, best_beta
+    if n_obs < n: theta = solver_mis(data, ls_obs, obs, degree, soft, max_iter)
+    #if n_obs < n: theta = solver_mis_multi_thread(data, ls_obs, obs, degree, i*np.ones(degree), soft, max_iter, 4)
+    if n_obs == n: theta = solver(data, ls_obs, degree)
+    coefs = compute_coefs(ffdelays, slopes, theta)
+    xs = [ue.solver(data=(Aeq, beqs[j], ffdelays, coefs, type)) for j in range(N)]
+    e = np.linalg.norm(matrix(ls_obs)-matrix([x[obs] for x in xs]), 1)
+    return theta, xs
 
 
 def compute_scaling(graphs, ls_obs, obs, data):
@@ -353,7 +354,7 @@ def multi_objective_solver(graphs, ls_obs, obs, degree, w_multi, max_iter=3):
     type, N = 'Polynomial', len(beqs)
     r_gap, r_obs, x_est, thetas = [], [], [], []
     for w1,w2 in zip(w_obs,w_gap):
-        theta, ys, ls = solver_mis(data, ls_obs, obs, degree, 0.0*np.ones(degree), w1, max_iter, True, w2)
+        theta, ys, ls = solver_mis(data, ls_obs, obs, degree, w1, max_iter, True, w2)
         coefs = compute_coefs(ffdelays, slopes, theta)
         r_gap.append(compute_gap(ls, ys, matrix([[ffdelays], [coefs]]), beqs, scale[1]))
         r_obs.append(scale[0]*0.5*np.linalg.norm(matrix(ls_obs)-matrix([l[obs] for l in ls]), 2)**2)
