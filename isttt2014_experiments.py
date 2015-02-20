@@ -70,17 +70,21 @@ def synthetic_data(data=None, SO=False, demand=3, N=10, path=None):
         margin: margin around each cell
     SO: if True, computes SO
     demand: OD demand
-    N: number of trials
+    N: number of sets of observed links
+    e.g. if N=10, we run 10 experiments with observations from the 10, 20, ..., 100% most occupied links
     
     Return value:
     ------------
     g: Graph object with paths
+    f_true: true path flow
     l: UE linkflow
+    path_wps: dictionary {path_id: wp_ids}, with wp_ids list of waypoints
     wp_trajs: waypoint trajectories [(wp_traj, path_list, flow)]
+    obs: dictionary {i: [link_ids]} where obs[i] are the indices of the i*n/N links with the most flow
     """
     random = True
-    g, f_true, path_wps, wp_trajs = wp.compute_wp_flow(SO, demand, random, data,
-                                                       path=path)
+    
+    g, f_true, path_wps, wp_trajs = wp.compute_wp_flow(SO, demand, random, data, path=path)
     l = ue.solver(g, update=True, SO=SO)
     n = g.numlinks
     g.visualize()
@@ -108,7 +112,20 @@ def ratio_wptrajs_usedpaths(trials=10, demand=3):
         
 
 def experiment(data=None, SO=False, trials=10, demand=3, N=10, plot=False, withODs=False, data_id=None):
-    """Experiment
+    """Run set of experiments
+    Steps:
+    1. generate synthetic data with synthetic_data()
+        g: Graph object with paths
+        f_true: true path flow
+        l: UE linkflow
+        path_wps: dictionary {path_id: wp_ids}, with wp_ids list of waypoints
+        wp_trajs: waypoint trajectories [(wp_traj, path_list, flow)]
+        obs: dictionary {i: [link_ids]} where obs[i] are the indices of the i*n/N links with the most flow
+    2. Solve the linear regression problem min ||P*f-l|| s.t. U*f=r, x>=0
+        a. solve it with {i*n/N, i=1,...,N} observed links and OD information
+        b. solve it with {i*n/N, i=1,...,N} observed links and cell-path flow (+ OD flows if withODs)
+    3. Compute the relative link flow errors l_errors and the relative path flow errors
+    4. Repeat this 'trials' (=10) times and compute the average error and standard deviation
     
     Parameters:
     ----------
@@ -116,7 +133,10 @@ def experiment(data=None, SO=False, trials=10, demand=3, N=10, plot=False, withO
     SO: if True, computes SO
     trials: number of trials and take the average
     demand: OD demand
-    N: number of bins
+    
+    N: number of sets of observed links
+    e.g. if N=10, we run 10 experiments with observations from the 10, 20, ..., 100% most occupied links
+    
     plot: if True, plot results
     withODs: include ODs in the constraints
     data_id: id when figure is saved
@@ -124,6 +144,7 @@ def experiment(data=None, SO=False, trials=10, demand=3, N=10, plot=False, withO
     numexp = 2*N
     l_errors, f_errors = [[] for i in range(numexp)], [[] for i in range(numexp)]
     for k in range(trials):
+        print 'trial', k
         g, f_true, l, path_wps, wp_trajs, obs = synthetic_data(data, SO, demand, N)
         norm_l, norm_f = np.linalg.norm(l, 1), np.linalg.norm(f_true, 1)
         P = path.linkpath_incidence(g)
@@ -146,21 +167,38 @@ def experiment(data=None, SO=False, trials=10, demand=3, N=10, plot=False, withO
     mean_f_errors = [np.mean(f_errors[i]) for i in range(numexp)]
     std_l_errors = [np.std(l_errors[i]) for i in range(numexp)]
     std_f_errors = [np.std(f_errors[i]) for i in range(numexp)]
-    print mean_l_errors, std_l_errors
-    print mean_f_errors, std_f_errors
     if plot: plot_results(mean_l_errors, mean_f_errors, std_l_errors, std_f_errors, numexp, SO, data_id)
     return mean_l_errors, mean_f_errors, std_l_errors, std_f_errors
 
 
 def run_experiments():
+    """
+    Run experiment(data=data[i]), i=0,...,4 with decreasing densities of waypoints
+    
+    Output:
+    -------
+    A: mean linkflow errors over 10 trials
+       A[i,j] linkflow error for data[i] and j*n/N observed links
+    B: mean pathflow errors over 10 trials
+       B[i,j] pathflow error for data[i] and j*n/N observed links
+    C: std linkflow errors over 10 trials
+       C[i,j] linkflow deviation for data[i] and j*n/N observed links
+    D: std pathflow errors over 10 trials
+       D[i,j] pathflow deviation for data[i] and j*n/N observed links
+    n is the number of links
+    N number of sets of observed links
+    e.g. if N=10, we run 10 experiments with observations from the 10, 20, ..., 100% most occupied links
+    """
     A, B, C, D = [], [], [], []
     for i in range(5):
-        a, b, c, d = experiment(data[i], SO=False, plot=True, withODs=False, data_id=i)
+        print 'Experiment with data[{}]'.format(i)
+        a, b, c, d = experiment(data[i], SO=False, plot=False, withODs=False, data_id=i)
         A.append(a)
         B.append(b)
         C.append(c)
         D.append(d)
-        a, b, c, d = experiment(data[i], SO=True, plot=True, withODs=True, data_id=i)
+        print ''
+        a, b, c, d = experiment(data[i], SO=True, plot=False, withODs=True, data_id=i)
         A.append(a)
         B.append(b)
         C.append(c)
@@ -400,6 +438,7 @@ def display_ratios():
 
 def main():
     #synthetic_data()
+    #experiment()
     #ratio_wptrajs_usedpaths()
     run_experiments()
     #display_results()
