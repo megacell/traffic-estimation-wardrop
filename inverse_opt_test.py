@@ -16,8 +16,8 @@ a, b = 3.5, 3.0
 coef = matrix([0.0, 0.0, 0.0, 0.15, 0.0, 0.0])
 degree = len(coef)
 graph = los_angeles(coef, 'Polynomial')[0]
-    
-    
+
+
 def display_results(error, true_theta, thetas, delaytype, info=None):
     """
     Parameters
