@@ -111,7 +111,7 @@ def ratio_wptrajs_usedpaths(trials=10, demand=3):
     print ratiosSO
         
 
-def experiment(data=None, SO=False, trials=10, demand=3, N=10, plot=False, withODs=False, data_id=None):
+def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False, withODs=False, data_id=None):
     """Run set of experiments
     Steps:
     1. generate synthetic data with synthetic_data()
@@ -150,12 +150,12 @@ def experiment(data=None, SO=False, trials=10, demand=3, N=10, plot=False, withO
         P = path.linkpath_incidence(g)
         U,r = WP.simplex(g, wp_trajs, withODs)
         ls, fs = [], []
-        print 'Compute min ||P*f-l|| s.t. U*f=r, x>=0 with U=OD-path incidence matrix'
+        #print 'Compute min ||P*f-l|| s.t. U*f=r, x>=0 with U=OD-path incidence matrix'
         for i in range(N):
             f = path.feasible_pathflows(g, l[obs[i]], obs[i])
             fs.append(f)
             ls.append(P*f)
-        print 'Compute min ||P*f-l|| s.t. U*f=r, x>=0 with U=waypoint-path incidence matrix'
+        #print 'Compute min ||P*f-l|| s.t. U*f=r, x>=0 with U=waypoint-path incidence matrix'
         for i in range(N):
             f = path.feasible_pathflows(g, l[obs[i]], obs[i], eq_constraints=(U,r))
             fs.append(f)
@@ -178,35 +178,43 @@ def run_experiments():
     Output:
     -------
     A: mean linkflow errors over 10 trials
-       A[i,j] linkflow error for data[i] and j*n/N observed links
+       A[i,j-1] for data[i], j*n/N observed links, j = 1,...,10 with ODs alone
+       A[i,10+j-1] for data[i], j*n/N observed links, j = 1,...,10 with cellpath flows
     B: mean pathflow errors over 10 trials
-       B[i,j] pathflow error for data[i] and j*n/N observed links
+       B[i,j-1] for data[i], j*n/N observed links, j = 1,...,10 with ODs alone
+       B[i,10+j-1] for data[i], j*n/N observed links, j = 1,...,10 with cellpath flows
     C: std linkflow errors over 10 trials
-       C[i,j] linkflow deviation for data[i] and j*n/N observed links
+       C[i,j-1] for data[i], j*n/N observed links, j = 1,...,10 with ODs alone
+       C[i,10+j-1]for data[i], j*n/N observed links, j = 1,...,10 with cellpath flows
     D: std pathflow errors over 10 trials
-       D[i,j] pathflow deviation for data[i] and j*n/N observed links
+       D[i,j-1] for data[i], j*n/N observed links, j = 1,...,10 with ODs alone
+       D[i,10+j-1] for data[i], j*n/N observed links, j = 1,...,10 with cellpath flows
     n is the number of links
     N number of sets of observed links
     e.g. if N=10, we run 10 experiments with observations from the 10, 20, ..., 100% most occupied links
     """
     A, B, C, D = [], [], [], []
-    for i in range(5):
-        print 'Experiment with data[{}]'.format(i)
-        a, b, c, d = experiment(data[i], SO=False, plot=False, withODs=False, data_id=i)
+    for i in range(2,5):
+        print 'Experiment with data[{}] without ODs'.format(i)
+        a, b, c, d = experiment(data[i], SO=True, plot=False, withODs=False, data_id=i)
         A.append(a)
         B.append(b)
         C.append(c)
         D.append(d)
-        print ''
+        print a
+        print b
+        print 'Experiment with data[{}] with ODs'.format(i)
         a, b, c, d = experiment(data[i], SO=True, plot=False, withODs=True, data_id=i)
         A.append(a)
         B.append(b)
         C.append(c)
         D.append(d)
+        print a
+        print b
     for a in A: print a
     for b in B: print b
-    for c in C: print c
-    for d in D: print d
+    #for c in C: print c
+    #for d in D: print d
 
 
 def plot_results(mean_l_errors, mean_f_errors, std_l_errors, std_f_errors, numexp, SO, id):
@@ -435,13 +443,75 @@ def display_ratios():
     plt.show()
     
 
+def display_results_2():
+    
+    # collect results for UE-type behavior
+    results = open('ISTTT_results/ISTTT_results_UE.txt', 'r').readlines()[10:20]
+    results  = [[float(e) for e in r[1:-2].split(', ')] for r in results]
+    est_UE_wp_woODs = [results[2*i][10:] for i in range(5)] #
+    est_UE_wp_wiODs = [results[2*i+1][10:] for i in range(5)]
+    est_UE_lf = [results[2*i][:10] for i in range(5)]
+    est_UE_lf_2 = [results[2*i+1][:10] for i in range(5)]
+    
+    index = [10*i for i in range(1,11)]
+    color = ['m', 'c', 'b', 'k', 'g']
+    num_wps = [80, 40, 20, 10, 5]
+    
+    plt.plot(index, est_UE_lf[0], '-or', label='With OD flows')
+    for i in range(5):
+        plt.plot(index, est_UE_wp_woODs[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+    plt.title('Path flow errors for network in UE: OD vs cellpath')
+    plt.xlabel('Percentage of links observed (%)')
+    plt.ylabel('Relative error')
+    plt.yscale('log')
+    plt.legend(loc=0)
+    plt.show()
+    
+    plt.plot(index, est_UE_lf[0], '-or', label='With OD flows')
+    for i in range(5):
+        plt.plot(index, est_UE_wp_wiODs[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+    plt.title('Path flow errors for network in UE: OD vs OD+cellpath')
+    plt.xlabel('Percentage of links observed (%)')
+    plt.ylabel('Relative error')
+    plt.yscale('log')
+    plt.legend(loc=0)
+    plt.show()
+    
+    
+    # collect results for SO-type behavior
+    results = open('ISTTT_results/ISTTT_results_SO.txt', 'r').readlines()[10:20]
+    results  = [[float(e) for e in r[1:-2].split(', ')] for r in results]
+    est_SO_wp_woODs = [results[2*i][10:] for i in range(5)] #
+    est_SO_wp_wiODs = [results[2*i+1][10:] for i in range(5)]
+    est_SO_lf = [results[2*i][:10] for i in range(5)]
+    est_SO_lf_2 = [results[2*i+1][:10] for i in range(5)]
+    
+    plt.plot(index, est_SO_lf[0], '-or', label='With OD flows')
+    for i in range(5):
+        plt.plot(index, est_UE_wp_woODs[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+    plt.title('Path flow errors for network in SO: OD vs cellpath')
+    plt.xlabel('Percentage of links observed (%)')
+    plt.ylabel('Relative error')
+    plt.yscale('log')
+    plt.legend(loc=0)
+    plt.show()
+    
+    plt.plot(index, est_SO_lf[0], '-or', label='With OD flows')
+    for i in range(5):
+        plt.plot(index, est_SO_wp_wiODs[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+    plt.title('Path flow errors for network in SO: OD vs OD+cellpath')
+    plt.xlabel('Percentage of links observed (%)')
+    plt.ylabel('Relative error')
+    plt.yscale('log')
+    plt.legend(loc=0)
+    plt.show()
 
 def main():
     #synthetic_data()
     #experiment()
     #ratio_wptrajs_usedpaths()
-    run_experiments()
-    #display_results()
+    #run_experiments()
+    display_results_2()
     #run_QP_ranks(False)
     #display_ranks()
     #display_ratios()
