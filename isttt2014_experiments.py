@@ -50,12 +50,12 @@ from generate_graph import los_angeles
 from generate_paths import find_UESOpaths
 
 
-data = {}
-data[0] = (30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0)
-data[1] = (20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (12,6), 2.0)
-data[2] = (10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (10,5), 2.0)
-data[3] = (5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (6,3), 2.0)
-data[4] = (3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0)
+data = []
+data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (15,8), 2.0))
+data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (12,6), 2.0))
+data.append((10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (10,5), 2.0))
+data.append((5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (6,3), 2.0))
+data.append((3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0))
 # data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
 theta = matrix([0.0, 0.0, 0.0, 0.15])
 
@@ -146,7 +146,8 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
     """
     numexp = 2*N
     l_errors, f_errors = [[] for i in range(numexp)], [[] for i in range(numexp)]
-    for k in range(trials):
+    k = 0
+    while k < trials:
         print 'trial', k
         g, f_true, l, path_wps, wp_trajs, obs = synthetic_data(data, SO, demand, N)
         norm_l, norm_f = np.linalg.norm(l, 1), np.linalg.norm(f_true, 1)
@@ -154,13 +155,16 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
         U,r = WP.simplex(g, wp_trajs, withODs)
         ls, fs = [], []
         #print 'Compute min ||P*f-l|| s.t. U*f=r, x>=0 with U=OD-path incidence matrix'
+
+        # A trial must complete successfully for all 2*N tests for it to count
+        failed = False
         for i in range(N):
             try:
                 f = path.feasible_pathflows(g, l[obs[i]], obs[i])
             except ValueError as e:
                 print e, 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
-                k -= 1
-                continue
+                failed = True
+                break
             fs.append(f)
             ls.append(P*f)
         #print 'Compute min ||P*f-l|| s.t. U*f=r, x>=0 with U=waypoint-path incidence matrix'
@@ -169,10 +173,14 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
                 f = path.feasible_pathflows(g, l[obs[i]], obs[i], eq_constraints=(U,r))
             except ValueError as e:
                 print e, 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
-                k -= 1
-                continue
+                failed = True
+                break
             fs.append(f)
             ls.append(P*f)
+
+        if failed:
+            continue
+        k += 1
         for i in range(numexp):
             l_errors[i].append(np.linalg.norm(l-ls[i], 1) / norm_l)
             f_errors[i].append(np.linalg.norm(f_true-fs[i], 1) / norm_f)
@@ -213,7 +221,7 @@ def run_experiments(SO=False, trials=5):
 
     with open(output, 'w') as out:
         A, B, C, D = [], [], [], []
-        for i in range(2,5):
+        for i in range(len(data)):
             print 'Experiment with data[{}] without ODs'.format(i)
             a, b, c, d = experiment(data[i], SO=SO, plot=False, withODs=False,
                                     data_id=i, trials=trials)
@@ -470,22 +478,30 @@ def display_ratios():
     
 
 def display_results_2():
-    
+    # FORMAT of output file
+    # The first 'N=10' lines are link flow error
+    # The second 'N=10' lines are route flow error
+    # With each set of N lines, we have 2*len(data) lines, alternating between
+    # results without ODs and with ODs
+    D = len(data)
+
     # collect results for UE-type behavior
-    results = open('ISTTT_results/ISTTT_results_UE.txt', 'r').readlines()
+    results = open('ISTTT_results/ISTTT_results_UE.txt', 'r').readlines()[10:]
     results  = [[float(e) for e in r[1:-2].split(', ')] for r in results]
-    est_UE_wp_woODs = [results[2*i][10:] for i in range(5)] #
-    est_UE_wp_wiODs = [results[2*i+1][10:] for i in range(5)]
-    est_UE_lf = [results[2*i][:10] for i in range(5)]
-    est_UE_lf_2 = [results[2*i+1][:10] for i in range(5)]
+    est_UE_wp_woODs = [results[2*i][10:] for i in range(D)] #
+    est_UE_wp_wiODs = [results[2*i+1][10:] for i in range(D)]
+    est_UE_lf = [results[2*i][:10] for i in range(D)]
+    est_UE_lf_2 = [results[2*i+1][:10] for i in range(D)]
     
     index = [10*i for i in range(1,11)]
     color = ['m', 'c', 'b', 'k', 'g']
-    num_wps = [80, 40, 20, 10, 5]
-    
+    # num_wps = [120, 80, 40, 20, 10]
+    num_wps = [d[0] + d[1] + d[3][0][1] for d in data]
+
     plt.plot(index, est_UE_lf[0], '-or', label='With OD flows')
-    for i in range(5):
-        plt.plot(index, est_UE_wp_woODs[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+    for i in range(D):
+        plt.plot(index, est_UE_wp_woODs[i], '-o'+color[i],
+                 label='With {} cells'.format(num_wps[i]))
     plt.title('Path flow errors for network in UE: OD vs cellpath')
     plt.xlabel('Percentage of links observed (%)')
     plt.ylabel('Relative error')
@@ -494,8 +510,9 @@ def display_results_2():
     plt.show()
     
     plt.plot(index, est_UE_lf[0], '-or', label='With OD flows')
-    for i in range(5):
-        plt.plot(index, est_UE_wp_wiODs[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+    for i in range(D):
+        plt.plot(index, est_UE_wp_wiODs[i], '-o'+color[i],
+                 label='With {} cells'.format(num_wps[i]))
     plt.title('Path flow errors for network in UE: OD vs OD+cellpath')
     plt.xlabel('Percentage of links observed (%)')
     plt.ylabel('Relative error')
@@ -505,16 +522,16 @@ def display_results_2():
     
     
     # collect results for SO-type behavior
-    results = open('ISTTT_results/ISTTT_results_SO.txt', 'r').readlines()
+    results = open('ISTTT_results/ISTTT_results_SO.txt', 'r').readlines()[10:]
     results  = [[float(e) for e in r[1:-2].split(', ')] for r in results]
-    est_SO_wp_woODs = [results[2*i][10:] for i in range(5)] #
-    est_SO_wp_wiODs = [results[2*i+1][10:] for i in range(5)]
-    est_SO_lf = [results[2*i][:10] for i in range(5)]
-    est_SO_lf_2 = [results[2*i+1][:10] for i in range(5)]
+    est_SO_wp_woODs = [results[2*i][10:] for i in range(D)] #
+    est_SO_wp_wiODs = [results[2*i+1][10:] for i in range(D)]
+    est_SO_lf = [results[2*i][:10] for i in range(D)]
+    est_SO_lf_2 = [results[2*i+1][:10] for i in range(D)]
     
     plt.plot(index, est_SO_lf[0], '-or', label='With OD flows')
-    for i in range(5):
-        plt.plot(index, est_UE_wp_woODs[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+    for i in range(D):
+        plt.plot(index, est_SO_wp_woODs[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
     plt.title('Path flow errors for network in SO: OD vs cellpath')
     plt.xlabel('Percentage of links observed (%)')
     plt.ylabel('Relative error')
@@ -523,7 +540,7 @@ def display_results_2():
     plt.show()
     
     plt.plot(index, est_SO_lf[0], '-or', label='With OD flows')
-    for i in range(5):
+    for i in range(D):
         plt.plot(index, est_SO_wp_wiODs[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
     plt.title('Path flow errors for network in SO: OD vs OD+cellpath')
     plt.xlabel('Percentage of links observed (%)')
@@ -533,18 +550,19 @@ def display_results_2():
     plt.show()
 
 def main():
-    myseed=293847293
+    myseed=29347293
     np.random.seed(myseed)
     random.seed(myseed)
 
+    trials = 100
     #synthetic_data()
     #experiment()
     #ratio_wptrajs_usedpaths()
 
     # ISTTT experiments:
-    run_experiments(SO=True, trials=1)
-    run_experiments(SO=False, trials=1)
-    # display_results_2()
+    run_experiments(SO=False, trials=trials)
+    run_experiments(SO=True, trials=trials)
+    display_results_2()
 
     #run_QP_ranks(False)
     #display_ranks()
