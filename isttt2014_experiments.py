@@ -51,10 +51,10 @@ from generate_paths import find_UESOpaths
 
 
 data = []
-data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (15,8), 2.0))
-data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (12,6), 2.0))
-data.append((10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (10,5), 2.0))
-data.append((5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (6,3), 2.0))
+data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0))
+data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (10,5), 2.0))
+data.append((10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (8,4), 2.0))
+data.append((5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (4,2), 2.0))
 data.append((3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0))
 # data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
 theta = matrix([0.0, 0.0, 0.0, 0.15])
@@ -161,18 +161,22 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
         for i in range(N):
             try:
                 f = path.feasible_pathflows(g, l[obs[i]], obs[i])
-            except ValueError as e:
-                print e, 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
+            except (ValueError, UnboundLocalError) as e:
+                print e
+                # 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
                 failed = True
                 break
             fs.append(f)
             ls.append(P*f)
         #print 'Compute min ||P*f-l|| s.t. U*f=r, x>=0 with U=waypoint-path incidence matrix'
+        if failed:
+            continue
         for i in range(N):
             try:
                 f = path.feasible_pathflows(g, l[obs[i]], obs[i], eq_constraints=(U,r))
-            except ValueError as e:
-                print e, 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
+            except (ValueError, UnboundLocalError) as e:
+                print e
+                # 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
                 failed = True
                 break
             fs.append(f)
