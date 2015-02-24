@@ -35,25 +35,28 @@ Remarks:
 4. That's why 'route flow estimation' is not used in the literature
 """
 
+import ipdb
+import matplotlib.pyplot as plt
+import numpy as np
+from cvxopt import matrix
+import random
 
 import Waypoints as WP
 import wp_generator as wp
 import ue_solver as ue
-import numpy as np
 import path_solver as path
-import matplotlib.pyplot as plt
-from cvxopt import matrix
 import rank_nullspace as rn
 from generate_graph import los_angeles
 from generate_paths import find_UESOpaths
 
 
 data = {}
-data[0] = (20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (12,6), 2.0)
-data[1] = (10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (10,5), 2.0)
-data[2] = (5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (6,3), 2.0)
-data[3] = (3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0)
-data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
+data[0] = (30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0)
+data[1] = (20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (12,6), 2.0)
+data[2] = (10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (10,5), 2.0)
+data[3] = (5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (6,3), 2.0)
+data[4] = (3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0)
+# data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
 theta = matrix([0.0, 0.0, 0.0, 0.15])
 
 
@@ -109,9 +112,9 @@ def ratio_wptrajs_usedpaths(trials=10, demand=3):
         ratiosSO[i] /= trials
     print ratiosUE
     print ratiosSO
-        
 
-def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False, withODs=False, data_id=None):
+def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
+               withODs=False, data_id=None):
     """Run set of experiments
     Steps:
     1. generate synthetic data with synthetic_data()
@@ -152,12 +155,22 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False, withOD
         ls, fs = [], []
         #print 'Compute min ||P*f-l|| s.t. U*f=r, x>=0 with U=OD-path incidence matrix'
         for i in range(N):
-            f = path.feasible_pathflows(g, l[obs[i]], obs[i])
+            try:
+                f = path.feasible_pathflows(g, l[obs[i]], obs[i])
+            except ValueError as e:
+                print e, 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
+                k -= 1
+                continue
             fs.append(f)
             ls.append(P*f)
         #print 'Compute min ||P*f-l|| s.t. U*f=r, x>=0 with U=waypoint-path incidence matrix'
         for i in range(N):
-            f = path.feasible_pathflows(g, l[obs[i]], obs[i], eq_constraints=(U,r))
+            try:
+                f = path.feasible_pathflows(g, l[obs[i]], obs[i], eq_constraints=(U,r))
+            except ValueError as e:
+                print e, 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
+                k -= 1
+                continue
             fs.append(f)
             ls.append(P*f)
         for i in range(numexp):
@@ -171,7 +184,7 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False, withOD
     return mean_l_errors, mean_f_errors, std_l_errors, std_f_errors
 
 
-def run_experiments():
+def run_experiments(SO=False, trials=5):
     """
     Run experiment(data=data[i]), i=0,...,4 with decreasing densities of waypoints
     
@@ -193,28 +206,41 @@ def run_experiments():
     N number of sets of observed links
     e.g. if N=10, we run 10 experiments with observations from the 10, 20, ..., 100% most occupied links
     """
-    A, B, C, D = [], [], [], []
-    for i in range(2,5):
-        print 'Experiment with data[{}] without ODs'.format(i)
-        a, b, c, d = experiment(data[i], SO=True, plot=False, withODs=False, data_id=i)
-        A.append(a)
-        B.append(b)
-        C.append(c)
-        D.append(d)
-        print a
-        print b
-        print 'Experiment with data[{}] with ODs'.format(i)
-        a, b, c, d = experiment(data[i], SO=True, plot=False, withODs=True, data_id=i)
-        A.append(a)
-        B.append(b)
-        C.append(c)
-        D.append(d)
-        print a
-        print b
-    for a in A: print a
-    for b in B: print b
-    #for c in C: print c
-    #for d in D: print d
+    if SO == True:
+        output = 'ISTTT_results/ISTTT_results_SO.txt'
+    else:
+        output = 'ISTTT_results/ISTTT_results_UE.txt'
+
+    with open(output, 'w') as out:
+        A, B, C, D = [], [], [], []
+        for i in range(2,5):
+            print 'Experiment with data[{}] without ODs'.format(i)
+            a, b, c, d = experiment(data[i], SO=SO, plot=False, withODs=False,
+                                    data_id=i, trials=trials)
+            A.append(a)
+            B.append(b)
+            C.append(c)
+            D.append(d)
+            print a
+            print b
+            print 'Experiment with data[{}] with ODs'.format(i)
+            a, b, c, d = experiment(data[i], SO=SO, plot=False, withODs=True,
+                                    data_id=i, trials=trials)
+            A.append(a)
+            B.append(b)
+            C.append(c)
+            D.append(d)
+            print a
+            print b
+        # Write data to output
+        for a in A:
+            out.write('%s\n' % a)  # mean
+        for b in B:
+            out.write('%s\n' % b)  # mean
+        for c in C:
+            print c  # standard deviation
+        for d in D:
+            print d  # standard deviation
 
 
 def plot_results(mean_l_errors, mean_f_errors, std_l_errors, std_f_errors, numexp, SO, id):
@@ -318,7 +344,7 @@ def run_QP_ranks(wp_model=True):
     print ranks
     print dims
     print num_used_paths
-        
+
 
 
 def display_results():
@@ -446,7 +472,7 @@ def display_ratios():
 def display_results_2():
     
     # collect results for UE-type behavior
-    results = open('ISTTT_results/ISTTT_results_UE.txt', 'r').readlines()[10:20]
+    results = open('ISTTT_results/ISTTT_results_UE.txt', 'r').readlines()
     results  = [[float(e) for e in r[1:-2].split(', ')] for r in results]
     est_UE_wp_woODs = [results[2*i][10:] for i in range(5)] #
     est_UE_wp_wiODs = [results[2*i+1][10:] for i in range(5)]
@@ -479,7 +505,7 @@ def display_results_2():
     
     
     # collect results for SO-type behavior
-    results = open('ISTTT_results/ISTTT_results_SO.txt', 'r').readlines()[10:20]
+    results = open('ISTTT_results/ISTTT_results_SO.txt', 'r').readlines()
     results  = [[float(e) for e in r[1:-2].split(', ')] for r in results]
     est_SO_wp_woODs = [results[2*i][10:] for i in range(5)] #
     est_SO_wp_wiODs = [results[2*i+1][10:] for i in range(5)]
@@ -507,11 +533,19 @@ def display_results_2():
     plt.show()
 
 def main():
+    myseed=293847293
+    np.random.seed(myseed)
+    random.seed(myseed)
+
     #synthetic_data()
     #experiment()
     #ratio_wptrajs_usedpaths()
-    #run_experiments()
-    display_results_2()
+
+    # ISTTT experiments:
+    run_experiments(SO=True, trials=1)
+    run_experiments(SO=False, trials=1)
+    # display_results_2()
+
     #run_QP_ranks(False)
     #display_ranks()
     #display_ratios()

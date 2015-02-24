@@ -127,11 +127,11 @@ def feasible_pathflows(graph, l_obs, obs=None, update=False, eq_constraints=None
     update: if True, update path flows in graph
     """
     P, n = linkpath_incidence(graph), graph.numpaths
-    if eq_constraints is None: U, r = simplex(graph)
-    else: U, r = eq_constraints
-    if obs is not None: P2 = P[obs,:]
+    U, r = simplex(graph) if eq_constraints is None else eq_constraints
+    P2 = P[obs,:] if obs is not None else None
     C, d, q = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1)), -P2.trans()*l_obs
     x = solvers.qp(P2.trans()*P2, q, C, d, U, r)['x']
+
     if update:
         logging.info('Update link flows, delays in Graph.'); graph.update_linkflows_linkdelays(P*x)
         logging.info('Update path delays in Graph.'); graph.update_pathdelays()
