@@ -7,6 +7,7 @@ Created on Jul 23, 2014
 import ue_solver as ue
 from cvxopt import matrix, spmatrix, spdiag, solvers, div
 import numpy.random as ra
+import numpy as np
 import logging
 if logging.getLogger().getEffectiveLevel() >= logging.DEBUG:
     solvers.options['show_progress'] = False
@@ -116,7 +117,8 @@ def solver(graph, update=False, data=None, SO=False, random=False):
     return x
 
 
-def feasible_pathflows(graph, l_obs, obs=None, update=False, eq_constraints=None):
+def feasible_pathflows(graph, l_obs, obs=None, update=False,
+                       eq_constraints=None, x_true=None):
     """Attempts to find feasible pathflows given partial of full linkflows
     
     Parameters:
@@ -129,6 +131,9 @@ def feasible_pathflows(graph, l_obs, obs=None, update=False, eq_constraints=None
     P, n = linkpath_incidence(graph), graph.numpaths
     U, r = simplex(graph) if eq_constraints is None else eq_constraints
     P2 = P[obs,:] if obs is not None else None
+    if x_true is not None:
+        assert(np.linalg.norm(P2 * x_true - l_obs) < 1e-6, 'Ax!=b')
+        assert(np.linalg.norm(U * x_true - r) < 1e-6, 'Ux!=r')
     C, d, q = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1)), -P2.trans()*l_obs
     x = solvers.qp(P2.trans()*P2, q, C, d, U, r)['x']
 

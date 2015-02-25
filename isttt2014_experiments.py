@@ -51,8 +51,8 @@ from generate_paths import find_UESOpaths
 
 
 data = []
-data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0))
-data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (10,5), 2.0))
+# data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0))
+# data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (10,5), 2.0))
 data.append((10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (8,4), 2.0))
 data.append((5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (4,2), 2.0))
 data.append((3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0))
@@ -91,6 +91,11 @@ def synthetic_data(data=None, SO=False, demand=3, N=10, path=None):
     l = ue.solver(g, update=True, SO=SO)
     n = g.numlinks
     g.visualize()
+
+    # from path_solver import linkpath_incidence
+    # P = linkpath_incidence(g)
+    # l = P*f_true  # for numerical error purposes
+
     obs, sorted = {}, np.array(l).argsort(axis=0)
     for i in range(N-1):
         tmp = np.sort(sorted[-(i+1)*n/N:], axis=0)[:,0]
@@ -151,8 +156,17 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
         print 'trial', k
         g, f_true, l, path_wps, wp_trajs, obs = synthetic_data(data, SO, demand, N)
         norm_l, norm_f = np.linalg.norm(l, 1), np.linalg.norm(f_true, 1)
+        err_f = lambda x: np.linalg.norm(f_true-x, 1) / norm_f
+        err_l = lambda x: np.linalg.norm(l-x, 1) / norm_l
+
         P = path.linkpath_incidence(g)
         U,r = WP.simplex(g, wp_trajs, withODs)
+
+        # from path_solver import simplex
+        # T,d = simplex(g)
+        # d = T*f_true
+        # r = U*f_true
+
         ls, fs = [], []
         #print 'Compute min ||P*f-l|| s.t. U*f=r, x>=0 with U=OD-path incidence matrix'
 
@@ -160,7 +174,7 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
         failed = False
         for i in range(N):
             try:
-                f = path.feasible_pathflows(g, l[obs[i]], obs[i])
+                f = path.feasible_pathflows(g, l[obs[i]], obs[i], x_true=f_true)
             except (ValueError, UnboundLocalError) as e:
                 print e
                 # 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
@@ -174,6 +188,9 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
         for i in range(N):
             try:
                 f = path.feasible_pathflows(g, l[obs[i]], obs[i], eq_constraints=(U,r))
+                # Throw out trials for which any domain error is caught
+                for j in range(U.size[0]):
+                    path.feasible_pathflows(g, l[obs[i]], obs[i], eq_constraints=(U[:j,:],r[:j]))
             except (ValueError, UnboundLocalError) as e:
                 print e
                 # 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
@@ -185,9 +202,19 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
         if failed:
             continue
         k += 1
+        l_error = [err_l(ls[i]) for i in range(numexp)]
+        f_error = [err_f(fs[i]) for i in range(numexp)]
+        if withODs:
+            print f_error[:N], f_error[N:]
+            assert np.all([bo<=od for od,bo in zip(f_error[:N],f_error[N:])]), \
+                'Configurations with both OD+cellpath should be performing ' + \
+                'at least as well as with just OD'
+            # assert np.all([bo<=od for od,bo in zip(l_error[:N],l_error[N:])]), \
+            #     'Configurations with both OD+cellpath should be performing ' + \
+            #     'at least as well as with just OD'
         for i in range(numexp):
-            l_errors[i].append(np.linalg.norm(l-ls[i], 1) / norm_l)
-            f_errors[i].append(np.linalg.norm(f_true-fs[i], 1) / norm_f)
+            l_errors[i].append(l_error[i])
+            f_errors[i].append(f_error[i])
     mean_l_errors = [np.mean(l_errors[i]) for i in range(numexp)]
     mean_f_errors = [np.mean(f_errors[i]) for i in range(numexp)]
     std_l_errors = [np.std(l_errors[i]) for i in range(numexp)]
@@ -487,10 +514,12 @@ def display_results_2():
     # The second 'N=10' lines are route flow error
     # With each set of N lines, we have 2*len(data) lines, alternating between
     # results without ODs and with ODs
+    # The first 10 entries are with OD flows only
+    # The last 10 entries are with an equality constraint too
     D = len(data)
 
     # collect results for UE-type behavior
-    results = open('ISTTT_results/ISTTT_results_UE.txt', 'r').readlines()[10:]
+    results = open('ISTTT_results/ISTTT_results_UE.txt', 'r').readlines()[2*D:]
     results  = [[float(e) for e in r[1:-2].split(', ')] for r in results]
     est_UE_wp_woODs = [results[2*i][10:] for i in range(D)] #
     est_UE_wp_wiODs = [results[2*i+1][10:] for i in range(D)]
@@ -526,7 +555,7 @@ def display_results_2():
     
     
     # collect results for SO-type behavior
-    results = open('ISTTT_results/ISTTT_results_SO.txt', 'r').readlines()[10:]
+    results = open('ISTTT_results/ISTTT_results_SO.txt', 'r').readlines()[2*D:]
     results  = [[float(e) for e in r[1:-2].split(', ')] for r in results]
     est_SO_wp_woODs = [results[2*i][10:] for i in range(D)] #
     est_SO_wp_wiODs = [results[2*i+1][10:] for i in range(D)]
@@ -558,14 +587,14 @@ def main():
     np.random.seed(myseed)
     random.seed(myseed)
 
-    trials = 100
+    trials = 2
     #synthetic_data()
     #experiment()
     #ratio_wptrajs_usedpaths()
 
     # ISTTT experiments:
-    run_experiments(SO=False, trials=trials)
-    run_experiments(SO=True, trials=trials)
+    # run_experiments(SO=False, trials=trials)
+    # run_experiments(SO=True, trials=trials)
     display_results_2()
 
     #run_QP_ranks(False)
