@@ -181,17 +181,13 @@ def feasible_pathflows(graph, l_obs, obs=None, update=False,
       if z is None: return f, Df
       return f, Df, z[0]*Q
   
-    dims = {'l': bineq.size[0], 'q': [], 's': []}
+    dims = {'l': n, 'q': [], 's': []}
     x = solvers.cp(qp_objective, G=Aineq, h=bineq, A=Aeq, b=beq, 
         kktsolver=get_kktsolver(Aineq, dims, Aeq, qp_objective))['x']
-      
-
-      
-    
     
     if update:
         logging.info('Update link flows, delays in Graph.'); graph.update_linkflows_linkdelays(P*x)
         logging.info('Update path delays in Graph.'); graph.update_pathdelays()
         logging.info('Update path flows in Graph object.'); graph.update_pathflows(x)
-    return x
+    return x, rn.rank(matrix([A, Aeq])), n
     
