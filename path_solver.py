@@ -160,10 +160,7 @@ def feasible_pathflows(graph, l_obs, obs=None, update=False,
         if with_ODs: # if we have ODs + cellpaths measurements
           T, d = path_to_OD_simplex(graph) # route to OD flow constraints included in objective
           A, b = matrix([A, T]), matrix([b, d]) # add the constraints to the objective
-          if rn.rank(A) < A.size[0]:
-              logging.info('Remove redundant constraint(s)'); ind = find_basis(A.trans())
-              A, b = A[ind,:], b[ind]
-    # assert that the constraints are valid
+        
     if x_true is not None:
         err1 =  np.linalg.norm(A * x_true - b, 1) / np.linalg.norm(b, 1)
         err2 = np.linalg.norm(Aeq * x_true - beq) / np.linalg.norm(beq, 1)
@@ -172,7 +169,6 @@ def feasible_pathflows(graph, l_obs, obs=None, update=False,
     # construct objective for cvxopt.solvers.qp
     Q, c = A.trans()*A, -A.trans()*b
     #x = solvers.qp(Q + REG_EPS*spmatrix(1.0, range(n), range(n)), c, Aineq, bineq, Aeq, beq)['x']
-    
     # try with cvxopt.solvers.cp
     def qp_objective(x=None, z=None):
       if x is None: return 0, matrix(1.0, (n, 1))
