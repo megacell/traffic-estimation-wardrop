@@ -211,8 +211,8 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, withODs=False, dat
     mean_f_errors = [np.mean(f_errors[i]) for i in range(numexp)]
     std_l_errors = [np.std(l_errors[i]) for i in range(numexp)]
     std_f_errors = [np.std(f_errors[i]) for i in range(numexp)]
-    mean_ddl_ODs = [np.mean(ddl_ODs[i]) for i in range(numexp)]
-    mean_ddl_cellpaths = [np.mean(ddl_cellpaths[i]) for i in range(numexp)]
+    mean_ddl_ODs = [np.mean(ddl_ODs[i]) for i in range(N)]
+    mean_ddl_cellpaths = [np.mean(ddl_cellpaths[i]) for i in range(N)]
     return mean_l_errors, mean_f_errors, std_l_errors, std_f_errors,\
         mean_ratio/trials, mean_ddl_ODs, mean_ddl_cellpaths
 
@@ -423,6 +423,22 @@ def display_results():
             plt.legend(loc=0)
             plt.show()
 
+    # display ratio of number of cellpaths over number of routes
+    labels = [str(num_wp) for num_wp in num_wps]
+    labels = labels[::-1]
+    index = range(5)
+    ratios1 = open('ISTTT_results/ISTTT_ratio_UE.txt', 'r').readlines()[0]
+    ratios1 = [float(r) for r in ratios1[1:-2].split(', ')]
+    ratios2 = open('ISTTT_results/ISTTT_ratio_SO.txt', 'r').readlines()[0]
+    ratios2 = [float(r) for r in ratios2[1:-2].split(', ')]
+    plt.plot(index, ratios1[::-1], '-o', label='UE')
+    plt.plot(index, ratios2[::-1], '-o', label='SO')
+    plt.title('Number of cell paths over number of used paths')
+    plt.xlabel('Number of cells')
+    plt.ylabel('Percentage')
+    plt.xticks(index, labels)
+    plt.legend(loc=0)
+    plt.show()
 
 
 def main():
