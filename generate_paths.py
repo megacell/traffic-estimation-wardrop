@@ -6,11 +6,11 @@ Created on Jul 23, 2014
 
 import numpy as np
 import ue_solver as ue
-import path_solver as path
+import path_solver
 from cvxopt import matrix
 from generate_graph import los_angeles
 import shortest_paths as sh
-
+from path_solver import linkpath_incidence
 
 theta = matrix([0.0, 0.0, 0.0, 0.15])
 
@@ -18,15 +18,15 @@ theta = matrix([0.0, 0.0, 0.0, 0.15])
 def test_helper(demand, paths):
     g = los_angeles(theta, 'Polynomial')[demand]
     for p in paths: g.add_path_from_nodes(p)
-    P = path.linkpath_incidence(g)
+    P = path_solver.linkpath_incidence(g)
     g.visualize(general=True)
     l1 = ue.solver(g, update=True)
     d1 = sum([link.delay*link.flow for link in g.links.values()])
-    l2 = P*path.solver(g, update=True)
+    l2 = P*path_solver.solver(g, update=True)
     d2 = sum([p.delay*p.flow for p in g.paths.values()])
     l3 = ue.solver(g, update=True, SO=True)
     d3 = sum([link.delay*link.flow for link in g.links.values()])
-    l4 = P*path.solver(g, update=True, SO=True)
+    l4 = P*path_solver.solver(g, update=True, SO=True)
     d4 = sum([p.delay*p.flow for p in g.paths.values()])
     return l1,l2,l3,l4,d1,d2,d3,d4
     
@@ -74,8 +74,8 @@ def get_paths(SO, K, demand, return_paths=True, ffdelays=False, path=None):
     if return_paths: return paths
     for p in paths: g.add_path_from_nodes(p)
     g.visualize(general=True)
-    P = path.linkpath_incidence(g)
-    l2 = P*path.solver(g, update=True, SO=SO)
+    P = path_solver.linkpath_incidence(g)
+    l2 = P*path_solver.solver(g, update=True, SO=SO)
     d2 = sum([p.delay*p.flow for p in g.paths.values()])
     print d1,d2
     return d1,d2,paths
@@ -113,8 +113,8 @@ def find_UESOpaths(SO, return_paths=True, random=False, path=None):
     return_paths: if True, do only step 1 and return paths, if False, do steps 2 and 3
     """
     paths, ls, ds, ps = [], [], [], []
-    K = [2,3,3,4] #[2, 2, 2, 3] [5,5,5,5]
-    if SO: K = [2, 2, 4, 7] #[2,4,7,9]
+    if SO: K = [0,0,0,10] #[2, 2, 4, 7]
+    else: K = [0,0,0,5] #[2, 2, 2, 3] [5,5,5,5]
     for i in range(4):
         tmp = get_paths(SO, K[i], i, path=path)
         for p in tmp:
@@ -123,11 +123,11 @@ def find_UESOpaths(SO, return_paths=True, random=False, path=None):
     for i in range(4):
         g = los_angeles(theta, 'Polynomial')[i]
         for p in paths: g.add_path_from_nodes(p)
-        P = path.linkpath_incidence(g)
+        P = linkpath_incidence(g)
         g.visualize(general=True)
         l1 = ue.solver(g, update=True, SO=SO)
         d1 = sum([link.delay*link.flow for link in g.links.values()])
-        p_flows = path.solver(g, update=True, SO=SO, random=random)
+        p_flows = path_solver.solver(g, update=True, SO=SO, random=random)
         l2 = P*p_flows
         d2 = sum([p.delay*p.flow for p in g.paths.values()])
         ls.append([l1,l2])
@@ -147,8 +147,8 @@ def test_feasible_pathflows(SO, demand, random=False):
     d1 = sum([link.delay*link.flow for link in g.links.values()])
     for p in paths: g.add_path_from_nodes(p)
     g.visualize(general=True)
-    P = path.linkpath_incidence(g)
-    l2 = P*path.solver(g, update=True, SO=SO, random=random)
+    P = linkpath_incidence(g)
+    l2 = P*path_solver.solver(g, update=True, SO=SO, random=random)
     d2 = sum([p.delay*p.flow for p in g.paths.values()])
     ind_obs, ls, ds = {}, [], []
     ind_obs[0] = g.indlinks.keys()
@@ -157,7 +157,7 @@ def test_feasible_pathflows(SO, demand, random=False):
     for i in range(len(ind_obs)):
         obs = [g.indlinks[id] for id in ind_obs[i]]
         obs = [int(i) for i in list(np.sort(obs))]
-        ls.append(P*path.feasible_pathflows(g, l1[obs], obs, True))
+        ls.append(P*path_solver.feasible_pathflows(g, l1[obs], obs, True))
         ds.append(sum([p.delay*p.flow for p in g.paths.values()]))
     print d1,d2,ds
     print np.linalg.norm(l1-l2), [np.linalg.norm(l1-ls[i]) for i in range(len(ind_obs))]

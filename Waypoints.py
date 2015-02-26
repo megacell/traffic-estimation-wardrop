@@ -322,7 +322,8 @@ def sample_waypoints(graph, N0, N1, scale, regions, margin=0.05):
     return WP
     
 
-def simplex(graph, wp_trajs, withODs=False):
+#def simplex(graph, wp_trajs, withODs=False):
+def simplex(graph, wp_trajs):
     """Build simplex constraints from waypoint trajectories wp_trajs
     wp_trajs is given by WP.get_wp_trajs()[1]
     
@@ -340,14 +341,14 @@ def simplex(graph, wp_trajs, withODs=False):
             J.append(graph.indpaths[id])
         i += 1
     U = spmatrix(1.0, I, J, (n, graph.numpaths))
-    if not withODs: return U, r
-    else:
-        U1, r1 = path.simplex(graph)
-        U, r = matrix([U, U1]), matrix([r, r1])
-        if rn.rank(U) < U.size[0]:
-            logging.info('Remove redundant constraint(s)'); ind = find_basis(U.trans())
-            return U[ind,:], r[ind]
-        return U, r
+    return U, r
+    #else:
+    #    U1, r1 = path.simplex(graph)
+    #    U, r = matrix([U, U1]), matrix([r, r1])
+    #    if rn.rank(U) < U.size[0]:
+    #        logging.info('Remove redundant constraint(s)'); ind = find_basis(U.trans())
+    #        return U[ind,:], r[ind]
+    #    return U, r
 
 
 def voronoi_finite_polygons_2d(vor, radius=None):

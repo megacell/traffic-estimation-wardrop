@@ -35,7 +35,7 @@ Remarks:
 4. That's why 'route flow estimation' is not used in the literature
 """
 
-import ipdb
+#import ipdb
 import matplotlib.pyplot as plt
 import numpy as np
 from cvxopt import matrix
@@ -48,11 +48,11 @@ import path_solver as path
 import rank_nullspace as rn
 from generate_graph import los_angeles
 from generate_paths import find_UESOpaths
-
+from path_solver import linkpath_incidence
 
 data = []
-# data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0))
-# data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (10,5), 2.0))
+#data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0))
+#data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (10,5), 2.0))
 data.append((10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (8,4), 2.0))
 data.append((5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (4,2), 2.0))
 data.append((3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0))
@@ -80,15 +80,14 @@ def synthetic_data(data=None, SO=False, demand=3, N=10, path=None):
     ------------
     g: Graph object with paths
     f_true: true path flow
-    l: UE linkflow
+    l_true: UE linkflow
     path_wps: dictionary {path_id: wp_ids}, with wp_ids list of waypoints
     wp_trajs: waypoint trajectories [(wp_traj, path_list, flow)]
     obs: dictionary {i: [link_ids]} where obs[i] are the indices of the i*n/N links with the most flow
     """
     random = True
     
-    g, f_true, path_wps, wp_trajs = wp.compute_wp_flow(SO, demand, random, data, path=path)
-    l = ue.solver(g, update=True, SO=SO)
+    g, f_true, path_wps, wp_trajs, l_true = wp.compute_wp_flow(SO, demand, random, data, path=path)
     n = g.numlinks
     g.visualize()
 
@@ -96,12 +95,12 @@ def synthetic_data(data=None, SO=False, demand=3, N=10, path=None):
     # P = linkpath_incidence(g)
     # l = P*f_true  # for numerical error purposes
 
-    obs, sorted = {}, np.array(l).argsort(axis=0)
+    obs, sorted = {}, np.array(l_true).argsort(axis=0)
     for i in range(N-1):
         tmp = np.sort(sorted[-(i+1)*n/N:], axis=0)[:,0]
         obs[i] = [int(k) for k in tmp]
     obs[N-1] = range(n)
-    return g, f_true, l, path_wps, wp_trajs, obs
+    return g, f_true, l_true, path_wps, wp_trajs, obs
 
 
 def ratio_wptrajs_usedpaths(trials=10, demand=3):
@@ -160,7 +159,7 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
         err_l = lambda x: np.linalg.norm(l-x, 1) / norm_l
 
         P = path.linkpath_incidence(g)
-        U,r = WP.simplex(g, wp_trajs, withODs)
+        #U,r = WP.simplex(g, wp_trajs, withODs)
 
         # from path_solver import simplex
         # T,d = simplex(g)
@@ -174,7 +173,7 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
         failed = False
         for i in range(N):
             try:
-                f = path.feasible_pathflows(g, l[obs[i]], obs[i], x_true=f_true)
+                f = path.feasible_pathflows(g, l[obs[i]], obs[i], with_ODs=True, x_true=f_true)
             except (ValueError, UnboundLocalError) as e:
                 print e
                 # 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
@@ -187,10 +186,11 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
             continue
         for i in range(N):
             try:
-                f = path.feasible_pathflows(g, l[obs[i]], obs[i], eq_constraints=(U,r))
+                f = path.feasible_pathflows(g, l[obs[i]], obs[i], 
+                    with_ODs=withODs, with_cell_paths=True, x_true=f_true, wp_trajs=wp_trajs)
                 # Throw out trials for which any domain error is caught
-                for j in range(U.size[0]):
-                    path.feasible_pathflows(g, l[obs[i]], obs[i], eq_constraints=(U[:j,:],r[:j]))
+                #for j in range(U.size[0]):
+                #    path.feasible_pathflows(g, l[obs[i]], obs[i], eq_constraints=(U[:j,:],r[:j]))
             except (ValueError, UnboundLocalError) as e:
                 print e
                 # 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
@@ -204,14 +204,16 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
         k += 1
         l_error = [err_l(ls[i]) for i in range(numexp)]
         f_error = [err_f(fs[i]) for i in range(numexp)]
+        """
         if withODs:
             print f_error[:N], f_error[N:]
             assert np.all([bo<=od for od,bo in zip(f_error[:N],f_error[N:])]), \
                 'Configurations with both OD+cellpath should be performing ' + \
                 'at least as well as with just OD'
-            # assert np.all([bo<=od for od,bo in zip(l_error[:N],l_error[N:])]), \
-            #     'Configurations with both OD+cellpath should be performing ' + \
-            #     'at least as well as with just OD'
+            assert np.all([bo<=od for od,bo in zip(l_error[:N],l_error[N:])]), \
+                'Configurations with both OD+cellpath should be performing ' + \
+                'at least as well as with just OD'
+        """
         for i in range(numexp):
             l_errors[i].append(l_error[i])
             f_errors[i].append(f_error[i])
@@ -384,8 +386,7 @@ def run_QP_ranks(wp_model=True):
     print dims
     print num_used_paths
 
-
-
+"""
 def display_results():
     wpUE, wpSO, numexp = [], [], 20
     
@@ -399,7 +400,6 @@ def display_results():
     [1.1483087677030059, 0.82533182898227719, 0.60636268805978288, 0.51456244984372768, 0.14581497471693117, 0.059492114381458829, 0.059104490290057786, 0.05894465503090425, 0.058842342409228456, 0.058013646805397355, 0.37696347240777095, 0.17529681601757083, 0.083342390132848776, 0.076665254101201744, 0.071110085862349889, 0.056349843786007867, 0.056083886532416513, 0.054470125532995309, 0.054899201874500848, 0.054824629455407926],
     [1.1912350235200364, 1.0326792696685747, 0.53649916208294324, 0.34858752810027782, 0.23942702155756374, 0.085488017923844195, 0.02361226606521127, 0.021783497124080092, 0.021166547408477936, 0.020756889979621548, 0.43600177494759196, 0.31028001285571416, 0.18459899380698946, 0.1715284937642364, 0.15199896702758214, 0.12089133548007405, 0.12090406910425358, 0.12104478505889275, 0.12106790756823931, 0.12110204148298398],
     [1.1482483686516933, 0.82519566798847754, 0.60631965941413657, 0.51446949634450378, 0.14587394403416559, 0.05950365694191001, 0.059134109040000285, 0.058952758863629759, 0.058851510175906688, 0.058025644276221568, 0.63439519204264572, 0.33969277991431812, 0.15076883943802938, 0.14833805355329982, 0.14150883379752477, 0.11665758340258567, 0.11670044861110981, 0.11714038215342978, 0.11797150327092823, 0.11782244607808127]]
-    """
     list = [[1.1911631306074264, 1.0326002460047061, 0.53642614460666382, 0.34872900130490514, 0.23923569933999683, 0.085452246058788067, 0.02352726964453531, 0.021738678603195331, 0.021092996163994192, 0.020686948031837231, 8.1950040930525527e-07, 8.1903580242208041e-07, 8.1988001991402057e-07, 8.1983260142790491e-07, 8.1975706908470317e-07, 8.1977638825287997e-07, 8.1977378555425437e-07, 8.2014076121620002e-07, 8.1971306468270614e-07, 8.1989344824083702e-07],
     [1.148436774080271, 0.82525790799275955, 0.60642425437999015, 0.51460037018482585, 0.14612762130369858, 0.059859492137331438, 0.059498884211878232, 0.05929892676966949, 0.059194593591231345, 0.05837589416409187, 0.015298565436690512, 0.0020691282391396481, 0.0020802377236021621, 0.0020446736370413805, 0.0020344109706333653, 0.0019040405624723329, 0.0020072422389232313, 0.0020077634325290851, 0.0020079534238409413, 0.0020063415282978924],
     [1.1905957255850586, 1.0319376772851205, 0.53609884278159536, 0.34794440616211608, 0.23835655681233597, 0.084365157214517816, 0.022605139813189373, 0.020782612969124863, 0.02003254891012244, 0.019629620917951472, 0.010467049025574722, 0.0063884967401175458, 0.0066210159578504041, 0.0070210843830951705, 0.0069866274188263881, 0.007045401685077975, 0.0070396672843571883, 0.0070722214878722513, 0.0070641067631039296, 0.0070720851372569919],
@@ -410,7 +410,7 @@ def display_results():
     [1.1481774939317586, 0.82553884546472656, 0.60629425769467571, 0.51472072675389668, 0.14593745107211167, 0.059545729853591564, 0.059172270926414104, 0.059015056869903867, 0.058910279585077621, 0.058109338966537971, 0.28993185952148476, 0.11473524833237217, 0.030290257229892693, 0.030983738898988054, 0.031930471651107364, 0.032277217034677556, 0.033014730477768817, 0.033134037031715365, 0.033210672949525094, 0.03329938383298147],
     [1.191237701041054, 1.0327268907854805, 0.53632485912257266, 0.3484875057512507, 0.23940303508828875, 0.085402852469949941, 0.023641827703683799, 0.021790153178631866, 0.021126183701824945, 0.020805137828906767, 0.084503563444449564, 0.028895138826257862, 0.017959828544788333, 0.020246737920171985, 0.020375669421820071, 0.021118099492220294, 0.020909185894339977, 0.02125558942258501, 0.021300375393050054, 0.021581612735136979],
     [1.1483502839043065, 0.82526150772582818, 0.60638857072423646, 0.51453161172679607, 0.14600387362840994, 0.059730734464464329, 0.059378154514995597, 0.059159805598723657, 0.059057494344170361, 0.058229460783229256, 0.37346286256472488, 0.16161110976560072, 0.02903035760976717, 0.030486840122779517, 0.031484067524785997, 0.033469661525786884, 0.035022919810559744, 0.035400395685706888, 0.035423200965323157, 0.035555433301871525]]
-    """
+    
     for k in range(len(list)):
         if k%2 == 0: wpUE.append(list[k][numexp/2:])
         else: wpSO.append(list[k][numexp/2:])
@@ -466,7 +466,7 @@ def display_results():
     plt.xticks(index2, labels)
     plt.legend(loc=0)
     plt.show()
-
+"""
 
 def display_ranks():
     num_links, num_ods = 122, 42
@@ -517,10 +517,10 @@ def display_results_2():
     # The first 10 entries are with OD flows only
     # The last 10 entries are with an equality constraint too
     D = len(data)
-
     # collect results for UE-type behavior
     results = open('ISTTT_results/ISTTT_results_UE.txt', 'r').readlines()[2*D:]
     results  = [[float(e) for e in r[1:-2].split(', ')] for r in results]
+    print len(results)
     est_UE_wp_woODs = [results[2*i][10:] for i in range(D)] #
     est_UE_wp_wiODs = [results[2*i+1][10:] for i in range(D)]
     est_UE_lf = [results[2*i][:10] for i in range(D)]
@@ -593,8 +593,8 @@ def main():
     #ratio_wptrajs_usedpaths()
 
     # ISTTT experiments:
-    # run_experiments(SO=False, trials=trials)
-    # run_experiments(SO=True, trials=trials)
+    SO = True
+    run_experiments(SO=SO, trials=trials)
     display_results_2()
 
     #run_QP_ranks(False)

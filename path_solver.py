@@ -4,6 +4,9 @@ Created on Jul 23, 2014
 @author: jeromethai
 '''
 
+REG_EPS = 1e-9
+TOL = 1e-5
+
 import ue_solver as ue
 from cvxopt import matrix, spmatrix, spdiag, solvers, div
 import numpy.random as ra
@@ -13,6 +16,11 @@ if logging.getLogger().getEffectiveLevel() >= logging.DEBUG:
     solvers.options['show_progress'] = False
 else:
     solvers.options['show_progress'] = True
+import Waypoints as WP
+import rank_nullspace as rn
+from util import find_basis
+from kktsolver import get_kktsolver
+
 
 
 def linkpath_incidence(graph):
@@ -32,7 +40,7 @@ def linkpath_incidence(graph):
     return spmatrix(entries, I, J)
 
 
-def simplex(graph):
+def path_to_OD_simplex(graph):
     """Construct constraints for feasible path flows
     
     Return value
@@ -88,7 +96,7 @@ def solver(graph, update=False, data=None, SO=False, random=False):
     type = graph.links.values()[0].delayfunc.type
     if data is None:
         P = linkpath_incidence(graph)
-        U,r = simplex(graph)
+        U,r = path_to_OD_simplex(graph)
     else: P,U,r = data
     m = graph.numpaths
     A, b = spmatrix(-1.0, range(m), range(m)), matrix(0.0, (m,1))
@@ -109,34 +117,78 @@ def solver(graph, update=False, data=None, SO=False, random=False):
             return f, Df*P
         f, Df, H = G(P*x, z, parameters, 1)
         return f, Df*P, P.T*H*P    
-    x = solvers.cp(F, G=A, h=b, A=U, b=r)['x']
+    failed = True
+    while failed:
+        x = solvers.cp(F, G=A, h=b, A=U, b=r)['x']
+        l = ue.solver(graph, SO=SO)
+        error = np.linalg.norm(P * x - l,1) / np.linalg.norm(l,1)
+        if error > TOL:
+            print 'error={} > {}, re-compute path_flow'.format(error, TOL)
+        else: failed = False
     if update:
         logging.info('Update link flows, delays in Graph.'); graph.update_linkflows_linkdelays(P*x)
         logging.info('Update path delays in Graph.'); graph.update_pathdelays()
         logging.info('Update path flows in Graph object.'); graph.update_pathflows(x)
-    return x
+    # assert if x is a valid UE/SO
+    return x, l
 
 
 def feasible_pathflows(graph, l_obs, obs=None, update=False,
-                       eq_constraints=None, x_true=None):
+                       with_cell_paths=False, with_ODs=False, x_true=None, wp_trajs=None):
     """Attempts to find feasible pathflows given partial of full linkflows
     
     Parameters:
     ----------
     graph: Graph object
-    l_obs: observations
+    l_obs: observations of link flows
     obs: indices of the observed links
     update: if True, update path flows in graph
+    with_cell_paths: if True, include cell paths as constraints
+    with_ODs: if True, include ODs in the constraints if no with_cell_paths or in the objective if with_cell_paths
     """
-    P, n = linkpath_incidence(graph), graph.numpaths
-    U, r = simplex(graph) if eq_constraints is None else eq_constraints
-    P2 = P[obs,:] if obs is not None else None
+    assert with_cell_paths or with_ODs # we must have some measurements!
+    n = graph.numpaths
+    # route to links flow constraints
+    A, b = linkpath_incidence(graph), l_obs
+    if obs: A = A[obs,:] # trim matrix if we have partial observations
+    Aineq, bineq = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1)) # positive constraints
+    if not with_cell_paths: # if just with ODs flow measurements:
+        Aeq, beq = path_to_OD_simplex(graph) # route to OD flow constraints
+    else: # if we have cellpath flow measurements:
+        assert wp_trajs is not None
+        Aeq, beq = WP.simplex(graph, wp_trajs) # route to cellpath flow constraints
+        if with_ODs: # if we have ODs + cellpaths measurements
+          T, d = path_to_OD_simplex(graph) # route to OD flow constraints included in objective
+          A, b = matrix([A, T]), matrix([b, d]) # add the constraints to the objective
+          if rn.rank(A) < A.size[0]:
+              logging.info('Remove redundant constraint(s)'); ind = find_basis(A.trans())
+              A, b = A[ind,:], b[ind]
+    # assert that the constraints are valid
     if x_true is not None:
-        assert(np.linalg.norm(P2 * x_true - l_obs) < 1e-6, 'Ax!=b')
-        assert(np.linalg.norm(U * x_true - r) < 1e-6, 'Ux!=r')
-    C, d, q = spmatrix(-1.0, range(n), range(n)), matrix(0.0, (n,1)), -P2.trans()*l_obs
-    x = solvers.qp(P2.trans()*P2, q, C, d, U, r)['x']
+        err1 =  np.linalg.norm(A * x_true - b, 1) / np.linalg.norm(b, 1)
+        err2 = np.linalg.norm(Aeq * x_true - beq) / np.linalg.norm(beq, 1)
+        assert err1 < TOL, 'Ax!=b'
+        assert err2 < TOL, 'Aeq x!=beq'
+    # construct objective for cvxopt.solvers.qp
+    Q, c = A.trans()*A, -A.trans()*b
+    #x = solvers.qp(Q + REG_EPS*spmatrix(1.0, range(n), range(n)), c, Aineq, bineq, Aeq, beq)['x']
+    
+    # try with cvxopt.solvers.cp
+    def qp_objective(x=None, z=None):
+      if x is None: return 0, matrix(1.0, (n, 1))
+      f = 0.5 * x.trans()*Q*x + c.trans() * x
+      Df = (Q*x + c).trans()
+      if z is None: return f, Df
+      return f, Df, z[0]*Q
+  
+    dims = {'l': bineq.size[0], 'q': [], 's': []}
+    x = solvers.cp(qp_objective, G=Aineq, h=bineq, A=Aeq, b=beq, 
+        kktsolver=get_kktsolver(Aineq, dims, Aeq, qp_objective))['x']
+      
 
+      
+    
+    
     if update:
         logging.info('Update link flows, delays in Graph.'); graph.update_linkflows_linkdelays(P*x)
         logging.info('Update path delays in Graph.'); graph.update_pathdelays()
