@@ -153,7 +153,13 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, plot=False,
     k = 0
     while k < trials:
         print 'trial', k
-        g, f_true, l, path_wps, wp_trajs, obs = synthetic_data(data, SO, demand, N)
+
+        try:
+            g, f_true, l, path_wps, wp_trajs, obs = synthetic_data(data, SO, demand, N)
+        except UnboundLocalError as e:
+            print e
+            continue
+
         norm_l, norm_f = np.linalg.norm(l, 1), np.linalg.norm(f_true, 1)
         err_f = lambda x: np.linalg.norm(f_true-x, 1) / norm_f
         err_l = lambda x: np.linalg.norm(l-x, 1) / norm_l
@@ -587,7 +593,7 @@ def main():
     np.random.seed(myseed)
     random.seed(myseed)
 
-    trials = 2
+    trials = 10
     #synthetic_data()
     #experiment()
     #ratio_wptrajs_usedpaths()
