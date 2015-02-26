@@ -37,8 +37,10 @@ class Waypoints:
             i = min(int(floor((point[0]-x1)/w)), res[0]-1)
             j = min(int(floor((point[1]-y1)/h)), res[1]-1)
             ids = self.partition[1][(i,j)]
-        else:
-            ids = self.wp.keys() #explore all ids
+            if len(ids) <= 1:
+                #'too few cells for fast search -> extensive search'
+                ids = self.wp.keys()
+        else: ids = self.wp.keys() #explore all ids
         for id in ids:
             d = np.linalg.norm([point[0]-self.wp[id][0], point[1]-self.wp[id][1]])
             if d < min_dist: min_dist, wp_id = d, id

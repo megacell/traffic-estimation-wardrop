@@ -236,7 +236,7 @@ def run_experiments(SO=False, trials=5):
             A.append(a); B.append(b); C.append(c); D.append(d), E.append(e), F.append(f), G.append(g)
             print 'Experiment with data[{}] with ODs'.format(i)
             a, b, c, d, e, f, g = experiment(data[i], SO=SO, withODs=True, data_id=i, trials=trials)
-            A.append(a); B.append(b); C.append(c); D.append(d), E.append(e), F.append(f), G.append(g)
+            A.append(a); B.append(b); C.append(c); D.append(d), F.append(f), G.append(g)
         # Write data to output
         for a in A: out.write('%s\n' % a)  # mean
         for b in B: out.write('%s\n' % b)  # mean
@@ -273,11 +273,11 @@ def display_results():
         est_wp_wiODs = [results[2*i+1][10:] for i in range(D)]
         est_lf = [results[2*i][:10] for i in range(D)]
         
-        for est_wp, str in [(est_wp_woODs, 'cellpath'), (est_wp_wiODs, 'OD+cellpath')]:
+        for est_wp, string in [(est_wp_woODs, 'cellpath'), (est_wp_wiODs, 'OD+cellpath')]:
             plt.plot(index, est_lf[0], '-or', label='With OD flows')
             for i in range(D):
                 plt.plot(index, est_wp[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
-            plt.title('Path flow errors for network in ' + mode + ': OD vs ' + str)
+            plt.title('Path flow errors for network in ' + mode + ': OD vs ' + string)
             plt.xlabel('Percentage of links observed (%)')
             plt.ylabel('Relative error')
             plt.yscale('log')
@@ -293,11 +293,11 @@ def display_results():
         ddl_cellpaths_woODs = [ddls[2*i] for i in range(D)]
         ddl_cellpaths_wiODs = [ddls[2*i+1] for i in range(D)]
         
-        for ddl_wp, str in [(ddl_cellpaths_woODs, 'cellpath'), (ddl_cellpaths_wiODs, 'OD+cellpath')]:
+        for ddl_wp, string in [(ddl_cellpaths_woODs, 'cellpath'), (ddl_cellpaths_wiODs, 'OD+cellpath')]:
             plt.plot(index, [round(r) for r in ddl_ODs], '--r', label='With ODs')
             for i in range(D):
                 plt.plot(index, [round(r) for r in ddl_wp[i]], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
-            plt.title('Degree of freedom for network in ' + mode + ': OD vs ' + str)
+            plt.title('Degree of freedom for network in ' + mode + ': OD vs ' + string)
             plt.xlabel('Percentage of links observed (%)')
             plt.ylabel('Degrees of freedom')
             plt.legend(loc=0)
@@ -306,11 +306,14 @@ def display_results():
     # display ratio of number of cellpaths over number of routes
     labels = [str(num_wp) for num_wp in num_wps]
     labels = labels[::-1]
-    index = range(5)
+    index = range(D)
     ratios1 = open('ISTTT_results/ISTTT_ratio_UE.txt', 'r').readlines()[0]
-    ratios1 = [float(r) for r in ratios1[1:-2].split(', ')]
+    ratios1 = [float(r) for r in ratios1[1:-2].split(', ')][:D]
     ratios2 = open('ISTTT_results/ISTTT_ratio_SO.txt', 'r').readlines()[0]
-    ratios2 = [float(r) for r in ratios2[1:-2].split(', ')]
+    ratios2 = [float(r) for r in ratios2[1:-2].split(', ')][:D]
+    print ratios1
+    print ratios2
+    print index
     plt.plot(index, ratios1[::-1], '-o', label='UE')
     plt.plot(index, ratios2[::-1], '-o', label='SO')
     plt.title('Number of cell paths over number of used paths')
@@ -333,7 +336,7 @@ def main():
 
     # ISTTT experiments:
     SO = True
-    run_experiments(SO=SO, trials=trials)
+    #run_experiments(SO=SO, trials=trials)
     display_results()
 
     #run_QP_ranks(False)
