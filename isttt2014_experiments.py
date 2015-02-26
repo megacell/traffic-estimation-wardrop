@@ -50,8 +50,8 @@ from generate_paths import find_UESOpaths
 from path_solver import linkpath_incidence
 
 data = []
-#data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0))
-#data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (10,5), 2.0))
+data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0))
+data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (10,5), 2.0))
 data.append((10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (8,4), 2.0))
 data.append((5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (4,2), 2.0))
 data.append((3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0))
@@ -140,6 +140,7 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, withODs=False, dat
         except UnboundLocalError as e:
             print e
             continue
+        num_used_paths = len(path_wps)
         mean_ratio += float(len(wp_trajs)) / len(path_wps)
         norm_l, norm_f = np.linalg.norm(l, 1), np.linalg.norm(f_true, 1)
         err_f = lambda x: np.linalg.norm(f_true-x, 1) / norm_f
@@ -152,7 +153,7 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, withODs=False, dat
         for i in range(N):
             try:
                 f, rank, dim = path.feasible_pathflows(g, l[obs[i]], obs[i], with_ODs=True, x_true=f_true)
-                ddl_ODs[i].append(dim - rank)
+                ddl_ODs[i].append(num_used_paths - rank)
             except (ValueError, UnboundLocalError) as e:
                 print e
                 # 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
@@ -167,7 +168,7 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, withODs=False, dat
             try:
                 f, rank, dim = path.feasible_pathflows(g, l[obs[i]], obs[i], 
                     with_ODs=withODs, with_cell_paths=True, x_true=f_true, wp_trajs=wp_trajs)
-                ddl_cellpaths[i].append(dim - rank)
+                ddl_cellpaths[i].append(num_used_paths - rank)
                 # Throw out trials for which any domain error is caught
                 #for j in range(U.size[0]):
                 #    path.feasible_pathflows(g, l[obs[i]], obs[i], eq_constraints=(U[:j,:],r[:j]))
@@ -333,7 +334,7 @@ def main():
     np.random.seed(myseed)
     random.seed(myseed)
 
-    trials = 5
+    trials = 3
     #synthetic_data()
     #experiment()
     #ratio_wptrajs_usedpaths()
