@@ -397,20 +397,42 @@ def display_results():
 def display_results_2():
     index = [10*i for i in range(1,11)]
     color = ['m', 'c', 'b', 'k', 'g']
-    ddl_so_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-
-    ddl_so_od_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    ddl_so_od = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    ddl_ue_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    ddl_ue_od_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    ddl_ue_od = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    err_so_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    err_so_od_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    err_so_od = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    err_ue_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    err_ue_od_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    err_ue_od = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-   
+       
+    for mode in ['ue', 'so']:
+        ddl_od_cp = open('ISTTT_results/ddl_' + mode + '_od_cp.txt', 'r').readlines()
+        ddl_od = open('ISTTT_results/ddl_' + mode + '_od.txt', 'r').readlines()
+        ddl_cp = open('ISTTT_results/ddl_' + mode + '_cp.txt', 'r').readlines()
+        err_od_cp = open('ISTTT_results/err_' + mode + '_od_cp.txt', 'r').readlines()
+        err_od = open('ISTTT_results/err_' + mode + '_od.txt', 'r').readlines()
+        err_cp = open('ISTTT_results/err_' + mode + '_cp.txt', 'r').readlines()
+        
+        ddl_od_cp  = [[float(e) for e in r[1:-2].split(', ')] for r in ddl_od_cp]
+        ddl_od  = [[float(e) for e in r[1:-2].split(', ')] for r in ddl_od]
+        ddl_cp  = [[float(e) for e in r[1:-2].split(', ')] for r in ddl_cp]
+        err_od_cp  = [[float(e) for e in r[1:-2].split(', ')] for r in err_od_cp]
+        err_od  = [[float(e) for e in r[1:-2].split(', ')] for r in err_od]
+        err_cp  = [[float(e) for e in r[1:-2].split(', ')] for r in err_cp]
+        
+        for err, ddl, string in [(err_cp, ddl_cp, 'cellpath'), (err_od_cp, ddl_od_cp, 'OD+cellpath')]:
+            plt.plot(index, err_od[0], '-or', label='With OD flows')
+            for i in range(D):
+                plt.plot(index, err[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+            plt.title('Path flow errors for network in ' + mode + ': OD vs ' + string)
+            plt.xlabel('Percentage of links observed (%)')
+            plt.ylabel('Relative error')
+            plt.yscale('log')
+            plt.legend(loc=0)
+            plt.show()
+    
+            plt.plot(index, ddl_od[0], '--r', label='With ODs')
+            for i in range(D):
+                plt.plot(index, ddl[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+            plt.title('Degree of freedom for network in ' + mode + ': OD vs ' + string)
+            plt.xlabel('Percentage of links observed (%)')
+            plt.ylabel('Degrees of freedom')
+            plt.legend(loc=0)
+            plt.show()
+    
 
 def main():
     myseed=29347293
@@ -429,7 +451,7 @@ def main():
     
     run_experiments_2(trials=trials)
     #display_results()
-
+    display_results_2()
     #run_QP_ranks(False)
     #display_ranks()
     #display_ratios()
