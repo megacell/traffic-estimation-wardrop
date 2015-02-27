@@ -49,15 +49,21 @@ from generate_graph import los_angeles
 from generate_paths import find_UESOpaths
 from path_solver import linkpath_incidence
 
+theta = matrix([0.0, 0.0, 0.0, 0.15])
+# density of cell paths
 data = []
-data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0))
-data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (10,5), 2.0))
+#data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0))
+#data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (10,5), 2.0))
 data.append((10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (8,4), 2.0))
 data.append((5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (4,2), 2.0))
 data.append((3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0))
 # data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
-theta = matrix([0.0, 0.0, 0.0, 0.15])
-
+num_wps = [d[0] + d[1] + d[3][0][1] for d in data]
+D = len(data)
+# N: number of sets of observed links
+# e.g. if N=10, we run experiments with observations from the 10, 20, ..., 100% most occupied links
+N = 10 
+demand = 3
 
 def synthetic_data(data=None, SO=False, demand=3, N=10, path=None):
     """Generate synthetic data for the experiments
@@ -98,6 +104,65 @@ def synthetic_data(data=None, SO=False, demand=3, N=10, path=None):
     return g, f_true, l_true, path_wps, wp_trajs, obs
 
 
+def run_experiments_2(trials):
+    # run all the necessary experiments for ISTTT
+    # this containts the path flow error
+    err_ue_od, err_ue_cp, err_ue_od_cp, err_so_od, err_so_cp, err_so_od_cp = [], [], [], [], [], []
+    # this contains the defree of freedom
+    ddl_ue_od, ddl_ue_cp, ddl_ue_od_cp, ddl_so_od, ddl_so_cp, ddl_so_od_cp = [], [], [], [], [], []
+    # ratio of number of cellpaths over number of used paths
+    ratio_ue, ratio_so = [], []
+    for SO in [False, True]:
+        for j, d in enumerate(data): # different densities of cellpaths
+            print 'data', j
+            k = 0
+            err_cp, err_od_cp, err_od, ddl_cp, ddl_od_cp, ddl_od = [0.]*N,[0.]*N,[0.]*N,[0.]*N,[0.]*N,[0.]*N
+            ratio = 0
+            while k < trials:
+                print 'trial', k
+                g, f, l, path_wps, wp_trajs, observations = synthetic_data(d, SO, demand, N)
+                norm_f = np.linalg.norm(f, 1)
+                ratio += len(wp_trajs)/ len(path_wps)
+                for i, obs in observations.items():
+                    print 'observations', i
+                    # experiments with od
+                    x, rank, dim = path.feasible_pathflows(g, l[obs], obs, with_ODs=True, x_true=f)
+                    e_od, d_od = np.linalg.norm(f-x, 1) / norm_f, dim - rank
+                    # experiments with cp
+                    x, rank, dim = path.feasible_pathflows(g, l[obs], obs, 
+                        with_ODs=False, with_cell_paths=True, x_true=f, wp_trajs=wp_trajs)
+                    e_cp, d_cp = np.linalg.norm(f-x, 1) / norm_f, dim - rank
+                    # experiments with cp+od
+                    x, rank, dim = path.feasible_pathflows(g, l[obs], obs, 
+                        with_ODs=True, with_cell_paths=True, x_true=f, wp_trajs=wp_trajs)
+                    e_od_cp, d_od_cp = np.linalg.norm(f-x, 1) / norm_f, dim - rank
+                    # store data
+                    err_od[i] += e_od; ddl_od[i] += d_od
+                    err_od_cp[i] += e_od_cp; ddl_od_cp[i] += d_od_cp
+                    err_cp[i] += e_cp; ddl_cp[i] += d_cp
+                k += 1
+            if SO:
+                for err_so, err in [(err_so_od, err_od), (err_so_cp, err_cp), (err_so_od_cp, err_od_cp), 
+                    (ddl_so_od, ddl_od), (ddl_so_cp, ddl_cp), (ddl_so_od_cp, ddl_od_cp)]:
+                    err_so.append([e/trials for e in err])
+                ratio_so.append(ratio/trials)
+            else:
+                for err_so, err in [(err_ue_od, err_od), (err_ue_cp, err_cp), (err_ue_od_cp, err_od_cp), 
+                    (ddl_ue_od, ddl_od), (ddl_ue_cp, ddl_cp), (ddl_ue_od_cp, ddl_od_cp)]:
+                    err_so.append([e/trials for e in err])
+                ratio_ue.append(ratio/trials)
+    # write results
+    for output, namefile in zip([err_ue_od, err_ue_cp, err_ue_od_cp, err_so_od, err_so_cp, err_so_od_cp,
+        ddl_ue_od, ddl_ue_cp, ddl_ue_od_cp, ddl_so_od, ddl_so_cp, ddl_so_od_cp], 
+        ['err_ue_od', 'err_ue_cp', 'err_ue_od_cp', 'err_so_od', 'err_so_cp', 'err_so_od_cp',
+        'ddl_ue_od', 'ddl_ue_cp', 'ddl_ue_od_cp', 'ddl_so_od', 'ddl_so_cp', 'ddl_so_od_cp']):
+        with open('ISTTT_results/' + namefile + '.txt', 'w') as out:
+            for e in output: out.write('%s\n' % e)
+    with open('ISTTT_results/ratio.txt', 'w') as out:
+        out.write('%s\n' % ratio_ue)
+        out.write('%s' % ratio_so)
+    
+
 def experiment(data=None, SO=False, trials=5, demand=3, N=10, withODs=False, data_id=None):
     """Run set of experiments
     Steps:
@@ -135,12 +200,7 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, withODs=False, dat
     k = 0
     while k < trials:
         print 'trial', k
-        try:
-            g, f_true, l, path_wps, wp_trajs, obs = synthetic_data(data, SO, demand, N)
-        except UnboundLocalError as e:
-            print e
-            continue
-        num_used_paths = len(path_wps)
+        g, f_true, l, path_wps, wp_trajs, obs = synthetic_data(data, SO, demand, N)
         mean_ratio += float(len(wp_trajs)) / len(path_wps)
         norm_l, norm_f = np.linalg.norm(l, 1), np.linalg.norm(f_true, 1)
         err_f = lambda x: np.linalg.norm(f_true-x, 1) / norm_f
@@ -233,10 +293,12 @@ def run_experiments(SO=False, trials=5):
     N number of sets of observed links
     e.g. if N=10, we run 10 experiments with observations from the 10, 20, ..., 100% most occupied links
     """
-    if SO: ue_or_so = 'SO'
-    else: ue_or_so = 'UE'
+    if SO: mode = 'SO'
+    else: mode = 'UE'
    
-    with open('ISTTT_results/ISTTT_results_' + ue_or_so + '.txt', 'w') as out:
+    #with open('ISTTT/errors_ODs_' + mode + )
+    
+    with open('ISTTT_results/ISTTT_results_' + mode + '.txt', 'w') as out:
         A, B, C, D, E, F, G = [], [], [], [], [], [], []
         for i in range(len(data)):
             print 'Experiment with data[{}] without ODs'.format(i)
@@ -332,23 +394,41 @@ def display_results():
     plt.show()
 
 
+def display_results_2():
+    index = [10*i for i in range(1,11)]
+    color = ['m', 'c', 'b', 'k', 'g']
+    ddl_so_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+
+    ddl_so_od_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+    ddl_so_od = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+    ddl_ue_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+    ddl_ue_od_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+    ddl_ue_od = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+    err_so_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+    err_so_od_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+    err_so_od = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+    err_ue_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+    err_ue_od_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+    err_ue_od = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+   
+
 def main():
     myseed=29347293
     np.random.seed(myseed)
     random.seed(myseed)
 
-    trials = 10
+    trials = 2
     #synthetic_data()
     #experiment()
     #ratio_wptrajs_usedpaths()
 
     # ISTTT experiments:
-    SO = True
+    #SO = True
     
     
     
-    #run_experiments(SO=SO, trials=trials)
-    display_results()
+    run_experiments_2(trials=trials)
+    #display_results()
 
     #run_QP_ranks(False)
     #display_ranks()
