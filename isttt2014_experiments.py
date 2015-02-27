@@ -153,7 +153,7 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, withODs=False, dat
         for i in range(N):
             try:
                 f, rank, dim = path.feasible_pathflows(g, l[obs[i]], obs[i], with_ODs=True, x_true=f_true)
-                ddl_ODs[i].append(num_used_paths - rank)
+                ddl_ODs[i].append(dim - rank)
             except (ValueError, UnboundLocalError) as e:
                 print e
                 # 'Probably your QP is either non-positively defined (for cvxopt_qp you should have xHx > 0 for any x != 0) or very ill-conditioned.'           # __str__ allows args to be printed directly
@@ -168,7 +168,10 @@ def experiment(data=None, SO=False, trials=5, demand=3, N=10, withODs=False, dat
             try:
                 f, rank, dim = path.feasible_pathflows(g, l[obs[i]], obs[i], 
                     with_ODs=withODs, with_cell_paths=True, x_true=f_true, wp_trajs=wp_trajs)
-                ddl_cellpaths[i].append(num_used_paths - rank)
+                ddl_cellpaths[i].append(dim - rank)
+                if data[0] + data[1] + data[3][0][1] == 40:
+                    string = '+OD' if withODs else ''
+                    print 'rank={}, num_obs={}, cellpath'.format(rank, len(obs[i])) + string 
                 # Throw out trials for which any domain error is caught
                 #for j in range(U.size[0]):
                 #    path.feasible_pathflows(g, l[obs[i]], obs[i], eq_constraints=(U[:j,:],r[:j]))
@@ -334,15 +337,18 @@ def main():
     np.random.seed(myseed)
     random.seed(myseed)
 
-    trials = 3
+    trials = 10
     #synthetic_data()
     #experiment()
     #ratio_wptrajs_usedpaths()
 
     # ISTTT experiments:
     SO = True
-    run_experiments(SO=SO, trials=trials)
-    # display_results()
+    
+    
+    
+    #run_experiments(SO=SO, trials=trials)
+    display_results()
 
     #run_QP_ranks(False)
     #display_ranks()

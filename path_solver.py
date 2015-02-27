@@ -185,5 +185,9 @@ def feasible_pathflows(graph, l_obs, obs=None, update=False,
         logging.info('Update link flows, delays in Graph.'); graph.update_linkflows_linkdelays(P*x)
         logging.info('Update path delays in Graph.'); graph.update_pathdelays()
         logging.info('Update path flows in Graph object.'); graph.update_pathflows(x)
+    #import ipdb
+    #rank = 5
+    #if with_ODs == False:
+    #    ipdb.set_trace()
     return x, rn.rank(matrix([A, Aeq])), n
     
