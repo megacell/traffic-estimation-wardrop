@@ -1,3 +1,4 @@
+from future import d
 '''
 Created on Aug 10, 2014
 
@@ -394,23 +395,90 @@ def display_results():
     plt.show()
 
 
-def display_results_2():
+def display_results_temp():
+    to_float = lambda x: [[float(e) for e in r[1:-2].split(', ')] for r in x]
     index = [10*i for i in range(1,11)]
     color = ['m', 'c', 'b', 'k', 'g']
-    ddl_so_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
+    D = len(data)
+    num_wps = [d[0] + d[1] + d[3][0][1] for d in data]
+    ddl_so_cp = to_float(open('ISTTT_results/ddl_so_cp.txt', 'r').readlines())
+    ddl_so_od_cp = to_float(open('ISTTT_results/ddl_so_od_cp.txt', 'r').readlines())
+    ddl_so_od = to_float(open('ISTTT_results/ddl_so_od.txt', 'r').readlines())
+    ddl_ue_cp = to_float(open('ISTTT_results/ddl_ue_cp.txt', 'r').readlines())
+    ddl_ue_od_cp = to_float(open('ISTTT_results/ddl_ue_od_cp.txt', 'r').readlines())
+    ddl_ue_od = to_float(open('ISTTT_results/ddl_ue_od.txt', 'r').readlines())
 
-    ddl_so_od_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    ddl_so_od = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    ddl_ue_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    ddl_ue_od_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    ddl_ue_od = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    err_so_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    err_so_od_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    err_so_od = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    err_ue_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    err_ue_od_cp = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-    err_ue_od = open('ISTTT_results/ddl_so_cp.txt', 'r').readlines()
-   
+    err_so_cp = to_float(open('ISTTT_results/err_so_cp.txt', 'r').readlines())
+    err_so_od_cp = to_float(open('ISTTT_results/err_so_od_cp.txt', 'r').readlines())
+    err_so_od = to_float(open('ISTTT_results/err_so_od.txt', 'r').readlines())
+    err_ue_cp = to_float(open('ISTTT_results/err_ue_cp.txt', 'r').readlines())
+    err_ue_od_cp = to_float(open('ISTTT_results/err_ue_od_cp.txt', 'r').readlines())
+    err_ue_od = to_float(open('ISTTT_results/err_ue_od.txt', 'r').readlines())
+
+    # collect results for UE-type behavior
+    for est_wp, string in [(err_ue_cp, 'cellpath'), (err_ue_od_cp, 'OD+cellpath')]:
+        plt.plot(index, err_ue_od[0], '-or', label='With OD flows')
+        for i in range(D):
+            plt.plot(index, est_wp[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+        plt.title('Path flow errors for network in UE: OD vs ' + string)
+        plt.xlabel('Percentage of links observed (%)')
+        plt.ylabel('Relative error')
+        plt.yscale('log')
+        plt.legend(loc=0)
+        plt.show()
+
+    for est_wp, string in [(err_so_cp, 'cellpath'), (err_so_od_cp, 'OD+cellpath')]:
+        plt.plot(index, err_so_od[0], '-or', label='With OD flows')
+        for i in range(D):
+            plt.plot(index, est_wp[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+        plt.title('Path flow errors for network in SO: OD vs ' + string)
+        plt.xlabel('Percentage of links observed (%)')
+        plt.ylabel('Relative error')
+        plt.yscale('log')
+        plt.legend(loc=0)
+        plt.show()
+
+    # collect ranks for UE-type behavior
+    for ddl_wp, string in [(ddl_ue_cp, 'cellpath'), (ddl_ue_od_cp, 'OD+cellpath')]:
+        plt.plot(index, [round(r) for r in ddl_ue_od[0]], '--r', label='With ODs')
+        for i in range(D):
+            plt.plot(index, [round(r) for r in ddl_wp[i]], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+        plt.title('Degree of freedom for network in UE: OD vs ' + string)
+        plt.xlabel('Percentage of links observed (%)')
+        plt.ylabel('Degrees of freedom')
+        plt.legend(loc=0)
+        plt.show()
+
+    for ddl_wp, string in [(ddl_so_cp, 'cellpath'), (ddl_so_od_cp, 'OD+cellpath')]:
+        plt.plot(index, [round(r) for r in ddl_so_od[0]], '--r', label='With ODs')
+        for i in range(D):
+            plt.plot(index, [round(r) for r in ddl_wp[i]], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+        plt.title('Degree of freedom for network in UE: OD vs ' + string)
+        plt.xlabel('Percentage of links observed (%)')
+        plt.ylabel('Degrees of freedom')
+        plt.legend(loc=0)
+        plt.show()
+
+    # display ratio of number of cellpaths over number of routes
+    labels = [str(num_wp) for num_wp in num_wps]
+    labels = labels[::-1]
+    index = range(D)
+    ratios1 = open('ISTTT_results/ISTTT_ratio_UE.txt', 'r').readlines()[0]
+    ratios1 = [float(r) for r in ratios1[1:-2].split(', ')][:D]
+    ratios2 = open('ISTTT_results/ISTTT_ratio_SO.txt', 'r').readlines()[0]
+    ratios2 = [float(r) for r in ratios2[1:-2].split(', ')][:D]
+    print ratios1
+    print ratios2
+    print index
+    plt.plot(index, ratios1[::-1], '-o', label='UE')
+    plt.plot(index, ratios2[::-1], '-o', label='SO')
+    plt.title('Number of cell paths over number of used paths')
+    plt.xlabel('Number of cells')
+    plt.ylabel('Percentage')
+    plt.xticks(index, labels)
+    plt.legend(loc=0)
+    plt.show()
+
 
 def main():
     myseed=29347293
@@ -427,8 +495,8 @@ def main():
     
     
     
-    run_experiments_2(trials=trials)
-    #display_results()
+    # run_experiments_2(trials=trials)
+    display_results_2()
 
     #run_QP_ranks(False)
     #display_ranks()
