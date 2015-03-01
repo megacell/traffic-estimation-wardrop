@@ -43,11 +43,15 @@ python shortest_paths_test.py
 
 python inverse_opt_test.py
 
-python isttt2014_experiments.py
-
 python ecc2015_experiments.py
 
 python toll_pricing_test.py
+
+ISTTT
+-----
+For reproducing the ISTTT experiments, run the following:
+
+    python isttt2014_experiments.py
 
 Troubleshooting
 --------
