@@ -53,8 +53,8 @@ from path_solver import linkpath_incidence
 theta = matrix([0.0, 0.0, 0.0, 0.15])
 # density of cell paths
 data = []
-#data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0))
-#data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (10,5), 2.0))
+data.append((30, 60, 0.2, [((3.5, 0.5, 6.5, 3.0), 30)], (12,6), 2.0))
+data.append((20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (10,5), 2.0))
 data.append((10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (8,4), 2.0))
 data.append((5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (4,2), 2.0))
 data.append((3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0))
@@ -409,23 +409,30 @@ def display_results_2():
 
         for err, ddl, string in [(err_cp, ddl_cp, 'cellpath'), (err_od_cp, ddl_od_cp, 'OD+cellpath')]:
             plt.plot(index, err_od[0], '-or', label='With OD flows')
+            plt.hold(True)
             for i in range(D):
                 plt.plot(index, err[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
-            plt.title('Path flow errors for network in ' + mode + ': OD vs ' + string)
+            plt.title('Route flow error for network in ' + mode.upper() + ': OD vs ' + string)
             plt.xlabel('Percentage of links observed (%)')
             plt.ylabel('Relative error')
             plt.yscale('log')
             plt.legend(loc=0)
-            plt.show()
-    
-            plt.plot(index, ddl_od[0], '--r', label='With ODs')
-            for i in range(D):
-                plt.plot(index, ddl[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
-            plt.title('Degree of freedom for network in ' + mode + ': OD vs ' + string)
-            plt.xlabel('Percentage of links observed (%)')
-            plt.ylabel('Degrees of freedom')
-            plt.legend(loc=0)
-            plt.show()
+            plt.savefig('ISTTT_results/err_%s_%s.pdf' % (mode,string))
+            plt.hold(False)
+            # plt.show()
+
+        plt.plot(index, ddl_od[0], '--r', label='With ODs')
+        plt.hold(True)
+        for i in range(D):
+            plt.plot(index, ddl_cp[i], '-o'+color[i], label='With {} cells'.format(num_wps[i]))
+            plt.plot(index, ddl_od_cp[i], '--o'+color[i], label=None)
+        plt.title('Degree of freedom for network in ' + mode.upper())
+        plt.xlabel('Percentage of links observed (%)')
+        plt.ylabel('Degrees of freedom')
+        plt.legend(loc=0)
+        plt.savefig('ISTTT_results/ddl_%s.pdf' % (mode))
+        # plt.show()
+        plt.hold(False)
 
     # display ratio of number of cellpaths over number of routes
     labels = [str(num_wp) for num_wp in num_wps]
@@ -436,20 +443,22 @@ def display_results_2():
     ratios_SO = ratios[1]
     print index
     plt.plot(index, ratios_UE[::-1], '-o', label='UE')
+    plt.hold(True)
     plt.plot(index, ratios_SO[::-1], '-o', label='SO')
-    plt.title('Number of cell paths over number of used paths')
+    plt.title('Ratio of cellpaths to used paths')
     plt.xlabel('Number of cells')
     plt.ylabel('Percentage')
     plt.xticks(index, labels)
     plt.legend(loc=0)
-    plt.show()
+    plt.savefig('ISTTT_results/ratio.pdf')
+    # plt.show()
 
 def main():
     myseed=29347293
     np.random.seed(myseed)
     random.seed(myseed)
 
-    trials = 2
+    trials = 100
     #synthetic_data()
     #experiment()
     #ratio_wptrajs_usedpaths()
@@ -457,7 +466,7 @@ def main():
     # ISTTT experiments:
     #SO = True
     
-    # run_experiments_2(trials=trials)
+    run_experiments_2(trials=trials)
     display_results_2()
     #run_QP_ranks(False)
     #display_ranks()
