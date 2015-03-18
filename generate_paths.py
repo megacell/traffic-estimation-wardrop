@@ -11,6 +11,7 @@ from cvxopt import matrix
 from generate_graph import los_angeles
 import shortest_paths as sh
 from path_solver import linkpath_incidence
+import pickle
 
 theta = matrix([0.0, 0.0, 0.0, 0.15])
 
@@ -43,7 +44,7 @@ def get_shortest_paths(g, K):
     return paths
     
 
-def get_paths(SO, K, demand, return_paths=True, ffdelays=False, path=None):
+def get_paths(SO, K, demand, return_paths=True, ffdelays=False, path=None, save_data=False, savepath=None):
     """This experiment does the following tests:
     1. compute the UE/SO link flows using node-link formulation 
     2. get the link delays for the UE/SO link flow
@@ -63,21 +64,37 @@ def get_paths(SO, K, demand, return_paths=True, ffdelays=False, path=None):
     Return value:
     ------------
     """
+    print 'generate graph with demand', demand
     g = los_angeles(theta, 'Polynomial', path=path)[demand]
     if ffdelays: paths = get_shortest_paths(g, K)
+    print 'compute UE'
     l1 = ue.solver(g, update=True, SO=SO)
     d1 = sum([link.delay*link.flow for link in g.links.values()])
     if SO:
         for link in g.links.values():
             link.delay = link.ffdelay*(1+0.75*(link.flow*link.delayfunc.slope)**4)
+    print 'get {} shortest paths'.format(K)
     if not ffdelays: paths = get_shortest_paths(g, K)
     if return_paths: return paths
     for p in paths: g.add_path_from_nodes(p)
     g.visualize(general=True)
+    print 'Generate link-path incidence matrix'
     P = path_solver.linkpath_incidence(g)
-    l2 = P*path_solver.solver(g, update=True, SO=SO)
+    x_true = path_solver.solver(g, update=True, SO=SO)[0]
+    l2 = P*x_true
     d2 = sum([p.delay*p.flow for p in g.paths.values()])
-    print d1,d2
+    if save_data:
+        U, f = path_solver.path_to_OD_simplex(g)
+        if savepath is None: savepath = 'data.pkl'
+        data = {}
+        data['U'] = np.array(matrix(U))
+        data['f'] = np.array(f).flatten()
+        data['A'] = np.array(matrix(P))
+        data['b'] = np.array(l2).flatten()
+        data['x_true'] = np.array(x_true).flatten()
+        pickle.dump( data, open(savepath, "wb" ) )
+    #for i in range(P2.shape[0]):
+    #    print np.sum(P2[i,:])
     return d1,d2,paths
 
 
@@ -164,9 +181,9 @@ def test_feasible_pathflows(SO, demand, random=False):
 
 
 def main():  
-    # d1,d2,paths = get_paths(False, 11, 2, False)
+    d1,d2,paths = get_paths(False, 12, 3, False, save_data=True)
     #find_optimum_K()
-    find_UESOpaths(False, False, True)
+    #find_UESOpaths(False, False, True)
     #test_feasible_pathflows(False, 3, False)
 
 
