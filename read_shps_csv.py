@@ -3,9 +3,10 @@ Created on Aug 7, 2014
 
 @author: jeromethai
 '''
-
+import sys
+sys.path.append("/Library/Frameworks/GDAL.framework/Versions/1.11/Python/2.7/site-packages")
 import networkx as nx
-import graph as g
+import Graph as g
 import gdal
 import csv
 from cvxopt import matrix
@@ -13,6 +14,7 @@ import numpy as np
 import draw_graph as d
 import json
 
+#print gdal.__file__
 
 def read_shapefile(path, delaytype='None', data=None, description=None):
     """Read networkx.DiGraph and return graph.object uses networkx.read_shp
@@ -31,6 +33,7 @@ def read_shapefile(path, delaytype='None', data=None, description=None):
     IDs: {MATSim link ID : graph link ID}
     """
     G = nx.read_shp(path)
+    #import pdb; pdb.set_trace()
     nodes, edges = G.nodes(), G.edges(data=True)
     d = {key:i+1 for i,key in enumerate(nodes)}
     IDs = {int(e[2]['ID']): (d[e[0]], d[e[1]],1) for e in edges}
@@ -129,7 +132,8 @@ def readLAshpsV2():
 
 
 def main():
-    readJson(10)
+    readLAshpsV2()
+    #readJson(10)
 
 
 if __name__ == '__main__':

@@ -162,5 +162,6 @@ class OSM:
 
 if __name__ == '__main__':
     G=read_osm(download_osm(-73.990640,40.761327,-73.955012,40.773763))
+    import pdb; pdb.set_trace()
     plt.plot([G.node[n]['data'].lon for n in G], [G.node[n]['data'].lat for n in G], ',')
     plt.show()
